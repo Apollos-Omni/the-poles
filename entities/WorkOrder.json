@@ -1,0 +1,119 @@
+{
+  "name": "WorkOrder",
+  "type": "object",
+  "properties": {
+    "property_id": {
+      "type": "string",
+      "description": "ID of the property this work order is for"
+    },
+    "title": {
+      "type": "string",
+      "description": "Brief description of the work"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of work to be performed"
+    },
+    "work_category": {
+      "type": "string",
+      "enum": [
+        "electrical",
+        "plumbing",
+        "roofing",
+        "flooring",
+        "painting",
+        "drywall",
+        "hvac",
+        "landscaping",
+        "general"
+      ],
+      "description": "Category of construction work"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "urgent"
+      ],
+      "default": "medium",
+      "description": "Work priority level"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "in_progress",
+        "completed",
+        "on_hold"
+      ],
+      "default": "planned",
+      "description": "Current work order status"
+    },
+    "assigned_participants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Participant IDs assigned to this work"
+    },
+    "supervisor": {
+      "type": "string",
+      "description": "Lead contractor or supervisor overseeing work"
+    },
+    "estimated_hours": {
+      "type": "number",
+      "description": "Estimated hours to complete work"
+    },
+    "actual_hours": {
+      "type": "number",
+      "default": 0,
+      "description": "Actual hours worked"
+    },
+    "hourly_wage": {
+      "type": "number",
+      "default": 15,
+      "description": "Hourly wage paid to participants"
+    },
+    "materials_cost": {
+      "type": "number",
+      "default": 0,
+      "description": "Cost of materials for this work order"
+    },
+    "safety_requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Required safety equipment and protocols"
+    },
+    "quality_checkpoints": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Quality control checkpoints and inspections"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date work is scheduled to begin"
+    },
+    "target_completion_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Target date for completion"
+    },
+    "actual_completion_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Actual completion date"
+    }
+  },
+  "required": [
+    "property_id",
+    "title",
+    "work_category"
+  ]
+}

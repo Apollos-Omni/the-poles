@@ -1,0 +1,42 @@
+{
+  "name": "Order",
+  "type": "object",
+  "properties": {
+    "buyer_user_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "created",
+        "paid",
+        "fulfilled",
+        "canceled",
+        "refunded"
+      ],
+      "default": "created"
+    },
+    "subtotal_cents": {
+      "type": "number"
+    },
+    "tax_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "shipping_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "total_cents": {
+      "type": "number"
+    },
+    "stripe_payment_intent_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "buyer_user_id",
+    "subtotal_cents",
+    "total_cents"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Manifest",
+  "type": "object",
+  "properties": {
+    "game_id": {
+      "type": "string",
+      "description": "ID of the parent game"
+    },
+    "manifest_data": {
+      "type": "object",
+      "description": "The full JSON manifest for a prize match"
+    }
+  },
+  "required": [
+    "game_id",
+    "manifest_data"
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "name": "Fulfillment",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string"
+    },
+    "winner_id": {
+      "type": "string"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "merchant",
+        "agent",
+        "gift_credit"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "processing",
+        "ordered",
+        "shipped",
+        "delivered",
+        "failed"
+      ],
+      "default": "pending"
+    },
+    "retailer_order_id": {
+      "type": "string"
+    },
+    "tracking_number": {
+      "type": "string"
+    },
+    "shipping_address_id": {
+      "type": "string"
+    },
+    "virtual_card_ref": {
+      "type": "string",
+      "description": "Reference to one-time virtual card"
+    },
+    "receipt_url": {
+      "type": "string",
+      "description": "URL to the redacted receipt"
+    }
+  },
+  "required": [
+    "match_id",
+    "winner_id",
+    "mode"
+  ]
+}

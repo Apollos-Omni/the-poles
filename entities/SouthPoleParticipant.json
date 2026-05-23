@@ -1,0 +1,64 @@
+{
+  "name": "SouthPoleParticipant",
+  "type": "object",
+  "properties": {
+    "challenge_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "display_name": {
+      "type": "string"
+    },
+    "skill_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "bio": {
+      "type": "string"
+    },
+    "payment_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "amount_paid_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "result_submission": {
+      "type": "string"
+    },
+    "result_proof_url": {
+      "type": "string"
+    },
+    "score": {
+      "type": "number"
+    },
+    "is_winner": {
+      "type": "boolean",
+      "default": false
+    },
+    "rating_given": {
+      "type": "number"
+    },
+    "review_given": {
+      "type": "string"
+    },
+    "connection_requested": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "challenge_id",
+    "display_name"
+  ]
+}

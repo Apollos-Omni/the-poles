@@ -1,0 +1,55 @@
+{
+  "name": "CampaignPlayer",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "player_name": {
+      "type": "string"
+    },
+    "jersey_number": {
+      "type": "string"
+    },
+    "position": {
+      "type": "string"
+    },
+    "selected_prize_id": {
+      "type": "string"
+    },
+    "selected_prize_snapshot": {
+      "type": "object"
+    },
+    "parental_consent_given": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_winner": {
+      "type": "boolean",
+      "default": false
+    },
+    "prize_fulfillment_status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "pending",
+        "shipped",
+        "delivered"
+      ],
+      "default": "none"
+    },
+    "tracking_number": {
+      "type": "string"
+    },
+    "shipping_address": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "player_name"
+  ]
+}

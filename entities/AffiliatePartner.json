@@ -1,0 +1,103 @@
+{
+  "name": "AffiliatePartner",
+  "type": "object",
+  "properties": {
+    "company_name": {
+      "type": "string",
+      "description": "Company or brand name"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Retail & General Prizes",
+        "Electronics & Gaming",
+        "Sports & Outdoor",
+        "Vacations & Travel",
+        "Event Tickets",
+        "Cruises",
+        "Concerts",
+        "Experiences & Adventures"
+      ]
+    },
+    "description": {
+      "type": "string"
+    },
+    "website_url": {
+      "type": "string",
+      "description": "Main company website URL"
+    },
+    "affiliate_url": {
+      "type": "string",
+      "description": "Approved affiliate tracking URL"
+    },
+    "affiliate_network": {
+      "type": "string",
+      "description": "e.g. Amazon Associates, CJ Affiliate, ShareASale"
+    },
+    "tracking_id": {
+      "type": "string",
+      "description": "Affiliate tracking or publisher ID"
+    },
+    "affiliate_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "applied",
+        "approved",
+        "active",
+        "denied",
+        "inactive",
+        "sponsored",
+        "direct_partner"
+      ],
+      "default": "pending"
+    },
+    "commission_type": {
+      "type": "string",
+      "enum": [
+        "percent",
+        "flat",
+        "cpa",
+        "cpl",
+        "none"
+      ],
+      "default": "none"
+    },
+    "commission_rate": {
+      "type": "string",
+      "description": "e.g. 4%, $10 flat, etc."
+    },
+    "sponsored": {
+      "type": "boolean",
+      "default": false
+    },
+    "supports_north_pole_fund": {
+      "type": "boolean",
+      "default": false
+    },
+    "disclosure_text": {
+      "type": "string"
+    },
+    "logo": {
+      "type": "string",
+      "description": "Emoji or image URL for the partner logo"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "featured": {
+      "type": "boolean",
+      "default": false
+    },
+    "notes": {
+      "type": "string",
+      "description": "Admin notes"
+    }
+  },
+  "required": [
+    "company_name",
+    "category",
+    "website_url"
+  ]
+}

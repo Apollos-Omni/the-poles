@@ -1,0 +1,84 @@
+{
+  "name": "AffiliateOffer",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Product or prize title"
+    },
+    "merchant": {
+      "type": "string",
+      "description": "e.g. Amazon, Walmart, eBay"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Electronics & Gaming",
+        "Sports & Outdoor",
+        "Vacations & Travel",
+        "Event Tickets",
+        "Cruises",
+        "Concerts",
+        "Experiences & Adventures",
+        "Retail & General Prizes",
+        "Kids & Gifts"
+      ],
+      "default": "Retail & General Prizes"
+    },
+    "description": {
+      "type": "string"
+    },
+    "image_url": {
+      "type": "string"
+    },
+    "price_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "price_display": {
+      "type": "string",
+      "description": "Human-readable price like '$49.99'"
+    },
+    "affiliate_url": {
+      "type": "string",
+      "description": "Tracked affiliate link"
+    },
+    "merchant_url": {
+      "type": "string",
+      "description": "Canonical product page (non-affiliate)"
+    },
+    "disclosure_text": {
+      "type": "string",
+      "description": "Per-offer disclosure (overrides global)"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "featured": {
+      "type": "boolean",
+      "default": false
+    },
+    "price_last_checked": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When price/availability was last verified"
+    },
+    "availability": {
+      "type": "string",
+      "enum": [
+        "available",
+        "limited",
+        "unavailable",
+        "unknown"
+      ],
+      "default": "unknown"
+    }
+  },
+  "required": [
+    "title",
+    "merchant",
+    "category",
+    "affiliate_url"
+  ]
+}

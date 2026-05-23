@@ -1,0 +1,18 @@
+{
+  "name": "GameBookmark",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user who bookmarked"
+    },
+    "game_id": {
+      "type": "string",
+      "description": "ID of the bookmarked game"
+    }
+  },
+  "required": [
+    "user_id",
+    "game_id"
+  ]
+}

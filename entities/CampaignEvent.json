@@ -1,0 +1,42 @@
+{
+  "name": "CampaignEvent",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "campaign_created",
+        "player_added",
+        "prize_selected",
+        "contribution_received",
+        "fully_funded",
+        "season_started",
+        "result_submitted",
+        "winner_verified",
+        "admin_approved",
+        "admin_rejected",
+        "fulfillment_started",
+        "prize_shipped",
+        "donation_recorded",
+        "campaign_completed",
+        "campaign_cancelled"
+      ]
+    },
+    "actor_user_id": {
+      "type": "string"
+    },
+    "data": {
+      "type": "object"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "event_type"
+  ]
+}

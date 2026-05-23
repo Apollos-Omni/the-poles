@@ -1,0 +1,97 @@
+{
+  "name": "NorthPoleMatch",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string",
+      "description": "Human-readable match ID like NP-MATCH-0001"
+    },
+    "game_id": {
+      "type": "string",
+      "description": "Game adapter identifier"
+    },
+    "game_snapshot": {
+      "type": "object",
+      "description": "Full game or challenge data snapshot at match creation time"
+    },
+    "prize_id": {
+      "type": "string",
+      "description": "ID of the selected prize (locked before game starts)"
+    },
+    "prize_snapshot": {
+      "type": "object",
+      "description": "Full prize data snapshot at lock time"
+    },
+    "player_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "All player user IDs"
+    },
+    "scores": {
+      "type": "object",
+      "description": "Map of userId -> score"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "open",
+        "active",
+        "completed",
+        "verified",
+        "fulfillment_pending",
+        "fulfilled",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "winner_user_id": {
+      "type": "string",
+      "description": "Verified winner user ID \u2014 set by server logic only"
+    },
+    "winner_locked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when winner was locked"
+    },
+    "raw_result_payload": {
+      "type": "object",
+      "description": "The universal MATCH_RESULT_FINALIZED payload from the game adapter"
+    },
+    "sandbox_mode": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this is a test/sandbox match"
+    },
+    "prize_locked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When prize was locked to this match"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "buy_in_cents": {
+      "type": "number"
+    },
+    "match_plan": {
+      "type": "object",
+      "description": "Locked player count, per-player buy-in, tax, shipping, prize total, and North Pole fund math"
+    },
+    "max_players": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "match_id",
+    "game_id",
+    "prize_id"
+  ]
+}

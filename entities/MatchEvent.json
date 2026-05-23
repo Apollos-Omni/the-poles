@@ -1,0 +1,42 @@
+{
+  "name": "MatchEvent",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string",
+      "description": "Match this event belongs to"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "prize_selected",
+        "match_created",
+        "match_started",
+        "score_submitted",
+        "match_completed",
+        "winner_verified",
+        "fulfillment_created",
+        "admin_approved",
+        "admin_rejected",
+        "prize_sent",
+        "prize_delivered"
+      ]
+    },
+    "actor_user_id": {
+      "type": "string",
+      "description": "Who triggered this event"
+    },
+    "data": {
+      "type": "object",
+      "description": "Event-specific payload"
+    },
+    "note": {
+      "type": "string",
+      "description": "Human-readable note"
+    }
+  },
+  "required": [
+    "match_id",
+    "event_type"
+  ]
+}

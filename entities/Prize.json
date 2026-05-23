@@ -1,0 +1,32 @@
+{
+  "name": "Prize",
+  "type": "object",
+  "properties": {
+    "product_url": {
+      "type": "string",
+      "description": "Source URL of the product"
+    },
+    "price_cents": {
+      "type": "number",
+      "description": "Price of the item after tax and shipping"
+    },
+    "retailer": {
+      "type": "string",
+      "enum": [
+        "amazon",
+        "walmart",
+        "ebay",
+        "custom"
+      ]
+    },
+    "affiliate_meta": {
+      "type": "object",
+      "description": "Affiliate link and tag information"
+    }
+  },
+  "required": [
+    "product_url",
+    "price_cents",
+    "retailer"
+  ]
+}

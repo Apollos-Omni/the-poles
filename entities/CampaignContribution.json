@@ -1,0 +1,61 @@
+{
+  "name": "CampaignContribution",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string"
+    },
+    "contributor_user_id": {
+      "type": "string"
+    },
+    "contributor_name": {
+      "type": "string"
+    },
+    "contributor_type": {
+      "type": "string",
+      "enum": [
+        "parent",
+        "player",
+        "sponsor",
+        "organizer",
+        "other"
+      ],
+      "default": "parent"
+    },
+    "amount_cents": {
+      "type": "number"
+    },
+    "note": {
+      "type": "string"
+    },
+    "payment_method": {
+      "type": "string",
+      "enum": [
+        "sandbox",
+        "card",
+        "check",
+        "cash",
+        "venmo",
+        "other"
+      ],
+      "default": "sandbox"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "confirmed",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "transaction_ref": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "campaign_id",
+    "contributor_name",
+    "amount_cents"
+  ]
+}

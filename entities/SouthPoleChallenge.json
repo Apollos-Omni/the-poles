@@ -1,0 +1,208 @@
+{
+  "name": "SouthPoleChallenge",
+  "type": "object",
+  "properties": {
+    "challenge_id": {
+      "type": "string",
+      "description": "Human-readable ID like SPC-0001"
+    },
+    "creator_user_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "sports",
+        "fitness",
+        "racing",
+        "dance",
+        "music",
+        "art",
+        "cooking",
+        "trivia",
+        "chess",
+        "pool",
+        "fishing",
+        "outdoor_adventure",
+        "talent",
+        "trade_skill",
+        "sales",
+        "social",
+        "community",
+        "custom"
+      ],
+      "default": "custom"
+    },
+    "prize_type": {
+      "type": "string",
+      "enum": [
+        "physical_item",
+        "vacation",
+        "cruise",
+        "event_ticket",
+        "local_experience",
+        "travel_package",
+        "custom_reward",
+        "sponsored_reward",
+        "community_funded"
+      ],
+      "default": "custom_reward"
+    },
+    "prize_title": {
+      "type": "string"
+    },
+    "prize_description": {
+      "type": "string"
+    },
+    "prize_value_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "prize_image_url": {
+      "type": "string"
+    },
+    "num_participants_needed": {
+      "type": "number",
+      "default": 2
+    },
+    "entry_amount_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "north_pole_donation_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "total_goal_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "total_funded_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "location": {
+      "type": "string"
+    },
+    "is_online": {
+      "type": "boolean",
+      "default": false
+    },
+    "challenge_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rules": {
+      "type": "string"
+    },
+    "winning_condition": {
+      "type": "string",
+      "enum": [
+        "highest_score",
+        "fastest_time",
+        "judge_panel",
+        "participant_vote",
+        "creator_decision",
+        "referee",
+        "photo_proof",
+        "video_proof",
+        "gps_checkin",
+        "qr_checkin",
+        "third_party_result",
+        "admin_approval"
+      ],
+      "default": "creator_decision"
+    },
+    "verification_method": {
+      "type": "string",
+      "enum": [
+        "creator_verified",
+        "admin_verified",
+        "referee_judge",
+        "score_submission",
+        "video_proof",
+        "photo_proof",
+        "participant_agreement",
+        "qr_checkin",
+        "gps_checkin",
+        "third_party_upload",
+        "manual_admin"
+      ],
+      "default": "creator_verified"
+    },
+    "min_age": {
+      "type": "number"
+    },
+    "safety_requirements": {
+      "type": "string"
+    },
+    "is_public": {
+      "type": "boolean",
+      "default": true
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "open",
+        "funding_in_progress",
+        "fully_funded",
+        "scheduled",
+        "active",
+        "awaiting_verification",
+        "winner_confirmed",
+        "fulfillment_pending",
+        "donation_recorded",
+        "completed",
+        "cancelled",
+        "refunded"
+      ],
+      "default": "draft"
+    },
+    "winner_user_id": {
+      "type": "string"
+    },
+    "winner_name": {
+      "type": "string"
+    },
+    "winner_notes": {
+      "type": "string"
+    },
+    "admin_approved": {
+      "type": "boolean",
+      "default": false
+    },
+    "admin_notes": {
+      "type": "string"
+    },
+    "donation_recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sandbox_mode": {
+      "type": "boolean",
+      "default": true
+    },
+    "skill_tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cover_image_url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "prize_title",
+    "num_participants_needed",
+    "entry_amount_cents"
+  ]
+}

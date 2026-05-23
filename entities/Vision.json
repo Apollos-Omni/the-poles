@@ -1,0 +1,121 @@
+{
+  "name": "Vision",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Vision/goal title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed vision description"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "personal",
+        "community",
+        "spiritual",
+        "professional",
+        "health",
+        "relationships",
+        "environment",
+        "education"
+      ],
+      "default": "personal",
+      "description": "Vision category"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "active",
+        "paused",
+        "completed",
+        "archived"
+      ],
+      "default": "draft",
+      "description": "Current status of the vision"
+    },
+    "progress": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 0,
+      "description": "Progress percentage (0-100)"
+    },
+    "integrity_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 50,
+      "description": "Integrity score based on proof verification"
+    },
+    "karma_reward": {
+      "type": "number",
+      "default": 10,
+      "description": "Karma points awarded upon completion"
+    },
+    "target_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Target completion date"
+    },
+    "region": {
+      "type": "string",
+      "description": "Geographic region this vision affects"
+    },
+    "why_matters": {
+      "type": "string",
+      "description": "Why this vision matters explanation"
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Supporting sources and references"
+    },
+    "cover_image_url": {
+      "type": "string",
+      "description": "Cover image for the vision"
+    },
+    "likes_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of likes"
+    },
+    "supporters_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of supporters"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "private",
+        "followers",
+        "public"
+      ],
+      "default": "public",
+      "description": "Vision visibility level"
+    },
+    "verification_method": {
+      "type": "string",
+      "enum": [
+        "self_report",
+        "photo_proof",
+        "witness",
+        "third_party",
+        "data_source"
+      ],
+      "default": "photo_proof",
+      "description": "Primary verification method"
+    }
+  },
+  "required": [
+    "title",
+    "description",
+    "category"
+  ]
+}

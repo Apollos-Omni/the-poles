@@ -1,0 +1,55 @@
+{
+  "name": "AuditLog",
+  "type": "object",
+  "properties": {
+    "actor": {
+      "type": "string",
+      "description": "Who performed the action (user:id, agent:name, device:id)"
+    },
+    "action": {
+      "type": "string",
+      "description": "Action performed"
+    },
+    "object": {
+      "type": "string",
+      "description": "Object affected by the action"
+    },
+    "details": {
+      "type": "object",
+      "description": "Additional action details"
+    },
+    "prev_hash": {
+      "type": "string",
+      "description": "Hash of previous log entry for chain integrity"
+    },
+    "hash": {
+      "type": "string",
+      "description": "Hash of this log entry"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "error",
+        "critical"
+      ],
+      "default": "info",
+      "description": "Event severity level"
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "Source IP address"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User agent string"
+    }
+  },
+  "required": [
+    "actor",
+    "action",
+    "object",
+    "hash"
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "name": "SharedLink",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "User who shared the link"
+    },
+    "url": {
+      "type": "string",
+      "description": "Original shared URL"
+    },
+    "canonical_url": {
+      "type": "string",
+      "description": "Cleaned canonical URL"
+    },
+    "retailer": {
+      "type": "string",
+      "description": "Detected retailer"
+    },
+    "product_id": {
+      "type": "string",
+      "description": "Created product ID"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "ios",
+        "android",
+        "web",
+        "extension"
+      ],
+      "description": "Share source"
+    },
+    "url_hash": {
+      "type": "string",
+      "description": "Hash for deduplication"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "resolved",
+        "blocked",
+        "failed",
+        "processing"
+      ],
+      "default": "processing",
+      "description": "Processing status"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error details if failed"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional share context"
+    }
+  },
+  "required": [
+    "user_id",
+    "url",
+    "source",
+    "url_hash"
+  ]
+}

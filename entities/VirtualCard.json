@@ -1,0 +1,56 @@
+{
+  "name": "VirtualCard",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string",
+      "description": "Associated match ID"
+    },
+    "issuer_id": {
+      "type": "string",
+      "description": "Card issuer identifier"
+    },
+    "budget_cents": {
+      "type": "number",
+      "description": "Maximum spend limit"
+    },
+    "card_token": {
+      "type": "string",
+      "description": "Tokenized card reference (never store PAN)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "CREATED",
+        "USED",
+        "EXPIRED",
+        "CANCELLED"
+      ],
+      "default": "CREATED"
+    },
+    "memo": {
+      "type": "string",
+      "description": "Human-readable purpose"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Card expiration"
+    },
+    "spend_cents": {
+      "type": "number",
+      "default": 0,
+      "description": "Amount actually charged"
+    },
+    "masked_pan": {
+      "type": "string",
+      "description": "First 6 and last 4 digits only"
+    }
+  },
+  "required": [
+    "match_id",
+    "issuer_id",
+    "budget_cents",
+    "card_token"
+  ]
+}

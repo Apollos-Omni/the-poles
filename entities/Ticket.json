@@ -1,0 +1,31 @@
+{
+  "name": "Ticket",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string",
+      "description": "ID of the match this ticket is for"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID of the player"
+    },
+    "method": {
+      "type": "string",
+      "enum": [
+        "paid",
+        "amoe"
+      ],
+      "default": "paid"
+    },
+    "payment_token_ref": {
+      "type": "string",
+      "description": "Reference to the PSP's payment token"
+    }
+  },
+  "required": [
+    "match_id",
+    "user_id",
+    "method"
+  ]
+}

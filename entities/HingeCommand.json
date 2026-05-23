@@ -1,0 +1,81 @@
+{
+  "name": "HingeCommand",
+  "type": "object",
+  "properties": {
+    "device_id": {
+      "type": "string",
+      "description": "Target device ID"
+    },
+    "command_type": {
+      "type": "string",
+      "enum": [
+        "LOCK",
+        "UNLOCK",
+        "SNAPSHOT",
+        "VIDEO_CLIP",
+        "CALIBRATE",
+        "RULES_SET",
+        "REBOOT"
+      ],
+      "description": "Type of command"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Unique request identifier"
+    },
+    "issued_by": {
+      "type": "string",
+      "description": "User ID who issued the command"
+    },
+    "args": {
+      "type": "object",
+      "description": "Command-specific arguments"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sent",
+        "acknowledged",
+        "completed",
+        "failed",
+        "timeout"
+      ],
+      "default": "pending",
+      "description": "Command execution status"
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When command was issued"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When command was sent to device"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When command was completed"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error message if command failed"
+    },
+    "ip_address": {
+      "type": "string",
+      "description": "IP address command was issued from"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User agent of issuing client"
+    }
+  },
+  "required": [
+    "device_id",
+    "command_type",
+    "request_id",
+    "issued_by"
+  ]
+}

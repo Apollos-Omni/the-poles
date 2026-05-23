@@ -1,0 +1,50 @@
+{
+  "name": "SweepstakesEntry",
+  "type": "object",
+  "properties": {
+    "sweepstakes_id": {
+      "type": "string",
+      "description": "ID of the sweepstakes"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID of the entering user"
+    },
+    "entry_method": {
+      "type": "string",
+      "enum": [
+        "paid",
+        "amoe"
+      ],
+      "description": "How this entry was submitted"
+    },
+    "amoe_data": {
+      "type": "object",
+      "description": "AMOE submission data (email, mail address, form responses)"
+    },
+    "contribution_amount_cents": {
+      "type": "number",
+      "default": 0,
+      "description": "Optional contribution amount (0 for AMOE entries)"
+    },
+    "entry_hash": {
+      "type": "string",
+      "description": "Unique hash for this entry (for draw verification)"
+    },
+    "verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether entry has been verified as legitimate"
+    },
+    "rate_limit_key": {
+      "type": "string",
+      "description": "Key for rate limiting AMOE entries"
+    }
+  },
+  "required": [
+    "sweepstakes_id",
+    "user_id",
+    "entry_method",
+    "entry_hash"
+  ]
+}

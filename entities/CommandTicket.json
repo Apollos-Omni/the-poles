@@ -1,0 +1,56 @@
+{
+  "name": "CommandTicket",
+  "type": "object",
+  "properties": {
+    "hinge_id": {
+      "type": "string",
+      "description": "Target hinge ID"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User requesting the action"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "open",
+        "close",
+        "lock",
+        "unlock"
+      ],
+      "description": "Requested action"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Ticket expiration timestamp"
+    },
+    "signature": {
+      "type": "string",
+      "description": "GateGuardian cryptographic signature"
+    },
+    "used_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When ticket was consumed"
+    },
+    "risk_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Security risk assessment score"
+    },
+    "mfa_verified": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether MFA was completed"
+    }
+  },
+  "required": [
+    "hinge_id",
+    "user_id",
+    "action",
+    "expires_at",
+    "signature"
+  ]
+}

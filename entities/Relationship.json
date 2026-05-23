@@ -1,0 +1,51 @@
+{
+  "name": "Relationship",
+  "type": "object",
+  "properties": {
+    "user_a_id": {
+      "type": "string",
+      "description": "First user in the relationship"
+    },
+    "user_b_id": {
+      "type": "string",
+      "description": "Second user in the relationship"
+    },
+    "a_can_post_to_b": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user A can post to user B's board"
+    },
+    "b_can_post_to_a": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether user B can post to user A's board"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "none",
+        "requested",
+        "trusted",
+        "blocked"
+      ],
+      "default": "none",
+      "description": "Relationship status"
+    },
+    "relationship_type": {
+      "type": "string",
+      "enum": [
+        "stranger",
+        "acquaintance",
+        "friend",
+        "family",
+        "colleague"
+      ],
+      "default": "stranger",
+      "description": "Type of relationship for context"
+    }
+  },
+  "required": [
+    "user_a_id",
+    "user_b_id"
+  ]
+}

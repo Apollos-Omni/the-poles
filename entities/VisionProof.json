@@ -1,0 +1,92 @@
+{
+  "name": "VisionProof",
+  "type": "object",
+  "properties": {
+    "vision_id": {
+      "type": "string",
+      "description": "ID of the parent vision"
+    },
+    "task_id": {
+      "type": "string",
+      "description": "ID of the related task (optional)"
+    },
+    "milestone_id": {
+      "type": "string",
+      "description": "ID of the related milestone (optional)"
+    },
+    "proof_type": {
+      "type": "string",
+      "enum": [
+        "photo",
+        "video",
+        "link",
+        "receipt",
+        "witness",
+        "document"
+      ],
+      "description": "Type of proof submitted"
+    },
+    "title": {
+      "type": "string",
+      "description": "Proof title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Proof description"
+    },
+    "media_url": {
+      "type": "string",
+      "description": "URL to proof media"
+    },
+    "link_url": {
+      "type": "string",
+      "description": "External link proof"
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": [
+        "unverified",
+        "pending",
+        "verified",
+        "disputed",
+        "rejected"
+      ],
+      "default": "unverified",
+      "description": "Verification status"
+    },
+    "verified_by": {
+      "type": "string",
+      "description": "User ID who verified this proof"
+    },
+    "verified_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When proof was verified"
+    },
+    "location": {
+      "type": "string",
+      "description": "Location where proof was captured"
+    },
+    "witnesses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Witness user IDs"
+    },
+    "file_hash": {
+      "type": "string",
+      "description": "Hash of uploaded file for integrity"
+    },
+    "karma_earned": {
+      "type": "number",
+      "default": 0,
+      "description": "Karma points earned from this proof"
+    }
+  },
+  "required": [
+    "vision_id",
+    "proof_type",
+    "title"
+  ]
+}

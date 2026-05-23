@@ -1,0 +1,67 @@
+{
+  "name": "MediaAsset",
+  "type": "object",
+  "properties": {
+    "device_id": {
+      "type": "string",
+      "description": "Device that captured this media"
+    },
+    "asset_type": {
+      "type": "string",
+      "enum": [
+        "snapshot",
+        "video_clip",
+        "timelapse"
+      ],
+      "description": "Type of media asset"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL to the media file"
+    },
+    "thumbnail_url": {
+      "type": "string",
+      "description": "URL to thumbnail image"
+    },
+    "file_size": {
+      "type": "number",
+      "description": "File size in bytes"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "description": "Duration for video assets"
+    },
+    "width": {
+      "type": "number",
+      "description": "Media width in pixels"
+    },
+    "height": {
+      "type": "number",
+      "description": "Media height in pixels"
+    },
+    "sha256_hash": {
+      "type": "string",
+      "description": "File integrity hash"
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When media was captured"
+    },
+    "trigger_event": {
+      "type": "string",
+      "description": "What triggered the capture (motion, command, schedule)"
+    },
+    "is_public": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether asset is publicly accessible"
+    }
+  },
+  "required": [
+    "device_id",
+    "asset_type",
+    "file_url",
+    "captured_at"
+  ]
+}

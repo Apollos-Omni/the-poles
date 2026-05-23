@@ -1,0 +1,93 @@
+{
+  "name": "PSPTransaction",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string",
+      "description": "Associated match ID"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User making payment"
+    },
+    "provider": {
+      "type": "string",
+      "description": "Payment provider (e.g., 'stripe')"
+    },
+    "amount_cents": {
+      "type": "number",
+      "description": "Transaction amount in cents"
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "payment_token": {
+      "type": "string",
+      "description": "Tokenized payment method (no PAN stored)"
+    },
+    "last4": {
+      "type": "string",
+      "description": "Last 4 digits of the card"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Unique key to prevent duplicate processing"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "authorized",
+        "captured",
+        "failed",
+        "disputed",
+        "refunded"
+      ],
+      "default": "pending"
+    },
+    "psp_reference": {
+      "type": "string",
+      "description": "PSP's transaction reference"
+    },
+    "mcc_code": {
+      "type": "string",
+      "description": "Merchant Category Code"
+    },
+    "region": {
+      "type": "string",
+      "description": "User's region for geo-compliance"
+    },
+    "skill_contest_approval": {
+      "type": "string",
+      "description": "Reference to written approval for pay-to-play"
+    },
+    "dispute_evidence": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs to dispute evidence files"
+    },
+    "fee_cents": {
+      "type": "number",
+      "default": 0,
+      "description": "PSP processing fee"
+    },
+    "avs_result": {
+      "type": "string",
+      "description": "Address Verification System result"
+    },
+    "geo_country": {
+      "type": "string",
+      "description": "Country determined by IP geo-location"
+    }
+  },
+  "required": [
+    "match_id",
+    "user_id",
+    "amount_cents",
+    "payment_token",
+    "idempotency_key"
+  ]
+}

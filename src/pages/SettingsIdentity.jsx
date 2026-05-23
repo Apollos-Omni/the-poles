@@ -1,0 +1,1 @@
+import React from 'react'; import Placeholder from './SettingsPlaceholder'; export default function SettingsIdentity() { return <Placeholder pageName="SettingsIdentity" />; }

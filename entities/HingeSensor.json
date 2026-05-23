@@ -1,0 +1,64 @@
+{
+  "name": "HingeSensor",
+  "type": "object",
+  "properties": {
+    "hinge_id": {
+      "type": "string",
+      "description": "ID of the associated hinge"
+    },
+    "sensor_type": {
+      "type": "string",
+      "enum": [
+        "magnetic_contact",
+        "accelerometer",
+        "tilt",
+        "vibration",
+        "zigbee",
+        "z-wave"
+      ],
+      "default": "magnetic_contact",
+      "description": "Type of sensor hardware"
+    },
+    "sensor_model": {
+      "type": "string",
+      "description": "Hardware model (e.g., Aeotec Door Sensor 7 Pro)"
+    },
+    "mac_address": {
+      "type": "string",
+      "description": "Hardware MAC address for identification"
+    },
+    "battery_level": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Current battery percentage"
+    },
+    "signal_strength": {
+      "type": "number",
+      "description": "Signal strength in dBm"
+    },
+    "last_triggered": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time sensor was triggered"
+    },
+    "trigger_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Total number of triggers"
+    },
+    "is_online": {
+      "type": "boolean",
+      "default": false,
+      "description": "Sensor connectivity status"
+    },
+    "calibration_data": {
+      "type": "object",
+      "description": "Sensor calibration settings"
+    }
+  },
+  "required": [
+    "hinge_id",
+    "sensor_type"
+  ]
+}

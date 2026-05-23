@@ -1,0 +1,79 @@
+{
+  "name": "RetailerConnector",
+  "type": "object",
+  "properties": {
+    "retailer_id": {
+      "type": "string",
+      "description": "Retailer identifier"
+    },
+    "api_type": {
+      "type": "string",
+      "enum": [
+        "amazon_paapi",
+        "walmart_affiliate",
+        "ebay_browse",
+        "official_api"
+      ],
+      "description": "Type of API integration"
+    },
+    "api_credentials_encrypted": {
+      "type": "string",
+      "description": "Encrypted API credentials"
+    },
+    "cache_ttl_minutes": {
+      "type": "number",
+      "default": 30,
+      "description": "Price cache time-to-live"
+    },
+    "price_freshness_policy": {
+      "type": "object",
+      "description": "When to re-price products"
+    },
+    "affiliate_program": {
+      "type": "string",
+      "description": "Affiliate program name"
+    },
+    "affiliate_tag": {
+      "type": "string",
+      "description": "Affiliate tracking tag"
+    },
+    "self_referral_allowed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether self-purchase with affiliate is allowed"
+    },
+    "ftc_disclosure": {
+      "type": "string",
+      "description": "Required FTC disclosure text"
+    },
+    "supported_locales": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Supported country/currency combinations"
+    },
+    "rate_limit_config": {
+      "type": "object",
+      "description": "API rate limiting configuration"
+    },
+    "last_health_check": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "health_status": {
+      "type": "string",
+      "enum": [
+        "healthy",
+        "degraded",
+        "failed"
+      ],
+      "default": "healthy"
+    }
+  },
+  "required": [
+    "retailer_id",
+    "api_type",
+    "cache_ttl_minutes"
+  ]
+}

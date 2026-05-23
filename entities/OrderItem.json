@@ -1,0 +1,31 @@
+{
+  "name": "OrderItem",
+  "type": "object",
+  "properties": {
+    "order_id": {
+      "type": "string"
+    },
+    "product_id": {
+      "type": "string"
+    },
+    "vendor_id": {
+      "type": "string"
+    },
+    "sku": {
+      "type": "string"
+    },
+    "qty": {
+      "type": "number"
+    },
+    "unit_price_cents": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "order_id",
+    "product_id",
+    "vendor_id",
+    "qty",
+    "unit_price_cents"
+  ]
+}

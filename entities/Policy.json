@@ -1,0 +1,31 @@
+{
+  "name": "Policy",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable name for the policy"
+    },
+    "require_mfa": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether Multi-Factor Authentication is required to use this policy"
+    },
+    "auto_lock_seconds": {
+      "type": "number",
+      "default": 30,
+      "description": "Seconds before the door automatically locks after opening"
+    },
+    "allowed_hours": {
+      "type": "object",
+      "description": "JSON object representing the allowed hours range, e.g. {\"start\": 600, \"end\": 2200}"
+    },
+    "geofence": {
+      "type": "object",
+      "description": "JSON object for geofence: {\"lat\": number, \"lon\": number, \"radius\": number_in_meters}"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

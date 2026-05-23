@@ -1,0 +1,71 @@
+{
+  "name": "AutoMatch",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Match title/theme"
+    },
+    "mobile_game_id": {
+      "type": "string",
+      "description": "Pre-selected game"
+    },
+    "product_id": {
+      "type": "string",
+      "description": "Pre-selected product"
+    },
+    "schedule": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "weekly",
+        "monthly",
+        "special"
+      ],
+      "description": "How often this auto-match runs"
+    },
+    "time_slot": {
+      "type": "string",
+      "description": "When to create new instances (e.g., '14:00 UTC')"
+    },
+    "duration_hours": {
+      "type": "number",
+      "default": 24,
+      "description": "How long each instance stays open"
+    },
+    "target_players": {
+      "type": "number",
+      "description": "Target number of players"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "ended"
+      ],
+      "default": "active"
+    },
+    "last_created": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time an instance was created"
+    },
+    "total_instances": {
+      "type": "number",
+      "default": 0,
+      "description": "Total matches created from this template"
+    },
+    "theme": {
+      "type": "string",
+      "description": "Match theme (e.g., 'Weekend Warriors', 'Tech Tuesday')"
+    }
+  },
+  "required": [
+    "title",
+    "mobile_game_id",
+    "product_id",
+    "schedule",
+    "target_players"
+  ]
+}

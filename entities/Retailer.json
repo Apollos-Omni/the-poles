@@ -1,0 +1,84 @@
+{
+  "name": "Retailer",
+  "type": "object",
+  "properties": {
+    "retailer_id": {
+      "type": "string",
+      "description": "Unique retailer identifier"
+    },
+    "name": {
+      "type": "string",
+      "description": "Retailer display name"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "general",
+        "electronics",
+        "fashion",
+        "home",
+        "specialty",
+        "marketplace"
+      ],
+      "description": "Primary retailer category"
+    },
+    "domain": {
+      "type": "string",
+      "description": "Retailer domain (e.g., amazon.com)"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Retailer logo URL"
+    },
+    "api_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether retailer has API integration"
+    },
+    "affiliate_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether affiliate links are supported"
+    },
+    "affiliate_program": {
+      "type": "string",
+      "description": "Affiliate network name (Amazon Associates, etc.)"
+    },
+    "regions_supported": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Supported regions"
+    },
+    "shipping_info": {
+      "type": "object",
+      "description": "Shipping policies and costs"
+    },
+    "return_policy": {
+      "type": "string",
+      "description": "Return policy summary"
+    },
+    "product_categories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Available product categories"
+    },
+    "api_rate_limits": {
+      "type": "object",
+      "description": "API rate limiting info"
+    },
+    "disclosure_requirements": {
+      "type": "string",
+      "description": "Required affiliate disclosure text"
+    }
+  },
+  "required": [
+    "retailer_id",
+    "name",
+    "domain",
+    "category"
+  ]
+}

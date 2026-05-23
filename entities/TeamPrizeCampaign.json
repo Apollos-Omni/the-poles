@@ -1,0 +1,132 @@
+{
+  "name": "TeamPrizeCampaign",
+  "type": "object",
+  "properties": {
+    "campaign_id": {
+      "type": "string",
+      "description": "Human-readable ID like TPC-0001"
+    },
+    "organizer_user_id": {
+      "type": "string"
+    },
+    "team_name": {
+      "type": "string"
+    },
+    "league_or_sport": {
+      "type": "string"
+    },
+    "season_start_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "season_end_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "num_players": {
+      "type": "number"
+    },
+    "winning_condition": {
+      "type": "string",
+      "enum": [
+        "championship_winner",
+        "best_record",
+        "tournament_winner",
+        "playoff_winner",
+        "verified_standings",
+        "admin_approved_outcome"
+      ],
+      "default": "championship_winner"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "funding_open",
+        "fully_funded",
+        "season_active",
+        "awaiting_result_verification",
+        "winner_confirmed",
+        "prize_fulfillment_pending",
+        "prize_shipped",
+        "donation_recorded",
+        "completed",
+        "cancelled"
+      ],
+      "default": "draft"
+    },
+    "total_prize_cost_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "total_tax_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "total_shipping_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "north_pole_donation_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "total_funding_required_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "total_funded_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "contribution_per_participant_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "winner_user_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "winner_team_name": {
+      "type": "string"
+    },
+    "result_notes": {
+      "type": "string"
+    },
+    "admin_approved": {
+      "type": "boolean",
+      "default": false
+    },
+    "admin_notes": {
+      "type": "string"
+    },
+    "donation_recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "donation_amount_cents": {
+      "type": "number",
+      "default": 0
+    },
+    "sandbox_mode": {
+      "type": "boolean",
+      "default": true
+    },
+    "description": {
+      "type": "string"
+    },
+    "cover_image_url": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "team_name",
+    "league_or_sport",
+    "season_start_date",
+    "season_end_date",
+    "num_players",
+    "winning_condition"
+  ]
+}

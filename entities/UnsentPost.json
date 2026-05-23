@@ -1,0 +1,77 @@
+{
+  "name": "UnsentPost",
+  "type": "object",
+  "properties": {
+    "board_id": {
+      "type": "string",
+      "description": "Board where the post is published"
+    },
+    "author_id": {
+      "type": "string",
+      "description": "Author of the post"
+    },
+    "target_user_id": {
+      "type": "string",
+      "description": "Intended recipient if any"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "anonymous",
+        "pseudonymous",
+        "mutuals",
+        "public",
+        "named"
+      ],
+      "default": "mutuals",
+      "description": "Visibility level of the post"
+    },
+    "body": {
+      "type": "string",
+      "description": "Final post content"
+    },
+    "body_hash": {
+      "type": "string",
+      "description": "SHA256 hash of the content for integrity proof"
+    },
+    "proof": {
+      "type": "object",
+      "description": "Cryptographic proof with timestamp and hash"
+    },
+    "intent": {
+      "type": "string",
+      "enum": [
+        "share",
+        "apology",
+        "boundary",
+        "question",
+        "debrief",
+        "gratitude"
+      ],
+      "description": "Intent of the message"
+    },
+    "ai_snapshot": {
+      "type": "object",
+      "description": "AI analysis at publish time"
+    },
+    "is_locked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the post is locked from edits"
+    },
+    "draft_id": {
+      "type": "string",
+      "description": "Original draft ID for audit trail"
+    },
+    "engagement_stats": {
+      "type": "object",
+      "description": "Reactions and engagement metrics"
+    }
+  },
+  "required": [
+    "board_id",
+    "author_id",
+    "body",
+    "body_hash"
+  ]
+}

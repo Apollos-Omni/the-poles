@@ -1,0 +1,60 @@
+{
+  "name": "HingeDevice",
+  "type": "object",
+  "properties": {
+    "device_id": {
+      "type": "string",
+      "description": "Unique device identifier (e.g., abc123)"
+    },
+    "owner_id": {
+      "type": "string",
+      "description": "ID of the user who owns this device"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable device name"
+    },
+    "location": {
+      "type": "string",
+      "description": "Physical location description"
+    },
+    "mqtt_client_id": {
+      "type": "string",
+      "description": "MQTT client identifier"
+    },
+    "firmware_version": {
+      "type": "string",
+      "description": "Current firmware version"
+    },
+    "hardware_revision": {
+      "type": "string",
+      "description": "Hardware revision identifier"
+    },
+    "last_seen_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last heartbeat timestamp"
+    },
+    "enrollment_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When device was first enrolled"
+    },
+    "is_online": {
+      "type": "boolean",
+      "default": false,
+      "description": "Current connectivity status"
+    },
+    "credentials_rotated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last credential rotation timestamp"
+    }
+  },
+  "required": [
+    "device_id",
+    "owner_id",
+    "name",
+    "mqtt_client_id"
+  ]
+}

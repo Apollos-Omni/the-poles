@@ -1,0 +1,74 @@
+{
+  "name": "NotificationLog",
+  "type": "object",
+  "properties": {
+    "target_user_id": {
+      "type": "string",
+      "description": "ID of the user who received the notification"
+    },
+    "sender_user_id": {
+      "type": "string",
+      "description": "ID of the user who triggered the notification"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "push",
+        "email",
+        "sms",
+        "in_app"
+      ],
+      "description": "Type of notification sent"
+    },
+    "title": {
+      "type": "string",
+      "description": "Notification title"
+    },
+    "message": {
+      "type": "string",
+      "description": "Notification message body"
+    },
+    "successful_sends": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of successful deliveries"
+    },
+    "failed_sends": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of failed deliveries"
+    },
+    "data": {
+      "type": "string",
+      "description": "JSON string of additional notification data"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "vision",
+        "hinge",
+        "security",
+        "social",
+        "system"
+      ],
+      "description": "Notification category"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "low",
+        "normal",
+        "high",
+        "urgent"
+      ],
+      "default": "normal",
+      "description": "Notification priority level"
+    }
+  },
+  "required": [
+    "target_user_id",
+    "type",
+    "title",
+    "message"
+  ]
+}

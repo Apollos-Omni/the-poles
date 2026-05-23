@@ -1,0 +1,62 @@
+{
+  "name": "SkillContest",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "ID of the prize product"
+    },
+    "title": {
+      "type": "string",
+      "description": "Title of the skill contest"
+    },
+    "prompt": {
+      "type": "string",
+      "description": "The creative prompt or challenge for entrants"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "OPEN",
+        "JUDGING",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "default": "DRAFT"
+    },
+    "scoring_rubric_url": {
+      "type": "string",
+      "description": "URL to the detailed scoring rubric"
+    },
+    "judges": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "User IDs of the judges"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "max_entries": {
+      "type": "number",
+      "description": "Maximum number of entries allowed (optional)"
+    },
+    "winner_entry_id": {
+      "type": "string",
+      "description": "ID of the winning SkillEntry"
+    }
+  },
+  "required": [
+    "product_id",
+    "title",
+    "prompt",
+    "scoring_rubric_url"
+  ]
+}

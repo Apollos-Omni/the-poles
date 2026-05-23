@@ -1,0 +1,32 @@
+{
+  "name": "Charity",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name of the charity"
+    },
+    "ein": {
+      "type": "string",
+      "description": "Employer Identification Number"
+    },
+    "wallet_or_bank_info": {
+      "type": "object",
+      "description": "Encrypted payment information"
+    },
+    "region_rules": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "public_page_url": {
+      "type": "string",
+      "description": "URL to the charity's public information page"
+    }
+  },
+  "required": [
+    "name",
+    "ein"
+  ]
+}

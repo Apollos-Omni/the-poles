@@ -1,0 +1,78 @@
+{
+  "name": "HingeCamera",
+  "type": "object",
+  "properties": {
+    "hinge_id": {
+      "type": "string",
+      "description": "ID of the associated hinge"
+    },
+    "camera_model": {
+      "type": "string",
+      "enum": [
+        "reolink_e1_pro",
+        "nest_cam",
+        "ubiquiti_g4",
+        "pi_camera",
+        "esp32_cam"
+      ],
+      "description": "Camera hardware model"
+    },
+    "stream_url": {
+      "type": "string",
+      "description": "RTSP or HTTP stream URL"
+    },
+    "recording_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether camera records footage"
+    },
+    "motion_detection": {
+      "type": "boolean",
+      "default": true,
+      "description": "Motion detection enabled"
+    },
+    "night_vision": {
+      "type": "boolean",
+      "default": true,
+      "description": "Night vision capability"
+    },
+    "resolution": {
+      "type": "string",
+      "enum": [
+        "720p",
+        "1080p",
+        "4K"
+      ],
+      "default": "1080p",
+      "description": "Camera resolution"
+    },
+    "is_recording": {
+      "type": "boolean",
+      "default": false,
+      "description": "Currently recording status"
+    },
+    "last_recording": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last recording timestamp"
+    },
+    "storage_location": {
+      "type": "string",
+      "enum": [
+        "local",
+        "cloud",
+        "both"
+      ],
+      "default": "both",
+      "description": "Where recordings are stored"
+    },
+    "webhook_url": {
+      "type": "string",
+      "description": "Webhook for camera events"
+    }
+  },
+  "required": [
+    "hinge_id",
+    "camera_model"
+  ]
+}

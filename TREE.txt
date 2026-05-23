@@ -1,0 +1,492 @@
+HeavenOS_Clean_Corrected_Structure
+├── entities
+│   ├── AffiliateApplication.json
+│   ├── AffiliateClick.json
+│   ├── AffiliateMerchant.json
+│   ├── AffiliateOffer.json
+│   ├── AffiliatePartner.json
+│   ├── AffiliateProduct.json
+│   ├── AuditEvent.json
+│   ├── AuditLog.json
+│   ├── AutoMatch.json
+│   ├── BehaviorEvent.json
+│   ├── Board.json
+│   ├── CampaignContribution.json
+│   ├── CampaignEvent.json
+│   ├── CampaignPlayer.json
+│   ├── Charity.json
+│   ├── CommandTicket.json
+│   ├── CommunityPost.json
+│   ├── ComplianceCheck.json
+│   ├── Device.json
+│   ├── DeviceEnrollment.json
+│   ├── Donation.json
+│   ├── Draft.json
+│   ├── Fulfillment.json
+│   ├── FulfillmentEvent.json
+│   ├── Game.json
+│   ├── GameBookmark.json
+│   ├── GameBuild.json
+│   ├── GameStore.json
+│   ├── Grant.json
+│   ├── GroupBuy.json
+│   ├── GroupBuyPledge.json
+│   ├── Hinge.json
+│   ├── HingeCamera.json
+│   ├── HingeCommand.json
+│   ├── HingeDevice.json
+│   ├── HingeEvent.json
+│   ├── HingeSensor.json
+│   ├── HingeState.json
+│   ├── Inventory.json
+│   ├── Leaderboard.json
+│   ├── Manifest.json
+│   ├── Match.json
+│   ├── MatchEvent.json
+│   ├── MediaAsset.json
+│   ├── Merchant.json
+│   ├── MobileGame.json
+│   ├── NorthPoleFulfillment.json
+│   ├── NorthPoleMatch.json
+│   ├── NotificationLog.json
+│   ├── NotificationSettings.json
+│   ├── Order.json
+│   ├── OrderItem.json
+│   ├── Organization.json
+│   ├── OrganizationMember.json
+│   ├── Participant.json
+│   ├── Policy.json
+│   ├── PostOffer.json
+│   ├── Prize.json
+│   ├── Product.json
+│   ├── ProductBookmark.json
+│   ├── ProductImage.json
+│   ├── Profile.json
+│   ├── Property.json
+│   ├── PSPTransaction.json
+│   ├── Purchase.json
+│   ├── PurchaseOrder.json
+│   ├── PushSubscription.json
+│   ├── Raffle.json
+│   ├── RaffleEntry.json
+│   ├── RaffleProduct.json
+│   ├── Reaction.json
+│   ├── Relationship.json
+│   ├── Retailer.json
+│   ├── RetailerConnector.json
+│   ├── Score.json
+│   ├── SecurityEvent.json
+│   ├── SharedLink.json
+│   ├── SkillContest.json
+│   ├── SkillEntry.json
+│   ├── SocialAccount.json
+│   ├── SouthPoleChallenge.json
+│   ├── SouthPoleEvent.json
+│   ├── SouthPoleParticipant.json
+│   ├── Sweepstakes.json
+│   ├── SweepstakesEntry.json
+│   ├── TeamPrizeCampaign.json
+│   ├── Ticket.json
+│   ├── UnsentPost.json
+│   ├── UnsentReply.json
+│   ├── UserMatch.json
+│   ├── UserPrefs.json
+│   ├── UserStat.json
+│   ├── Vendor.json
+│   ├── VirtualCard.json
+│   ├── VirtualCardPolicy.json
+│   ├── Vision.json
+│   ├── VisionActivity.json
+│   ├── VisionMilestone.json
+│   ├── VisionProof.json
+│   ├── VisionSupporter.json
+│   ├── VisionTask.json
+│   └── WorkOrder.json
+├── functions
+│   ├── affiliateRedirect.ts
+│   ├── createMatch.ts
+│   ├── diagnostics.ts
+│   ├── downloadAgentToolkit.ts
+│   ├── enrollHingeDevice.ts
+│   ├── finalizeMatch.ts
+│   ├── getAuditEvents.ts
+│   ├── getVapidPublicKey.ts
+│   ├── hingeEventWebhook.ts
+│   ├── joinMatch.ts
+│   ├── managePushSubscription.ts
+│   ├── manifest.ts
+│   ├── publishHingeCommand.ts
+│   ├── pwaManifest.ts
+│   ├── pwaStatus.ts
+│   ├── searchPrizes.ts
+│   ├── searchProducts.ts
+│   ├── sendPushNotification.ts
+│   ├── serviceWorker.ts
+│   ├── shareProduct.ts
+│   ├── submitScore.ts
+│   ├── sw.ts
+│   └── testPush.ts
+├── src
+│   ├── api
+│   │   ├── base44Client.js
+│   │   ├── entities.js
+│   │   └── integrations.js
+│   ├── components
+│   │   ├── admin
+│   │   │   └── ProductionMonitor.jsx
+│   │   ├── affiliate-admin
+│   │   │   ├── AffiliateAdminApplications.jsx
+│   │   │   ├── AffiliateAdminClicks.jsx
+│   │   │   ├── AffiliateAdminMerchants.jsx
+│   │   │   └── AffiliateAdminOffers.jsx
+│   │   ├── agents
+│   │   │   └── AgentDoctorToolkit.jsx
+│   │   ├── analytics
+│   │   │   └── Analytics.jsx
+│   │   ├── auth
+│   │   │   ├── AuthProvider.jsx
+│   │   │   └── SessionExpiredModal.jsx
+│   │   ├── command-center
+│   │   │   ├── DoorsTable.jsx
+│   │   │   └── RaffleBoard.jsx
+│   │   ├── creator-portal
+│   │   │   ├── GameForm.jsx
+│   │   │   ├── ManifestBuilder.jsx
+│   │   │   └── MatchDashboard.jsx
+│   │   ├── dashboard
+│   │   │   ├── CommunityFeed.jsx
+│   │   │   ├── DivineAuraDisplay.jsx
+│   │   │   ├── HallwayHomeScreen.jsx
+│   │   │   ├── HingeControlEmbed.jsx
+│   │   │   ├── HingeStatus.jsx
+│   │   │   ├── KarmaOverview.jsx
+│   │   │   ├── QuickActions.jsx
+│   │   │   ├── QuickHingeCreation.jsx
+│   │   │   ├── RecentActivity.jsx
+│   │   │   ├── VisionBoard.jsx
+│   │   │   └── VisionProgress.jsx
+│   │   ├── diagnostics
+│   │   │   ├── CanaryWidget.jsx
+│   │   │   └── PWADoctor.jsx
+│   │   ├── fulfillment
+│   │   │   ├── EnhancedPurchasingAgent.jsx
+│   │   │   ├── FulfillmentDashboard.jsx
+│   │   │   ├── IssuerInterface.jsx
+│   │   │   ├── PurchasingAgentSimulator.jsx
+│   │   │   └── RetailerResolver.jsx
+│   │   ├── gamification
+│   │   │   ├── AuraDisplay.jsx
+│   │   │   └── KarmaBoost.jsx
+│   │   ├── health
+│   │   │   └── HealthCheck.jsx
+│   │   ├── hinge
+│   │   │   ├── AddHingeDialog.jsx
+│   │   │   ├── HingeCard.jsx
+│   │   │   └── HingeDetails.jsx
+│   │   ├── hinge-control
+│   │   │   ├── AddDeviceDialog.jsx
+│   │   │   ├── DeploymentGuide.jsx
+│   │   │   ├── DeviceEnrollmentPanel.jsx
+│   │   │   ├── DeviceStatusPanel.jsx
+│   │   │   ├── EventLogPanel.jsx
+│   │   │   ├── HingeControlCard.jsx
+│   │   │   ├── MediaGallery.jsx
+│   │   │   ├── MqttStatusIndicator.jsx
+│   │   │   └── ProductionModeToggle.jsx
+│   │   ├── hinge-sdk
+│   │   │   ├── adapters
+│   │   │   │   └── .keep
+│   │   │   ├── config.jsx
+│   │   │   ├── hooks.jsx
+│   │   │   └── types.jsx
+│   │   ├── homeowner
+│   │   │   ├── FundingTracker.jsx
+│   │   │   ├── ImpactMetrics.jsx
+│   │   │   ├── ParticipantOverview.jsx
+│   │   │   ├── ProgramStats.jsx
+│   │   │   └── PropertyPortfolio.jsx
+│   │   ├── homeworld
+│   │   │   ├── HomeLayoutEditor.jsx
+│   │   │   ├── HomeLayoutMap.jsx
+│   │   │   └── types.jsx
+│   │   ├── layout
+│   │   │   └── AppSidebar.jsx
+│   │   ├── match-creator
+│   │   │   ├── EbayPrizeBrowser.jsx
+│   │   │   ├── GameBrowser.jsx
+│   │   │   ├── MatchPreview.jsx
+│   │   │   ├── ProductBrowser.jsx
+│   │   │   ├── ProductResolver.jsx
+│   │   │   └── SkillMatchRoom.jsx
+│   │   ├── northpole
+│   │   │   ├── games
+│   │   │   │   └── .keep
+│   │   │   ├── AdminDashboard.jsx
+│   │   │   ├── EbayShopTab.jsx
+│   │   │   ├── GameLobby.jsx
+│   │   │   ├── MatchEventLog.jsx
+│   │   │   ├── MatchResultScreen.jsx
+│   │   │   ├── NorthPoleAffiliateDirectory.jsx
+│   │   │   ├── PrizeSelector.jsx
+│   │   │   └── ShopTab.jsx
+│   │   ├── notifications
+│   │   │   ├── DeepLinkHandler.jsx
+│   │   │   └── NotificationManager.jsx
+│   │   ├── observability
+│   │   │   └── CrashReporter.jsx
+│   │   ├── performance
+│   │   │   └── PerformanceMonitor.jsx
+│   │   ├── poles
+│   │   │   ├── CreateEventFlow.jsx
+│   │   │   ├── demo-data.jsx
+│   │   │   ├── EventMatchCard.jsx
+│   │   │   ├── FriendsTab.jsx
+│   │   │   ├── GameRoomTab.jsx
+│   │   │   ├── MatchDraftBuilder.jsx
+│   │   │   ├── PrizePickerGrid.jsx
+│   │   │   ├── SkillConfidenceAgreement.jsx
+│   │   │   └── UserProfileTab.jsx
+│   │   ├── profile
+│   │   │   ├── AccountInfoTab.jsx
+│   │   │   ├── AccountSetupModal.jsx
+│   │   │   ├── EditProfileModal.jsx
+│   │   │   ├── FavoritesTab.jsx
+│   │   │   ├── HistoryTab.jsx
+│   │   │   ├── PaymentsHub.jsx
+│   │   │   ├── PrizesTab.jsx
+│   │   │   ├── ProfileHeader.jsx
+│   │   │   ├── ProfileStats.jsx
+│   │   │   ├── ProfileTabs.jsx
+│   │   │   ├── SecuritySettings.jsx
+│   │   │   ├── SocialAccountManager.jsx
+│   │   │   └── WallTab.jsx
+│   │   ├── promotions
+│   │   │   ├── GroupBuyCard.jsx
+│   │   │   └── SkillContestCard.jsx
+│   │   ├── pwa
+│   │   │   ├── pushSubscriptionManager.jsx
+│   │   │   ├── ServiceWorkerManager.jsx
+│   │   │   └── swHealth.jsx
+│   │   ├── raffles
+│   │   │   ├── CreateRaffleDialog.jsx
+│   │   │   ├── RaffleEntryModal.jsx
+│   │   │   ├── RaffleGrid.jsx
+│   │   │   └── RaffleStats.jsx
+│   │   ├── security
+│   │   │   ├── AlertsPanel.jsx
+│   │   │   ├── LiveFeedPanel.jsx
+│   │   │   ├── SecureStorage.jsx
+│   │   │   ├── SecurityAuditor.jsx
+│   │   │   ├── SecurityGrid.jsx
+│   │   │   └── SensorStatus.jsx
+│   │   ├── settings
+│   │   │   ├── SearchableSettingsList.jsx
+│   │   │   ├── SettingsHeader.jsx
+│   │   │   ├── SettingsItem.jsx
+│   │   │   ├── SettingsLayout.jsx
+│   │   │   └── SettingsSection.jsx
+│   │   ├── share
+│   │   │   ├── BrowserExtensionDemo.jsx
+│   │   │   ├── EnhancedUrlProcessor.jsx
+│   │   │   └── ShareUrlProcessor.jsx
+│   │   ├── south-pole
+│   │   │   ├── SPAdminPanel.jsx
+│   │   │   ├── SPChallengeCard.jsx
+│   │   │   ├── SPChallengeDetail.jsx
+│   │   │   ├── SPConstants.jsx
+│   │   │   ├── SPCreateChallengeForm.jsx
+│   │   │   ├── SPCreateLeagueForm.jsx
+│   │   │   ├── SPFundingBar.jsx
+│   │   │   ├── SPLeagueCard.jsx
+│   │   │   ├── SPLeagueDashboard.jsx
+│   │   │   ├── SPLeagueGroups.jsx
+│   │   │   ├── SPParticipantsList.jsx
+│   │   │   ├── SPResultSubmission.jsx
+│   │   │   ├── SPRewardLinkChips.jsx
+│   │   │   ├── SPSharePanel.jsx
+│   │   │   └── SPStatusBadge.jsx
+│   │   ├── store
+│   │   │   ├── BundleOffers.jsx
+│   │   │   ├── FaqSection.jsx
+│   │   │   ├── FeatureGrid.jsx
+│   │   │   ├── HeroSection.jsx
+│   │   │   └── TechSpecs.jsx
+│   │   ├── sweepstakes
+│   │   │   └── SweepstakesCard.jsx
+│   │   ├── team-prize
+│   │   │   ├── CampaignAdminPanel.jsx
+│   │   │   ├── CampaignFinancials.jsx
+│   │   │   ├── CampaignStatusBadge.jsx
+│   │   │   ├── ContributionLedger.jsx
+│   │   │   ├── CreateCampaignForm.jsx
+│   │   │   ├── PlayerPrizeSelector.jsx
+│   │   │   ├── prizes.jsx
+│   │   │   └── ResultVerification.jsx
+│   │   ├── ui
+│   │   │   ├── accordion.jsx
+│   │   │   ├── alert-dialog.jsx
+│   │   │   ├── alert.jsx
+│   │   │   ├── aspect-ratio.jsx
+│   │   │   ├── avatar.jsx
+│   │   │   ├── badge.jsx
+│   │   │   ├── breadcrumb.jsx
+│   │   │   ├── button.jsx
+│   │   │   ├── calendar.jsx
+│   │   │   ├── card.jsx
+│   │   │   ├── carousel.jsx
+│   │   │   ├── chart.jsx
+│   │   │   ├── checkbox.jsx
+│   │   │   ├── collapsible.jsx
+│   │   │   ├── command.jsx
+│   │   │   ├── constants.jsx
+│   │   │   ├── context-menu.jsx
+│   │   │   ├── dialog.jsx
+│   │   │   ├── drawer.jsx
+│   │   │   ├── dropdown-menu.jsx
+│   │   │   ├── error-states.jsx
+│   │   │   ├── form.jsx
+│   │   │   ├── hover-card.jsx
+│   │   │   ├── input-otp.jsx
+│   │   │   ├── input.jsx
+│   │   │   ├── integrity-badge.jsx
+│   │   │   ├── label.jsx
+│   │   │   ├── lazy-image.jsx
+│   │   │   ├── loading-states.jsx
+│   │   │   ├── menubar.jsx
+│   │   │   ├── navigation-menu.jsx
+│   │   │   ├── optimized-hooks.jsx
+│   │   │   ├── pagination.jsx
+│   │   │   ├── performance-monitor.jsx
+│   │   │   ├── popover.jsx
+│   │   │   ├── progress.jsx
+│   │   │   ├── radio-group.jsx
+│   │   │   ├── resizable.jsx
+│   │   │   ├── scroll-area.jsx
+│   │   │   ├── select.jsx
+│   │   │   ├── separator.jsx
+│   │   │   ├── sheet.jsx
+│   │   │   ├── sidebar.jsx
+│   │   │   ├── skeleton.jsx
+│   │   │   ├── slider.jsx
+│   │   │   ├── sonner.jsx
+│   │   │   ├── switch.jsx
+│   │   │   ├── table.jsx
+│   │   │   ├── tabs.jsx
+│   │   │   ├── textarea.jsx
+│   │   │   ├── toast.jsx
+│   │   │   ├── toaster.jsx
+│   │   │   ├── toggle-group.jsx
+│   │   │   ├── toggle.jsx
+│   │   │   ├── tooltip.jsx
+│   │   │   ├── use-toast.jsx
+│   │   │   └── virtualized-list.jsx
+│   │   ├── unsent
+│   │   │   ├── BoardView.jsx
+│   │   │   ├── CoolingCard.jsx
+│   │   │   ├── OfferInbox.jsx
+│   │   │   └── UnsentComposer.jsx
+│   │   ├── vision
+│   │   │   ├── ActivityItem.jsx
+│   │   │   ├── ActivityTimeline.jsx
+│   │   │   ├── IntegrityChip.jsx
+│   │   │   ├── LogActivityModal.jsx
+│   │   │   ├── MilestoneList.jsx
+│   │   │   ├── MyVisions.jsx
+│   │   │   ├── ProgressRing.jsx
+│   │   │   ├── ProofUploader.jsx
+│   │   │   ├── VisionCard.jsx
+│   │   │   ├── VisionComposer.jsx
+│   │   │   └── VisionFeed.jsx
+│   │   ├── ProtectedRoute.jsx
+│   │   └── UserNotRegisteredError.jsx
+│   ├── hooks
+│   │   └── use-mobile.jsx
+│   ├── lib
+│   │   ├── northpole
+│   │   │   ├── gameAdapter.js
+│   │   │   └── matchEngine.js
+│   │   ├── app-params.js
+│   │   ├── AuthContext.jsx
+│   │   ├── NavigationTracker.jsx
+│   │   ├── PageNotFound.jsx
+│   │   ├── query-client.js
+│   │   ├── utils.js
+│   │   └── VisualEditAgent.jsx
+│   ├── pages
+│   │   ├── About.jsx
+│   │   ├── AffiliateAdmin.jsx
+│   │   ├── AffiliateCatalog.jsx
+│   │   ├── AffiliateDisclosure.jsx
+│   │   ├── AffiliateOutRedirect.jsx
+│   │   ├── AgentDashboard.jsx
+│   │   ├── Arcade.jsx
+│   │   ├── CommandCenter.jsx
+│   │   ├── ComplianceDashboard.jsx
+│   │   ├── Contact.jsx
+│   │   ├── ContactUs.jsx
+│   │   ├── CreateMatch.jsx
+│   │   ├── CreatorPortal.jsx
+│   │   ├── Dashboard.jsx
+│   │   ├── Diagnostics.jsx
+│   │   ├── Feed.jsx
+│   │   ├── HingeAdmin.jsx
+│   │   ├── HingeControl.jsx
+│   │   ├── Home.jsx
+│   │   ├── HomeLayoutDesigner.jsx
+│   │   ├── HomelessToHomeowner.jsx
+│   │   ├── HomeWorld.jsx
+│   │   ├── MVP.jsx
+│   │   ├── MyHeavenOS.jsx
+│   │   ├── NorthPole.jsx
+│   │   ├── Organizations.jsx
+│   │   ├── PrivacyPolicy.jsx
+│   │   ├── Profile.jsx
+│   │   ├── Promotions.jsx
+│   │   ├── SantaClause.jsx
+│   │   ├── SecurityMonitor.jsx
+│   │   ├── Settings.jsx
+│   │   ├── SettingsAccount.jsx
+│   │   ├── SettingsAppearance.jsx
+│   │   ├── SettingsDangerZone.jsx
+│   │   ├── SettingsData.jsx
+│   │   ├── SettingsIdentity.jsx
+│   │   ├── SettingsIntegrations.jsx
+│   │   ├── SettingsNotifications.jsx
+│   │   ├── SettingsPayments.jsx
+│   │   ├── SettingsPlaceholder.jsx
+│   │   ├── SettingsPrivacy.jsx
+│   │   ├── SettingsProfile.jsx
+│   │   ├── SettingsRegional.jsx
+│   │   ├── SettingsSecurity.jsx
+│   │   ├── SettingsSupport.jsx
+│   │   ├── SouthPole.jsx
+│   │   ├── Store.jsx
+│   │   ├── Sweepstakes.jsx
+│   │   ├── TeamPrizePool.jsx
+│   │   ├── TermsOfUse.jsx
+│   │   ├── ThePoles.jsx
+│   │   ├── Unsent.jsx
+│   │   ├── VisionDetail.jsx
+│   │   └── VisionTracker.jsx
+│   ├── utils
+│   │   └── index.ts
+│   ├── App.css
+│   ├── App.jsx
+│   ├── globals.css
+│   ├── index.css
+│   ├── Layout.jsx
+│   ├── main.jsx
+│   └── pages.config.js
+├── .gitignore
+├── components.json
+├── create-structure.ps1
+├── create-structure.sh
+├── eslint.config.js
+├── index.html
+├── jsconfig.json
+├── package.json
+├── postcss.config.js
+├── README.md
+├── scaffold-manifest.json
+├── tailwind.config.js
+└── vite.config.js

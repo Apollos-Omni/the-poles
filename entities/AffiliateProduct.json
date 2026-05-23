@@ -1,0 +1,66 @@
+{
+  "name": "AffiliateProduct",
+  "type": "object",
+  "properties": {
+    "merchant_id": {
+      "type": "string",
+      "description": "ID of the merchant (Amazon, Walmart, etc.)"
+    },
+    "source_url": {
+      "type": "string",
+      "description": "Original product URL"
+    },
+    "affiliate_url": {
+      "type": "string",
+      "description": "Generated affiliate deep link"
+    },
+    "title": {
+      "type": "string",
+      "description": "Product title from API"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Product image URL"
+    },
+    "price_cents": {
+      "type": "number",
+      "description": "Current price from API (cached with TTL)"
+    },
+    "currency": {
+      "type": "string",
+      "default": "usd"
+    },
+    "asin": {
+      "type": "string",
+      "description": "Amazon ASIN (if Amazon product)"
+    },
+    "sku": {
+      "type": "string",
+      "description": "Merchant SKU/product ID"
+    },
+    "category": {
+      "type": "string",
+      "description": "Product category"
+    },
+    "cached_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When product data was last fetched"
+    },
+    "cache_ttl_hours": {
+      "type": "number",
+      "default": 24,
+      "description": "How long to cache this data (per merchant policy)"
+    },
+    "ftc_disclosure": {
+      "type": "string",
+      "description": "Required FTC disclosure text for this merchant"
+    }
+  },
+  "required": [
+    "merchant_id",
+    "source_url",
+    "title",
+    "price_cents"
+  ]
+}

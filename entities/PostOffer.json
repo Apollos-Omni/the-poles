@@ -1,0 +1,47 @@
+{
+  "name": "PostOffer",
+  "type": "object",
+  "properties": {
+    "post_id": {
+      "type": "string",
+      "description": "Post being offered"
+    },
+    "to_board_id": {
+      "type": "string",
+      "description": "Board where post is offered"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "accepted",
+        "rejected",
+        "revise",
+        "expired"
+      ],
+      "default": "pending",
+      "description": "Offer status"
+    },
+    "reviewer_id": {
+      "type": "string",
+      "description": "Board owner reviewing the offer"
+    },
+    "offer_message": {
+      "type": "string",
+      "description": "Message accompanying the offer"
+    },
+    "reviewer_notes": {
+      "type": "string",
+      "description": "Reviewer's notes or feedback"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the offer expires"
+    }
+  },
+  "required": [
+    "post_id",
+    "to_board_id"
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "name": "AffiliateApplication",
+  "type": "object",
+  "properties": {
+    "program_name": {
+      "type": "string",
+      "description": "Affiliate program name (e.g. Amazon Associates)"
+    },
+    "website_url": {
+      "type": "string",
+      "description": "URL submitted for the application"
+    },
+    "application_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date applied"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "applied",
+        "approved",
+        "denied",
+        "inactive",
+        "not_applied"
+      ],
+      "default": "not_applied"
+    },
+    "login_url": {
+      "type": "string",
+      "description": "Affiliate dashboard login URL"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes"
+    },
+    "denial_reason": {
+      "type": "string",
+      "description": "Reason for denial if denied"
+    },
+    "next_action": {
+      "type": "string",
+      "description": "Next step needed"
+    },
+    "network": {
+      "type": "string",
+      "description": "e.g. CJ Affiliate, ShareASale, Direct"
+    },
+    "commission_estimate": {
+      "type": "string",
+      "description": "e.g. 3-8%, $5 CPA"
+    }
+  },
+  "required": [
+    "program_name",
+    "website_url"
+  ]
+}

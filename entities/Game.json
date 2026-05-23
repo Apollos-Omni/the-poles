@@ -1,0 +1,45 @@
+{
+  "name": "Game",
+  "type": "object",
+  "properties": {
+    "owner_id": {
+      "type": "string",
+      "description": "User ID of the game developer"
+    },
+    "title": {
+      "type": "string",
+      "description": "Title of the game"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_review",
+        "approved",
+        "rejected",
+        "disabled"
+      ],
+      "default": "pending_review"
+    },
+    "age_rating": {
+      "type": "string",
+      "enum": [
+        "E",
+        "T",
+        "M"
+      ],
+      "default": "E"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "skill",
+        "sweepstakes"
+      ],
+      "default": "skill"
+    }
+  },
+  "required": [
+    "owner_id",
+    "title"
+  ]
+}

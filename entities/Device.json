@@ -1,0 +1,62 @@
+{
+  "name": "Device",
+  "type": "object",
+  "properties": {
+    "device_id": {
+      "type": "string",
+      "description": "Unique device identifier"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "hinge",
+        "sensor_hub",
+        "camera",
+        "controller"
+      ],
+      "description": "Type of device"
+    },
+    "public_key": {
+      "type": "string",
+      "description": "Device public key for encryption"
+    },
+    "last_seen": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last communication timestamp"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "online",
+        "offline",
+        "degraded",
+        "maintenance"
+      ],
+      "default": "offline",
+      "description": "Device connectivity status"
+    },
+    "firmware_version": {
+      "type": "string",
+      "description": "Current firmware version"
+    },
+    "battery_level": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Battery percentage (if battery powered)"
+    },
+    "signal_strength": {
+      "type": "number",
+      "description": "Signal strength in dBm"
+    },
+    "location": {
+      "type": "string",
+      "description": "Physical location of device"
+    }
+  },
+  "required": [
+    "device_id",
+    "kind"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "BehaviorEvent",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user"
+    },
+    "type": {
+      "type": "string",
+      "description": "Type of event (e.g., 'report_abuse', 'fair_play')"
+    },
+    "weight": {
+      "type": "number",
+      "description": "Weight or score of the event"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source of the event (e.g., 'system', 'moderator')"
+    },
+    "meta": {
+      "type": "object",
+      "description": "Additional metadata"
+    }
+  },
+  "required": [
+    "user_id",
+    "type",
+    "weight",
+    "source"
+  ]
+}

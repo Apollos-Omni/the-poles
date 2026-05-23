@@ -1,0 +1,70 @@
+{
+  "name": "UserPrefs",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user these preferences belong to"
+    },
+    "theme": {
+      "type": "string",
+      "enum": [
+        "dark",
+        "light",
+        "system"
+      ],
+      "default": "dark"
+    },
+    "font_scale": {
+      "type": "string",
+      "enum": [
+        "system",
+        "s",
+        "m",
+        "l",
+        "xl"
+      ],
+      "default": "system"
+    },
+    "reduce_motion": {
+      "type": "boolean",
+      "default": false
+    },
+    "high_contrast": {
+      "type": "boolean",
+      "default": false
+    },
+    "language": {
+      "type": "string",
+      "default": "en"
+    },
+    "time_format": {
+      "type": "string",
+      "enum": [
+        "system",
+        "12h",
+        "24h"
+      ],
+      "default": "system"
+    },
+    "region_path": {
+      "type": "string"
+    },
+    "profile_visibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "followers",
+        "private"
+      ],
+      "default": "public"
+    },
+    "require_2fa_for_sensitive": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "user_id"
+  ]
+}

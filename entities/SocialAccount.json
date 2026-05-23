@@ -1,0 +1,93 @@
+{
+  "name": "SocialAccount",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user who owns this social account"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "facebook",
+        "instagram",
+        "tiktok",
+        "github",
+        "linkedin",
+        "twitter",
+        "youtube",
+        "discord",
+        "twitch",
+        "snapchat",
+        "pinterest",
+        "reddit"
+      ],
+      "description": "Social media platform"
+    },
+    "username": {
+      "type": "string",
+      "description": "Username/handle on the platform"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Display name on the platform"
+    },
+    "profile_url": {
+      "type": "string",
+      "description": "Full URL to the social profile"
+    },
+    "avatar_url": {
+      "type": "string",
+      "description": "Profile picture URL from the platform"
+    },
+    "follower_count": {
+      "type": "number",
+      "description": "Number of followers (if available)"
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": [
+        "unverified",
+        "pending",
+        "verified",
+        "failed"
+      ],
+      "default": "unverified",
+      "description": "Account ownership verification status"
+    },
+    "verification_token": {
+      "type": "string",
+      "description": "Unique token for ownership verification"
+    },
+    "verification_method": {
+      "type": "string",
+      "enum": [
+        "bio_token",
+        "post_token",
+        "oauth",
+        "email_match"
+      ],
+      "description": "Method used to verify account ownership"
+    },
+    "is_public": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this account should be shown publicly"
+    },
+    "imported_data": {
+      "type": "object",
+      "description": "Any data imported from the platform (posts, bio, etc.)"
+    },
+    "last_synced": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time data was synced from this account"
+    }
+  },
+  "required": [
+    "user_id",
+    "platform",
+    "username",
+    "profile_url"
+  ]
+}

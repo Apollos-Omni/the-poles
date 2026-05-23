@@ -1,0 +1,72 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "retailer_id": {
+      "type": "string",
+      "description": "ID of the retailer (e.g., 'amazon', 'walmart')"
+    },
+    "product_id": {
+      "type": "string",
+      "description": "Retailer-specific product ID (ASIN, SKU, etc.)"
+    },
+    "source_url": {
+      "type": "string",
+      "description": "Original product URL from the retailer"
+    },
+    "title": {
+      "type": "string",
+      "description": "Product title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Product description"
+    },
+    "price_cents": {
+      "type": "number",
+      "description": "Current price in cents"
+    },
+    "price_expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the fetched price becomes stale"
+    },
+    "image_urls": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Product image URLs"
+    },
+    "affiliate_meta": {
+      "type": "object",
+      "description": "Affiliate link and tag information"
+    },
+    "availability": {
+      "type": "string",
+      "enum": [
+        "in_stock",
+        "out_of_stock",
+        "limited",
+        "preorder"
+      ],
+      "default": "in_stock"
+    },
+    "brand": {
+      "type": "string",
+      "description": "Product brand"
+    },
+    "rating": {
+      "type": "number"
+    },
+    "rating_count": {
+      "type": "number"
+    }
+  },
+  "required": [
+    "retailer_id",
+    "source_url",
+    "title",
+    "price_cents"
+  ]
+}

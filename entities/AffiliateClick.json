@@ -1,0 +1,38 @@
+{
+  "name": "AffiliateClick",
+  "type": "object",
+  "properties": {
+    "offer_id": {
+      "type": "string",
+      "description": "ID of the AffiliateOffer clicked"
+    },
+    "offer_title": {
+      "type": "string"
+    },
+    "merchant": {
+      "type": "string"
+    },
+    "affiliate_url": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User ID if logged in"
+    },
+    "source_page": {
+      "type": "string",
+      "description": "Which page/tab triggered the click"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "ip_country": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "offer_id",
+    "merchant",
+    "affiliate_url"
+  ]
+}

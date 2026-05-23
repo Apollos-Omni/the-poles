@@ -1,0 +1,74 @@
+{
+  "name": "Draft",
+  "type": "object",
+  "properties": {
+    "author_id": {
+      "type": "string",
+      "description": "Author of the draft"
+    },
+    "target_user_id": {
+      "type": "string",
+      "description": "Intended recipient (optional)"
+    },
+    "content": {
+      "type": "string",
+      "description": "Raw draft content"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for categorization"
+    },
+    "intent": {
+      "type": "string",
+      "enum": [
+        "share",
+        "apology",
+        "boundary",
+        "question",
+        "debrief",
+        "gratitude"
+      ],
+      "default": "share",
+      "description": "Intent of the message"
+    },
+    "cooling_until": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the cooling period ends"
+    },
+    "ai_analysis": {
+      "type": "object",
+      "description": "AI tone analysis and suggestions"
+    },
+    "ai_rewrites": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "AI-suggested rewrites"
+    },
+    "processing_stage": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "cooling",
+        "ready",
+        "published",
+        "archived"
+      ],
+      "default": "draft",
+      "description": "Current stage in the process"
+    },
+    "reflection_notes": {
+      "type": "string",
+      "description": "User's reflection notes during cooling period"
+    }
+  },
+  "required": [
+    "author_id",
+    "content"
+  ]
+}

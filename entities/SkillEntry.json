@@ -1,0 +1,34 @@
+{
+  "name": "SkillEntry",
+  "type": "object",
+  "properties": {
+    "contest_id": {
+      "type": "string",
+      "description": "ID of the skill contest"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID of the entrant"
+    },
+    "submission_url": {
+      "type": "string",
+      "description": "URL to the submitted media (image, video, document)"
+    },
+    "submission_text": {
+      "type": "string",
+      "description": "Text component of the submission"
+    },
+    "score": {
+      "type": "number",
+      "description": "Final score from judges"
+    },
+    "is_winner": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "contest_id",
+    "user_id"
+  ]
+}

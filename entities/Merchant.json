@@ -1,0 +1,27 @@
+{
+  "name": "Merchant",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Merchant display name"
+    },
+    "domain": {
+      "type": "string",
+      "description": "Merchant domain (e.g., amazon.com)"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Merchant logo URL"
+    },
+    "api_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether merchant has API integration"
+    }
+  },
+  "required": [
+    "name",
+    "domain"
+  ]
+}

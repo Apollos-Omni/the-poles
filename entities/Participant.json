@@ -1,0 +1,87 @@
+{
+  "name": "Participant",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Participant's full name"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Contact phone number"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email address if available"
+    },
+    "current_housing_status": {
+      "type": "string",
+      "enum": [
+        "street",
+        "shelter",
+        "transitional",
+        "temporary",
+        "other"
+      ],
+      "description": "Current housing situation"
+    },
+    "employment_history": {
+      "type": "object",
+      "description": "Previous work experience and skills"
+    },
+    "program_status": {
+      "type": "string",
+      "enum": [
+        "applied",
+        "screening",
+        "active",
+        "graduated",
+        "exited"
+      ],
+      "default": "applied",
+      "description": "Current status in the program"
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Construction/job skills possessed or learned"
+    },
+    "wages_earned": {
+      "type": "number",
+      "default": 0,
+      "description": "Total wages earned through program"
+    },
+    "homeownership_fund": {
+      "type": "number",
+      "default": 0,
+      "description": "Amount saved toward future home purchase"
+    },
+    "case_notes": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Case management notes and progress updates"
+    },
+    "emergency_contact": {
+      "type": "object",
+      "description": "Emergency contact information"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date participant joined program"
+    },
+    "target_graduation_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Estimated program completion date"
+    }
+  },
+  "required": [
+    "full_name",
+    "current_housing_status"
+  ]
+}

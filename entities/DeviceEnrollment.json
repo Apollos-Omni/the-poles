@@ -1,0 +1,49 @@
+{
+  "name": "DeviceEnrollment",
+  "type": "object",
+  "properties": {
+    "enrollment_code": {
+      "type": "string",
+      "description": "One-time enrollment code for device setup"
+    },
+    "device_id": {
+      "type": "string",
+      "description": "Device identifier to be enrolled"
+    },
+    "issued_by": {
+      "type": "string",
+      "description": "User ID who generated the enrollment code"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Expiration timestamp for the enrollment code"
+    },
+    "used_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the code was used (if used)"
+    },
+    "device_info": {
+      "type": "object",
+      "description": "Device information provided during enrollment"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "used",
+        "expired",
+        "revoked"
+      ],
+      "default": "pending",
+      "description": "Current status of enrollment code"
+    }
+  },
+  "required": [
+    "enrollment_code",
+    "device_id",
+    "issued_by",
+    "expires_at"
+  ]
+}

@@ -1,0 +1,106 @@
+{
+  "name": "Grant",
+  "type": "object",
+  "properties": {
+    "grant_name": {
+      "type": "string",
+      "description": "Name of the grant program"
+    },
+    "funding_organization": {
+      "type": "string",
+      "description": "Organization providing the grant"
+    },
+    "grant_type": {
+      "type": "string",
+      "enum": [
+        "federal",
+        "state",
+        "local",
+        "private_foundation",
+        "corporate"
+      ],
+      "description": "Type of grant funding"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Total grant amount available"
+    },
+    "amount_requested": {
+      "type": "number",
+      "description": "Amount requested in application"
+    },
+    "amount_awarded": {
+      "type": "number",
+      "default": 0,
+      "description": "Amount actually awarded"
+    },
+    "application_status": {
+      "type": "string",
+      "enum": [
+        "researching",
+        "preparing",
+        "submitted",
+        "under_review",
+        "awarded",
+        "denied",
+        "withdrawn"
+      ],
+      "default": "researching",
+      "description": "Current status of grant application"
+    },
+    "application_deadline": {
+      "type": "string",
+      "format": "date",
+      "description": "Grant application deadline"
+    },
+    "funding_period": {
+      "type": "object",
+      "description": "Start and end dates for grant funding period"
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Grant requirements and restrictions"
+    },
+    "reporting_requirements": {
+      "type": "object",
+      "description": "Required reporting and compliance obligations"
+    },
+    "contact_person": {
+      "type": "string",
+      "description": "Primary contact at funding organization"
+    },
+    "contact_email": {
+      "type": "string",
+      "description": "Contact email for grant inquiries"
+    },
+    "application_documents": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs to application documents and supporting materials"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes about this grant opportunity"
+    },
+    "submission_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date application was submitted"
+    },
+    "award_notification_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Expected or actual award notification date"
+    }
+  },
+  "required": [
+    "grant_name",
+    "funding_organization",
+    "total_amount"
+  ]
+}

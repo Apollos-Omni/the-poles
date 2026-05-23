@@ -1,0 +1,57 @@
+{
+  "name": "NotificationSettings",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user these settings belong to"
+    },
+    "dnd_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "dnd_start": {
+      "type": "string",
+      "description": "Start time for Do Not Disturb, e.g., '22:00'"
+    },
+    "dnd_end": {
+      "type": "string",
+      "description": "End time for Do Not Disturb, e.g., '07:00'"
+    },
+    "push": {
+      "type": "boolean",
+      "default": true
+    },
+    "email": {
+      "type": "boolean",
+      "default": true
+    },
+    "inapp": {
+      "type": "boolean",
+      "default": true
+    },
+    "vision_activity": {
+      "type": "boolean",
+      "default": true
+    },
+    "support_pledges": {
+      "type": "boolean",
+      "default": true
+    },
+    "community": {
+      "type": "boolean",
+      "default": true
+    },
+    "identity_payments": {
+      "type": "boolean",
+      "default": true
+    },
+    "security": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "user_id"
+  ]
+}

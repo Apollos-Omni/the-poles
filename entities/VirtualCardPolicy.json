@@ -1,0 +1,70 @@
+{
+  "name": "VirtualCardPolicy",
+  "type": "object",
+  "properties": {
+    "card_id": {
+      "type": "string",
+      "description": "Virtual card identifier"
+    },
+    "amount_cap_cents": {
+      "type": "number",
+      "description": "Maximum spend limit"
+    },
+    "mcc_restrictions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Allowed merchant category codes"
+    },
+    "bin_prefix": {
+      "type": "string",
+      "description": "Bank Identification Number prefix"
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "single_use": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether card is single-use"
+    },
+    "merchant_whitelist": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Allowed merchant domains"
+    },
+    "region_restrictions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Geographic restrictions"
+    },
+    "sca_exempt": {
+      "type": "boolean",
+      "default": false,
+      "description": "Strong Customer Authentication exemption"
+    },
+    "three_ds_required": {
+      "type": "boolean",
+      "default": true,
+      "description": "3D Secure requirement"
+    },
+    "webhook_events": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Subscribed webhook events"
+    }
+  },
+  "required": [
+    "card_id",
+    "amount_cap_cents",
+    "expires_at"
+  ]
+}

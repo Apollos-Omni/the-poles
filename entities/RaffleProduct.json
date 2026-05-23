@@ -1,0 +1,55 @@
+{
+  "name": "RaffleProduct",
+  "type": "object",
+  "properties": {
+    "merchant_id": {
+      "type": "string",
+      "description": "ID of the merchant selling this product"
+    },
+    "url": {
+      "type": "string",
+      "description": "Product URL at merchant site"
+    },
+    "title": {
+      "type": "string",
+      "description": "Product title"
+    },
+    "image_url": {
+      "type": "string",
+      "description": "Product image URL"
+    },
+    "price_snapshot_cents": {
+      "type": "number",
+      "description": "Price when raffle was created (in cents)"
+    },
+    "currency": {
+      "type": "string",
+      "default": "usd",
+      "description": "Currency code"
+    },
+    "variant": {
+      "type": "object",
+      "description": "Product variant details (size, color, etc.)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "electronics",
+        "fashion",
+        "home",
+        "sports",
+        "automotive",
+        "gaming",
+        "other"
+      ],
+      "default": "other",
+      "description": "Product category"
+    }
+  },
+  "required": [
+    "merchant_id",
+    "url",
+    "title",
+    "price_snapshot_cents"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "Profile",
+  "type": "object",
+  "properties": {
+    "handle": {
+      "type": "string",
+      "description": "Unique username handle"
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Display name for the user"
+    },
+    "avatar_url": {
+      "type": "string",
+      "description": "Profile avatar image URL"
+    },
+    "integrity_points": {
+      "type": "number",
+      "default": 100,
+      "description": "Karma-like points for healthy communication"
+    },
+    "bridge_credits": {
+      "type": "number",
+      "default": 5,
+      "description": "Credits for mediated exchanges"
+    },
+    "communication_style": {
+      "type": "object",
+      "description": "AI-learned preferences for tone and approach"
+    }
+  },
+  "required": [
+    "handle"
+  ]
+}

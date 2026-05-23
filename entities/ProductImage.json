@@ -1,0 +1,23 @@
+{
+  "name": "ProductImage",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    },
+    "alt": {
+      "type": "string"
+    },
+    "sort": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "product_id",
+    "url"
+  ]
+}

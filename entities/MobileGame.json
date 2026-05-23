@@ -1,0 +1,94 @@
+{
+  "name": "MobileGame",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "Which app store this game is from"
+    },
+    "app_id": {
+      "type": "string",
+      "description": "App store specific ID (bundle ID, package name)"
+    },
+    "title": {
+      "type": "string",
+      "description": "Game title"
+    },
+    "developer": {
+      "type": "string",
+      "description": "Game developer/publisher"
+    },
+    "description": {
+      "type": "string",
+      "description": "Game description"
+    },
+    "category": {
+      "type": "string",
+      "description": "Game category/genre"
+    },
+    "rating": {
+      "type": "number",
+      "description": "Average user rating"
+    },
+    "rating_count": {
+      "type": "number",
+      "description": "Number of ratings"
+    },
+    "icon_url": {
+      "type": "string",
+      "description": "App icon URL"
+    },
+    "screenshots": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Screenshot URLs"
+    },
+    "price": {
+      "type": "string",
+      "description": "Free or price"
+    },
+    "in_app_purchases": {
+      "type": "boolean",
+      "default": false,
+      "description": "Has in-app purchases"
+    },
+    "age_rating": {
+      "type": "string",
+      "description": "Age rating (4+, 12+, 17+, etc.)"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last app update date"
+    },
+    "version": {
+      "type": "string",
+      "description": "Current version"
+    },
+    "size_mb": {
+      "type": "number",
+      "description": "App size in MB"
+    },
+    "compatibility": {
+      "type": "object",
+      "description": "Device/OS compatibility info"
+    },
+    "skill_verifiable": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this game supports skill verification"
+    },
+    "api_integration": {
+      "type": "object",
+      "description": "API hooks for score verification if available"
+    }
+  },
+  "required": [
+    "store_id",
+    "app_id",
+    "title",
+    "developer"
+  ]
+}

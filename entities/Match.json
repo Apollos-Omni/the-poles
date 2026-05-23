@@ -1,0 +1,48 @@
+{
+  "name": "Match",
+  "type": "object",
+  "properties": {
+    "game_id": {
+      "type": "string",
+      "description": "ID of the game being played"
+    },
+    "prize_id": {
+      "type": "string",
+      "description": "ID of the prize being contested"
+    },
+    "min_players": {
+      "type": "number"
+    },
+    "max_players": {
+      "type": "number"
+    },
+    "buy_in_cents": {
+      "type": "number"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "completed",
+        "cancelled"
+      ],
+      "default": "pending"
+    },
+    "starts_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ends_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "game_id",
+    "prize_id",
+    "min_players",
+    "max_players",
+    "buy_in_cents"
+  ]
+}

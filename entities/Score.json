@@ -1,0 +1,28 @@
+{
+  "name": "Score",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "score": {
+      "type": "number"
+    },
+    "meta_json": {
+      "type": "object",
+      "description": "Game-specific metrics like time, deaths, etc."
+    },
+    "proof_hash": {
+      "type": "string",
+      "description": "Hash of replay or other proof data"
+    }
+  },
+  "required": [
+    "match_id",
+    "user_id",
+    "score"
+  ]
+}

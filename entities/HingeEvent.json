@@ -1,0 +1,62 @@
+{
+  "name": "HingeEvent",
+  "type": "object",
+  "properties": {
+    "device_id": {
+      "type": "string",
+      "description": "Device that generated this event"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "STATE",
+        "MOTION",
+        "TAMPER",
+        "SNAPSHOT_OK",
+        "VIDEO_OK",
+        "ERROR",
+        "COMMAND_ACK",
+        "HEARTBEAT"
+      ],
+      "description": "Type of event"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event timestamp from device"
+    },
+    "request_id": {
+      "type": "string",
+      "description": "Request ID for command acknowledgments"
+    },
+    "actor": {
+      "type": "string",
+      "description": "Who/what triggered this event (user ID, system, device)"
+    },
+    "data": {
+      "type": "object",
+      "description": "Event-specific data payload"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "error",
+        "critical"
+      ],
+      "default": "info",
+      "description": "Event severity level"
+    },
+    "processed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether event has been processed by rules engine"
+    }
+  },
+  "required": [
+    "device_id",
+    "event_type",
+    "timestamp"
+  ]
+}

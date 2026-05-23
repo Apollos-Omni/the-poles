@@ -1,0 +1,33 @@
+{
+  "name": "AuditEvent",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "string",
+      "description": "'agent' | 'system' | 'user'"
+    },
+    "stage": {
+      "type": "string",
+      "description": "'PRICE_CHECK' | 'CARD_CREATE' | 'ORDER' | 'TRACKING' | 'EXCEPTION'"
+    },
+    "code": {
+      "type": "string",
+      "description": "normalized code (e.g., PRICE_DRIFT)"
+    },
+    "message": {
+      "type": "string"
+    },
+    "meta": {
+      "type": "object",
+      "default": {}
+    }
+  },
+  "required": [
+    "actor",
+    "stage",
+    "message"
+  ]
+}

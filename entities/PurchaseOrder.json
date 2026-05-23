@@ -1,0 +1,82 @@
+{
+  "name": "PurchaseOrder",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string",
+      "description": "Associated match"
+    },
+    "retailer_order_id": {
+      "type": "string",
+      "description": "Retailer's order confirmation ID"
+    },
+    "retailer_id": {
+      "type": "string",
+      "description": "Which retailer (amazon, walmart, etc.)"
+    },
+    "product_asin": {
+      "type": "string",
+      "description": "Product identifier at retailer"
+    },
+    "item_cents": {
+      "type": "number",
+      "description": "Item cost"
+    },
+    "tax_cents": {
+      "type": "number",
+      "description": "Tax amount"
+    },
+    "shipping_cents": {
+      "type": "number",
+      "description": "Shipping cost"
+    },
+    "total_cents": {
+      "type": "number",
+      "description": "Grand total charged"
+    },
+    "receipt_url": {
+      "type": "string",
+      "description": "Masked receipt (PII redacted)"
+    },
+    "tracking_carrier": {
+      "type": "string",
+      "description": "Shipping carrier"
+    },
+    "tracking_number": {
+      "type": "string",
+      "description": "Tracking number"
+    },
+    "estimated_delivery": {
+      "type": "string",
+      "format": "date",
+      "description": "Expected delivery date"
+    },
+    "order_status": {
+      "type": "string",
+      "enum": [
+        "PLACED",
+        "CONFIRMED",
+        "SHIPPED",
+        "DELIVERED",
+        "CANCELLED"
+      ],
+      "default": "PLACED"
+    },
+    "gift_order": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether ordered as gift to protect winner privacy"
+    },
+    "affiliate_used": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether affiliate link was used"
+    }
+  },
+  "required": [
+    "match_id",
+    "retailer_order_id",
+    "retailer_id",
+    "total_cents"
+  ]
+}

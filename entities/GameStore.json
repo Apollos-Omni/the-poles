@@ -1,0 +1,76 @@
+{
+  "name": "GameStore",
+  "type": "object",
+  "properties": {
+    "store_id": {
+      "type": "string",
+      "description": "Unique identifier for the app store"
+    },
+    "name": {
+      "type": "string",
+      "description": "Display name"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "mobile",
+        "desktop",
+        "console",
+        "vr",
+        "web"
+      ],
+      "description": "Primary platform type"
+    },
+    "api_endpoint": {
+      "type": "string",
+      "description": "Base API URL for the store"
+    },
+    "logo_url": {
+      "type": "string",
+      "description": "Store logo image URL"
+    },
+    "regions_supported": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Geographic regions supported"
+    },
+    "api_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether API integration is active"
+    },
+    "affiliate_program": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether store has affiliate program"
+    },
+    "skill_verification": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether platform supports skill verification APIs"
+    },
+    "age_rating_system": {
+      "type": "string",
+      "enum": [
+        "ESRB",
+        "PEGI",
+        "CERO",
+        "OFLC",
+        "Apple",
+        "Google"
+      ],
+      "description": "Age rating system used"
+    },
+    "store_url_template": {
+      "type": "string",
+      "description": "URL template for deep links"
+    }
+  },
+  "required": [
+    "store_id",
+    "name",
+    "platform"
+  ]
+}

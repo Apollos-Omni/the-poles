@@ -1,0 +1,45 @@
+{
+  "name": "Purchase",
+  "type": "object",
+  "properties": {
+    "raffle_id": {
+      "type": "string",
+      "description": "ID of the associated raffle"
+    },
+    "order_ref": {
+      "type": "string",
+      "description": "Merchant order reference"
+    },
+    "amount_cents": {
+      "type": "number",
+      "description": "Amount paid for the item"
+    },
+    "card_last4": {
+      "type": "string",
+      "description": "Last 4 digits of card used"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "initiated",
+        "placed",
+        "shipped",
+        "delivered",
+        "failed"
+      ],
+      "default": "initiated",
+      "description": "Purchase/fulfillment status"
+    },
+    "tracking": {
+      "type": "object",
+      "description": "Tracking information"
+    },
+    "shipping_to": {
+      "type": "object",
+      "description": "Shipping address details"
+    }
+  },
+  "required": [
+    "raffle_id"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "name": "GroupBuy",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "ID of the product being purchased"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "OPEN",
+        "TIPPED",
+        "PROCESSING",
+        "COMPLETED",
+        "FAILED"
+      ],
+      "default": "OPEN"
+    },
+    "target_participants": {
+      "type": "number",
+      "description": "Number of participants needed to tip the deal"
+    },
+    "current_participants": {
+      "type": "number",
+      "default": 0
+    },
+    "unit_price_cents": {
+      "type": "number",
+      "description": "Original price of the item"
+    },
+    "discounted_price_cents": {
+      "type": "number",
+      "description": "Discounted price for the group"
+    },
+    "deadline": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "product_id",
+    "target_participants",
+    "unit_price_cents",
+    "discounted_price_cents"
+  ]
+}

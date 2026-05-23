@@ -1,0 +1,99 @@
+{
+  "name": "Sweepstakes",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "ID of the product being won"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "OPEN",
+        "LOCKED",
+        "DRAWING",
+        "PURCHASE",
+        "FULFILLMENT",
+        "COMPLETED",
+        "CANCELLED"
+      ],
+      "default": "DRAFT",
+      "description": "Current sweepstakes status"
+    },
+    "suggested_contribution_cents": {
+      "type": "number",
+      "description": "Suggested contribution amount (optional)"
+    },
+    "target_entries": {
+      "type": "number",
+      "description": "Target number of entries to trigger draw"
+    },
+    "current_entries": {
+      "type": "number",
+      "default": 0,
+      "description": "Current number of entries (paid + AMOE)"
+    },
+    "paid_entries": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of paid entries"
+    },
+    "amoe_entries": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of free AMOE entries"
+    },
+    "deadline": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Sweepstakes deadline"
+    },
+    "server_seed_hash": {
+      "type": "string",
+      "description": "Hash of server seed for provable fairness"
+    },
+    "server_seed": {
+      "type": "string",
+      "description": "Server seed (revealed at draw time)"
+    },
+    "chainlink_vrf_request": {
+      "type": "string",
+      "description": "Chainlink VRF request ID for verified randomness"
+    },
+    "winner_entry_id": {
+      "type": "string",
+      "description": "ID of winning entry"
+    },
+    "official_rules_url": {
+      "type": "string",
+      "description": "URL to official rules document"
+    },
+    "eligible_regions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Geographic regions where sweepstakes is legal"
+    },
+    "amoe_method": {
+      "type": "string",
+      "enum": [
+        "mail",
+        "email",
+        "form"
+      ],
+      "default": "form",
+      "description": "Alternative method of entry type"
+    },
+    "draw_proof": {
+      "type": "object",
+      "description": "Cryptographic proof of fair drawing"
+    }
+  },
+  "required": [
+    "product_id",
+    "target_entries",
+    "official_rules_url"
+  ]
+}

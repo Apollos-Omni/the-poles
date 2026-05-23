@@ -1,0 +1,33 @@
+{
+  "name": "GroupBuyPledge",
+  "type": "object",
+  "properties": {
+    "group_buy_id": {
+      "type": "string"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "number",
+      "default": 1
+    },
+    "pledge_status": {
+      "type": "string",
+      "enum": [
+        "ACTIVE",
+        "CHARGED",
+        "REFUNDED",
+        "CANCELLED"
+      ],
+      "default": "ACTIVE"
+    },
+    "payment_intent_id": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "group_buy_id",
+    "user_id"
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "name": "UserMatch",
+  "type": "object",
+  "properties": {
+    "created_by": {
+      "type": "string",
+      "description": "User who created this match"
+    },
+    "game_id": {
+      "type": "string",
+      "description": "Selected mobile game for the match"
+    },
+    "product_id": {
+      "type": "string",
+      "description": "Selected product as prize"
+    },
+    "min_players": {
+      "type": "number"
+    },
+    "max_players": {
+      "type": "number"
+    },
+    "buy_in_cents": {
+      "type": "number",
+      "description": "Calculated buy-in amount"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "open",
+        "active",
+        "judging",
+        "completed",
+        "fulfilled",
+        "cancelled"
+      ],
+      "default": "draft"
+    },
+    "starts_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "ends_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "winners": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of winner user IDs"
+    },
+    "audit_root": {
+      "type": "string",
+      "description": "Merkle root of all scores for auditing"
+    },
+    "rules": {
+      "type": "string",
+      "description": "Custom match rules"
+    },
+    "verification_method": {
+      "type": "string",
+      "enum": [
+        "screenshot",
+        "video",
+        "api",
+        "honor_system"
+      ],
+      "default": "screenshot"
+    }
+  },
+  "required": [
+    "created_by",
+    "game_id",
+    "product_id",
+    "min_players",
+    "max_players"
+  ]
+}

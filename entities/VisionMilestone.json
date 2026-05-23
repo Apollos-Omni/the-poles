@@ -1,0 +1,52 @@
+{
+  "name": "VisionMilestone",
+  "type": "object",
+  "properties": {
+    "vision_id": {
+      "type": "string",
+      "description": "ID of the parent vision"
+    },
+    "title": {
+      "type": "string",
+      "description": "Milestone title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Milestone description"
+    },
+    "target_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Target completion date"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether milestone is completed"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When milestone was completed"
+    },
+    "order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order"
+    },
+    "karma_reward": {
+      "type": "number",
+      "default": 5,
+      "description": "Karma points for completing this milestone"
+    },
+    "verification_required": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether proof is required for completion"
+    }
+  },
+  "required": [
+    "vision_id",
+    "title"
+  ]
+}

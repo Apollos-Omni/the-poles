@@ -1,0 +1,106 @@
+{
+  "name": "Hinge",
+  "type": "object",
+  "properties": {
+    "device_id": {
+      "type": "string",
+      "description": "Unique hinge device identifier"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable name for the hinge"
+    },
+    "location": {
+      "type": "string",
+      "description": "Physical location of the hinge"
+    },
+    "door_image_url": {
+      "type": "string",
+      "description": "URL to door/threshold image"
+    },
+    "door_glyph": {
+      "type": "string",
+      "enum": [
+        "sacred_geometry",
+        "celestial",
+        "nature",
+        "tech",
+        "spiritual"
+      ],
+      "default": "sacred_geometry",
+      "description": "Door aesthetic glyph type"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "online",
+        "offline",
+        "locked",
+        "unlocked",
+        "maintenance"
+      ],
+      "default": "offline",
+      "description": "Current hinge status"
+    },
+    "owner_id": {
+      "type": "string",
+      "description": "ID of the user who owns this hinge"
+    },
+    "access_level": {
+      "type": "string",
+      "enum": [
+        "private",
+        "community",
+        "public"
+      ],
+      "default": "private",
+      "description": "Access level for the hinge"
+    },
+    "karma_reward": {
+      "type": "number",
+      "default": 1,
+      "description": "Karma points awarded for using this hinge"
+    },
+    "total_uses": {
+      "type": "number",
+      "default": 0,
+      "description": "Total number of times this hinge has been used"
+    },
+    "last_used": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time the hinge was used"
+    },
+    "aura_color": {
+      "type": "string",
+      "enum": [
+        "purple",
+        "gold",
+        "silver",
+        "blue",
+        "green",
+        "white"
+      ],
+      "default": "purple",
+      "description": "Aura color for door glow effect"
+    },
+    "coordinates_x": {
+      "type": "number",
+      "description": "X coordinate in 3D world space"
+    },
+    "coordinates_y": {
+      "type": "number",
+      "description": "Y coordinate in 3D world space"
+    },
+    "coordinates_z": {
+      "type": "number",
+      "description": "Z coordinate in 3D world space"
+    }
+  },
+  "required": [
+    "device_id",
+    "name",
+    "location",
+    "owner_id"
+  ]
+}

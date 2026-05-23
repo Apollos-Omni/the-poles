@@ -1,0 +1,58 @@
+{
+  "name": "UnsentReply",
+  "type": "object",
+  "properties": {
+    "post_id": {
+      "type": "string",
+      "description": "Post being replied to"
+    },
+    "author_id": {
+      "type": "string",
+      "description": "Author of the reply"
+    },
+    "body": {
+      "type": "string",
+      "description": "Reply content"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "mutuals",
+        "public",
+        "named",
+        "anonymous"
+      ],
+      "default": "mutuals",
+      "description": "Reply visibility"
+    },
+    "nvc_structure": {
+      "type": "object",
+      "description": "Non-violent communication structure (observation, feeling, need, request)"
+    },
+    "ai_analysis": {
+      "type": "object",
+      "description": "AI tone analysis"
+    },
+    "is_shadow": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is a shadow comment (visible only to author)"
+    },
+    "reply_intent": {
+      "type": "string",
+      "enum": [
+        "clarify",
+        "acknowledge",
+        "boundaries",
+        "mirror",
+        "support"
+      ],
+      "description": "Purpose of the reply"
+    }
+  },
+  "required": [
+    "post_id",
+    "author_id",
+    "body"
+  ]
+}

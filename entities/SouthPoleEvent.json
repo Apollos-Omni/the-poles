@@ -1,0 +1,42 @@
+{
+  "name": "SouthPoleEvent",
+  "type": "object",
+  "properties": {
+    "challenge_id": {
+      "type": "string"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "challenge_created",
+        "participant_joined",
+        "payment_confirmed",
+        "fully_funded",
+        "challenge_started",
+        "result_submitted",
+        "winner_verified",
+        "admin_approved",
+        "admin_rejected",
+        "fulfillment_started",
+        "prize_delivered",
+        "donation_recorded",
+        "challenge_completed",
+        "challenge_cancelled",
+        "refund_issued"
+      ]
+    },
+    "actor_user_id": {
+      "type": "string"
+    },
+    "data": {
+      "type": "object"
+    },
+    "note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "challenge_id",
+    "event_type"
+  ]
+}

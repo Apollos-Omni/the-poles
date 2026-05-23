@@ -1,0 +1,64 @@
+{
+  "name": "ComplianceCheck",
+  "type": "object",
+  "properties": {
+    "component": {
+      "type": "string",
+      "enum": [
+        "psp",
+        "issuer",
+        "connector"
+      ],
+      "description": "Which system component"
+    },
+    "requirement": {
+      "type": "string",
+      "description": "Specific requirement being checked"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "compliant",
+        "non_compliant",
+        "pending",
+        "not_applicable"
+      ],
+      "default": "pending"
+    },
+    "last_verified": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evidence_url": {
+      "type": "string",
+      "description": "Link to supporting documentation"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional compliance notes"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ],
+      "default": "medium"
+    },
+    "remediation_plan": {
+      "type": "string",
+      "description": "Plan to address non-compliance"
+    },
+    "responsible_team": {
+      "type": "string",
+      "description": "Team responsible for this requirement"
+    }
+  },
+  "required": [
+    "component",
+    "requirement",
+    "status"
+  ]
+}

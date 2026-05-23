@@ -1,0 +1,65 @@
+{
+  "name": "SecurityEvent",
+  "type": "object",
+  "properties": {
+    "hinge_id": {
+      "type": "string",
+      "description": "ID of the hinge that triggered the event"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "door_opened",
+        "door_closed",
+        "motion_detected",
+        "camera_activated",
+        "sensor_offline",
+        "unauthorized_access",
+        "tamper_detected"
+      ],
+      "description": "Type of security event"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "critical",
+        "emergency"
+      ],
+      "default": "info",
+      "description": "Event severity level"
+    },
+    "triggered_by": {
+      "type": "string",
+      "enum": [
+        "sensor",
+        "camera",
+        "manual",
+        "automation"
+      ],
+      "description": "What triggered this event"
+    },
+    "camera_recording_url": {
+      "type": "string",
+      "description": "URL to associated camera recording"
+    },
+    "notification_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether push notification was sent"
+    },
+    "response_time": {
+      "type": "number",
+      "description": "Time in milliseconds from trigger to processing"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional event data (sensor readings, etc.)"
+    }
+  },
+  "required": [
+    "hinge_id",
+    "event_type"
+  ]
+}

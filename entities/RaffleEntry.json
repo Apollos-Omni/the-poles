@@ -1,0 +1,48 @@
+{
+  "name": "RaffleEntry",
+  "type": "object",
+  "properties": {
+    "raffle_id": {
+      "type": "string",
+      "description": "ID of the raffle"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user entering"
+    },
+    "client_seed": {
+      "type": "string",
+      "description": "Optional user-provided seed for fairness"
+    },
+    "qty": {
+      "type": "number",
+      "default": 1,
+      "description": "Number of entries purchased"
+    },
+    "amount_cents": {
+      "type": "number",
+      "description": "Total amount paid in cents"
+    },
+    "payment_intent_id": {
+      "type": "string",
+      "description": "Stripe PaymentIntent ID"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "reserved",
+        "paid",
+        "refunded",
+        "chargeback"
+      ],
+      "default": "paid",
+      "description": "Payment status"
+    }
+  },
+  "required": [
+    "raffle_id",
+    "user_id",
+    "qty",
+    "amount_cents"
+  ]
+}

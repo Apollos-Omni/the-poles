@@ -1,0 +1,26 @@
+{
+  "name": "Organization",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the organization"
+    },
+    "description": {
+      "type": "string",
+      "description": "A brief description of the organization"
+    },
+    "avatar_url": {
+      "type": "string",
+      "description": "URL for the organization's logo or avatar"
+    },
+    "owner_id": {
+      "type": "string",
+      "description": "The user ID of the organization's owner"
+    }
+  },
+  "required": [
+    "name",
+    "owner_id"
+  ]
+}

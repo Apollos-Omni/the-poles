@@ -1,0 +1,78 @@
+{
+  "name": "HingeState",
+  "type": "object",
+  "properties": {
+    "device_id": {
+      "type": "string",
+      "description": "Reference to the hinge device"
+    },
+    "lock_state": {
+      "type": "string",
+      "enum": [
+        "locked",
+        "unlocked",
+        "transitioning",
+        "error"
+      ],
+      "default": "locked",
+      "description": "Current lock state"
+    },
+    "door_state": {
+      "type": "string",
+      "enum": [
+        "open",
+        "closed",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Current door position"
+    },
+    "hinge_angle": {
+      "type": "number",
+      "description": "Door angle in degrees (0 = closed)"
+    },
+    "tamper_detected": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether tamper is currently detected"
+    },
+    "rssi": {
+      "type": "number",
+      "description": "WiFi signal strength in dBm"
+    },
+    "battery_level": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Battery percentage if device is battery powered"
+    },
+    "temperature": {
+      "type": "number",
+      "description": "Device temperature in Celsius"
+    },
+    "uptime_seconds": {
+      "type": "number",
+      "description": "Device uptime in seconds"
+    },
+    "auto_relock_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether auto-relock is enabled"
+    },
+    "auto_relock_delay": {
+      "type": "number",
+      "default": 30,
+      "description": "Auto-relock delay in seconds"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last state update timestamp"
+    }
+  },
+  "required": [
+    "device_id",
+    "lock_state",
+    "door_state"
+  ]
+}

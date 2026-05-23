@@ -1,0 +1,68 @@
+{
+  "name": "NorthPoleFulfillment",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string"
+    },
+    "winner_user_id": {
+      "type": "string"
+    },
+    "prize_id": {
+      "type": "string"
+    },
+    "prize_snapshot": {
+      "type": "object",
+      "description": "Prize data at time of fulfillment"
+    },
+    "admin_status": {
+      "type": "string",
+      "enum": [
+        "pending_review",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending_review"
+    },
+    "order_status": {
+      "type": "string",
+      "enum": [
+        "sandbox_created",
+        "processing",
+        "ordered",
+        "shipped",
+        "delivered",
+        "failed"
+      ],
+      "default": "sandbox_created"
+    },
+    "sandbox_mode": {
+      "type": "boolean",
+      "default": true
+    },
+    "admin_notes": {
+      "type": "string"
+    },
+    "shipping_name": {
+      "type": "string"
+    },
+    "shipping_address": {
+      "type": "string"
+    },
+    "tracking_number": {
+      "type": "string"
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "match_id",
+    "winner_user_id",
+    "prize_id"
+  ]
+}

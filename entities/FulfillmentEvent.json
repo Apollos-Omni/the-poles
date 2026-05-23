@@ -1,0 +1,85 @@
+{
+  "name": "FulfillmentEvent",
+  "type": "object",
+  "properties": {
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "FULFILL_MATCH",
+        "PRICE_CHECK",
+        "CARD_ISSUED",
+        "ORDER_PLACED",
+        "TRACKING_UPDATE"
+      ],
+      "description": "Type of fulfillment event"
+    },
+    "match_id": {
+      "type": "string",
+      "description": "Match being fulfilled"
+    },
+    "winner_user_id": {
+      "type": "string",
+      "description": "Winner's user ID"
+    },
+    "product_data": {
+      "type": "object",
+      "description": "Product information snapshot"
+    },
+    "shipping_data": {
+      "type": "object",
+      "description": "Shipping address (encrypted)"
+    },
+    "policy_data": {
+      "type": "object",
+      "description": "Fulfillment policies"
+    },
+    "payments_data": {
+      "type": "object",
+      "description": "Payment configuration"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "PROCESSING",
+        "PURCHASED",
+        "SHIPPED",
+        "EXCEPTION"
+      ],
+      "default": "PENDING"
+    },
+    "agent_output": {
+      "type": "object",
+      "description": "Agent's response with order details"
+    },
+    "audit_trail": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Step-by-step agent actions"
+    },
+    "exception_code": {
+      "type": "string",
+      "enum": [
+        "PRICE_DRIFT",
+        "OOS",
+        "PAYMENT_DECLINED",
+        "ADDRESS_INVALID",
+        "ANTI_FRAUD",
+        "API_RATE_LIMIT",
+        "UNKNOWN"
+      ],
+      "description": "Error code if exception occurred"
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Ensures replay safety"
+    }
+  },
+  "required": [
+    "event_type",
+    "match_id",
+    "winner_user_id"
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "CommunityPost",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Post title"
+    },
+    "content": {
+      "type": "string",
+      "description": "Post content/body"
+    },
+    "post_type": {
+      "type": "string",
+      "enum": [
+        "vision_share",
+        "karma_milestone",
+        "hinge_activity",
+        "general"
+      ],
+      "default": "general",
+      "description": "Type of community post"
+    },
+    "likes": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of likes"
+    },
+    "karma_impact": {
+      "type": "number",
+      "default": 0,
+      "description": "Karma points associated with this post"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Post tags"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "community",
+        "private"
+      ],
+      "default": "community",
+      "description": "Post visibility level"
+    }
+  },
+  "required": [
+    "content"
+  ]
+}

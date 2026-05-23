@@ -1,0 +1,60 @@
+{
+  "name": "VisionActivity",
+  "type": "object",
+  "properties": {
+    "vision_id": {
+      "type": "string",
+      "description": "ID of the related vision"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User who performed the activity"
+    },
+    "activity_type": {
+      "type": "string",
+      "enum": [
+        "task_completed",
+        "proof_submitted",
+        "milestone_reached",
+        "pledge_made",
+        "check_in",
+        "comment",
+        "like",
+        "support"
+      ],
+      "description": "Type of activity"
+    },
+    "title": {
+      "type": "string",
+      "description": "Activity title/summary"
+    },
+    "description": {
+      "type": "string",
+      "description": "Activity description"
+    },
+    "related_id": {
+      "type": "string",
+      "description": "ID of related object (task, proof, etc.)"
+    },
+    "karma_delta": {
+      "type": "number",
+      "default": 0,
+      "description": "Karma points gained or lost"
+    },
+    "streak_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Current streak count"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional activity metadata"
+    }
+  },
+  "required": [
+    "vision_id",
+    "user_id",
+    "activity_type",
+    "title"
+  ]
+}

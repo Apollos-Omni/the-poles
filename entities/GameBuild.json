@@ -1,0 +1,40 @@
+{
+  "name": "GameBuild",
+  "type": "object",
+  "properties": {
+    "game_id": {
+      "type": "string",
+      "description": "ID of the parent game"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "html5",
+        "webgl",
+        "unity"
+      ],
+      "default": "html5"
+    },
+    "bundle_url": {
+      "type": "string",
+      "description": "URL to the game's asset bundle"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the build"
+    },
+    "anticheat_flags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of anti-cheat mechanisms used"
+    }
+  },
+  "required": [
+    "game_id",
+    "platform",
+    "bundle_url",
+    "version"
+  ]
+}

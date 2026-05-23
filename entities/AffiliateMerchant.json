@@ -1,0 +1,67 @@
+{
+  "name": "AffiliateMerchant",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "logo_url": {
+      "type": "string"
+    },
+    "logo_emoji": {
+      "type": "string"
+    },
+    "website_url": {
+      "type": "string"
+    },
+    "affiliate_network": {
+      "type": "string",
+      "description": "e.g. Amazon Associates, CJ, ShareASale, eBay Partner Network"
+    },
+    "program_status": {
+      "type": "string",
+      "enum": [
+        "not_applied",
+        "applied",
+        "approved",
+        "active",
+        "paused",
+        "denied"
+      ],
+      "default": "not_applied"
+    },
+    "commission_type": {
+      "type": "string",
+      "enum": [
+        "percent",
+        "flat",
+        "cpa",
+        "none"
+      ],
+      "default": "none"
+    },
+    "commission_rate": {
+      "type": "string",
+      "description": "e.g. '4%' or '$10 flat'"
+    },
+    "disclosure_required": {
+      "type": "boolean",
+      "default": true
+    },
+    "disclosure_text": {
+      "type": "string",
+      "description": "Merchant-required disclosure (e.g. Amazon Associates statement)"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "website_url"
+  ]
+}

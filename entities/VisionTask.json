@@ -1,0 +1,55 @@
+{
+  "name": "VisionTask",
+  "type": "object",
+  "properties": {
+    "vision_id": {
+      "type": "string",
+      "description": "ID of the parent vision"
+    },
+    "milestone_id": {
+      "type": "string",
+      "description": "ID of the parent milestone (optional)"
+    },
+    "title": {
+      "type": "string",
+      "description": "Task title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Task description"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether task is completed"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When task was completed"
+    },
+    "assigned_to": {
+      "type": "string",
+      "description": "User ID task is assigned to (optional)"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Task due date"
+    },
+    "order": {
+      "type": "number",
+      "default": 0,
+      "description": "Display order"
+    },
+    "karma_reward": {
+      "type": "number",
+      "default": 2,
+      "description": "Karma points for completing this task"
+    }
+  },
+  "required": [
+    "vision_id",
+    "title"
+  ]
+}

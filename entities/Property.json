@@ -1,0 +1,125 @@
+{
+  "name": "Property",
+  "type": "object",
+  "properties": {
+    "address": {
+      "type": "string",
+      "description": "Full property address"
+    },
+    "property_type": {
+      "type": "string",
+      "enum": [
+        "single_family",
+        "duplex",
+        "townhouse",
+        "condo"
+      ],
+      "description": "Type of residential property"
+    },
+    "acquisition_price": {
+      "type": "number",
+      "description": "Purchase price of property"
+    },
+    "estimated_renovation_cost": {
+      "type": "number",
+      "description": "Estimated cost for full renovation"
+    },
+    "actual_renovation_cost": {
+      "type": "number",
+      "default": 0,
+      "description": "Actual renovation expenses incurred"
+    },
+    "property_status": {
+      "type": "string",
+      "enum": [
+        "acquired",
+        "in_renovation",
+        "completed",
+        "occupied",
+        "sold"
+      ],
+      "default": "acquired",
+      "description": "Current property status"
+    },
+    "square_footage": {
+      "type": "number",
+      "description": "Total square footage"
+    },
+    "bedrooms": {
+      "type": "number",
+      "description": "Number of bedrooms"
+    },
+    "bathrooms": {
+      "type": "number",
+      "description": "Number of bathrooms"
+    },
+    "renovation_phases": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "description": "Planned renovation phases and status"
+    },
+    "assigned_participants": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Participant IDs assigned to work on this property"
+    },
+    "before_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs to before renovation photos"
+    },
+    "progress_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs to work-in-progress photos"
+    },
+    "after_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs to completed renovation photos"
+    },
+    "projected_rent_to_own_price": {
+      "type": "number",
+      "description": "Target sale price for rent-to-own participant"
+    },
+    "monthly_rent_amount": {
+      "type": "number",
+      "description": "Monthly rent amount during rent-to-own period"
+    },
+    "acquisition_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date property was acquired"
+    },
+    "renovation_start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date renovation work began"
+    },
+    "projected_completion_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Expected renovation completion date"
+    },
+    "actual_completion_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Actual renovation completion date"
+    }
+  },
+  "required": [
+    "address",
+    "property_type",
+    "acquisition_price"
+  ]
+}

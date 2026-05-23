@@ -1,0 +1,57 @@
+{
+  "name": "VisionSupporter",
+  "type": "object",
+  "properties": {
+    "vision_id": {
+      "type": "string",
+      "description": "ID of the supported vision"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "ID of the supporting user"
+    },
+    "support_type": {
+      "type": "string",
+      "enum": [
+        "like",
+        "follow",
+        "pledge_money",
+        "pledge_time",
+        "pledge_resources",
+        "collaboration"
+      ],
+      "default": "like",
+      "description": "Type of support"
+    },
+    "pledge_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Amount pledged (money, hours, etc.)"
+    },
+    "pledge_unit": {
+      "type": "string",
+      "enum": [
+        "dollars",
+        "hours",
+        "items",
+        "other"
+      ],
+      "default": "dollars",
+      "description": "Unit of pledge"
+    },
+    "message": {
+      "type": "string",
+      "description": "Support message"
+    },
+    "fulfilled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether pledge has been fulfilled"
+    }
+  },
+  "required": [
+    "vision_id",
+    "user_id",
+    "support_type"
+  ]
+}

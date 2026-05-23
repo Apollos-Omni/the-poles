@@ -1,0 +1,109 @@
+{
+  "name": "Donation",
+  "type": "object",
+  "properties": {
+    "match_id": {
+      "type": "string",
+      "description": "The match that generated this donation"
+    },
+    "gross_cents": {
+      "type": "number",
+      "description": "Gross donation amount in cents"
+    },
+    "to_charity_id": {
+      "type": "string",
+      "description": "ID of the receiving charity"
+    },
+    "settled_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "donor_name": {
+      "type": "string",
+      "description": "Name of the donor"
+    },
+    "donor_email": {
+      "type": "string",
+      "description": "Donor's email address"
+    },
+    "donor_phone": {
+      "type": "string",
+      "description": "Donor's phone number"
+    },
+    "donation_type": {
+      "type": "string",
+      "enum": [
+        "monetary",
+        "materials",
+        "labor",
+        "professional_services"
+      ],
+      "description": "Type of donation"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Monetary value of donation"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of donated items or services"
+    },
+    "designated_property": {
+      "type": "string",
+      "description": "Specific property this donation is designated for (optional)"
+    },
+    "donation_status": {
+      "type": "string",
+      "enum": [
+        "pledged",
+        "received",
+        "utilized"
+      ],
+      "default": "pledged",
+      "description": "Current status of the donation"
+    },
+    "tax_deductible": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether donation is tax deductible"
+    },
+    "receipt_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether tax receipt has been sent"
+    },
+    "donor_recognition_level": {
+      "type": "string",
+      "enum": [
+        "anonymous",
+        "name_only",
+        "full_recognition"
+      ],
+      "default": "name_only",
+      "description": "Level of public recognition donor desires"
+    },
+    "recurring": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is a recurring donation"
+    },
+    "pledge_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date donation was pledged"
+    },
+    "received_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date donation was actually received"
+    }
+  },
+  "required": [
+    "match_id",
+    "gross_cents",
+    "to_charity_id",
+    "donor_name",
+    "donation_type",
+    "amount"
+  ]
+}

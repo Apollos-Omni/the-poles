@@ -1,0 +1,31 @@
+{
+  "name": "Vendor",
+  "type": "object",
+  "properties": {
+    "owner_user_id": {
+      "type": "string",
+      "description": "The user ID of the vendor's owner"
+    },
+    "name": {
+      "type": "string",
+      "description": "The public name of the vendor"
+    },
+    "stripe_account_id": {
+      "type": "string",
+      "description": "Stripe Connect account ID for payouts"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "active",
+        "disabled"
+      ],
+      "default": "pending"
+    }
+  },
+  "required": [
+    "owner_user_id",
+    "name"
+  ]
+}

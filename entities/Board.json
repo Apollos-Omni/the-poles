@@ -1,0 +1,52 @@
+{
+  "name": "Board",
+  "type": "object",
+  "properties": {
+    "owner_id": {
+      "type": "string",
+      "description": "ID of the board owner"
+    },
+    "title": {
+      "type": "string",
+      "description": "Board title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Board description or purpose"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "private",
+        "mutuals",
+        "public"
+      ],
+      "default": "mutuals",
+      "description": "Who can see posts on this board"
+    },
+    "allow_offers": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether others can offer posts to this board"
+    },
+    "board_type": {
+      "type": "string",
+      "enum": [
+        "personal",
+        "processing",
+        "shared",
+        "archive"
+      ],
+      "default": "personal",
+      "description": "Type of board"
+    },
+    "moderation_settings": {
+      "type": "object",
+      "description": "Custom moderation preferences for this board"
+    }
+  },
+  "required": [
+    "owner_id",
+    "title"
+  ]
+}

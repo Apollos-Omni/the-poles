@@ -1,0 +1,36 @@
+{
+  "name": "Reaction",
+  "type": "object",
+  "properties": {
+    "post_id": {
+      "type": "string",
+      "description": "Post being reacted to"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "User giving the reaction"
+    },
+    "reaction_type": {
+      "type": "string",
+      "enum": [
+        "appreciate",
+        "understand",
+        "confused",
+        "hurt",
+        "thanks",
+        "resonate",
+        "healing"
+      ],
+      "description": "Type of reaction"
+    },
+    "reaction_note": {
+      "type": "string",
+      "description": "Optional note with the reaction"
+    }
+  },
+  "required": [
+    "post_id",
+    "user_id",
+    "reaction_type"
+  ]
+}

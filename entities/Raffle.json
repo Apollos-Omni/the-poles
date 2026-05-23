@@ -1,0 +1,80 @@
+{
+  "name": "Raffle",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "ID of the product being raffled"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "OPEN",
+        "LOCKED",
+        "DRAWING",
+        "PURCHASE",
+        "FULFILLMENT",
+        "COMPLETED",
+        "REFUNDED",
+        "VOID"
+      ],
+      "default": "DRAFT",
+      "description": "Current raffle status"
+    },
+    "entry_price_cents": {
+      "type": "number",
+      "description": "Price per entry in cents"
+    },
+    "max_entries": {
+      "type": "number",
+      "description": "Maximum number of entries allowed"
+    },
+    "current_entries": {
+      "type": "number",
+      "default": 0,
+      "description": "Current number of entries sold"
+    },
+    "min_fill_ratio": {
+      "type": "number",
+      "default": 0.8,
+      "description": "Minimum fill ratio for deadline-based raffles"
+    },
+    "deadline": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Raffle deadline (optional)"
+    },
+    "server_seed_hash": {
+      "type": "string",
+      "description": "Hash of server seed for provable fairness"
+    },
+    "server_seed": {
+      "type": "string",
+      "description": "Server seed (revealed at draw time)"
+    },
+    "public_entropy": {
+      "type": "string",
+      "description": "Public entropy source for draw"
+    },
+    "winner_entry_id": {
+      "type": "string",
+      "description": "ID of winning entry"
+    },
+    "region": {
+      "type": "string",
+      "default": "US",
+      "description": "Geographic region for compliance"
+    },
+    "buffer_pct": {
+      "type": "number",
+      "default": 10,
+      "description": "Buffer percentage for price slippage"
+    }
+  },
+  "required": [
+    "product_id",
+    "entry_price_cents",
+    "max_entries"
+  ]
+}

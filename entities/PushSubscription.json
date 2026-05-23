@@ -1,0 +1,51 @@
+{
+  "name": "PushSubscription",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "ID of the user who owns this subscription"
+    },
+    "endpoint": {
+      "type": "string",
+      "description": "Push service endpoint URL"
+    },
+    "p256dh_key": {
+      "type": "string",
+      "description": "Public key for message encryption"
+    },
+    "auth_key": {
+      "type": "string",
+      "description": "Authentication secret for the subscription"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the subscription is active"
+    },
+    "user_agent": {
+      "type": "string",
+      "description": "User agent of the subscribing browser/device"
+    },
+    "last_error": {
+      "type": "string",
+      "description": "Last error message if delivery failed"
+    },
+    "unsubscribed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the user unsubscribed"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time subscription was updated"
+    }
+  },
+  "required": [
+    "user_id",
+    "endpoint",
+    "p256dh_key",
+    "auth_key"
+  ]
+}
