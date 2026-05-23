@@ -141,6 +141,9 @@ const SAMPLE_GAME_CATALOG = [
   },
 ];
 
+const EXTERNAL_SEARCH_TIMEOUT_MS = 7000;
+const RAWG_SEARCH_URL = 'https://api.rawg.io/api/games';
+
 const GAME_PROVIDER_SLOTS = [
   {
     id: 'igdb',
@@ -152,7 +155,7 @@ const GAME_PROVIDER_SLOTS = [
     id: 'rawg',
     label: 'RAWG',
     configured: (env) => Boolean(env.RAWG_API_KEY),
-    status: 'placeholder',
+    status: 'live',
   },
   {
     id: 'steam',
@@ -170,6 +173,54 @@ const SAMPLE_PROVIDER = {
   id: 'sample_game_catalog',
   label: 'Sample game catalog',
 };
+
+function boundedLimit(value, fallback = 24) {
+  return Math.min(Math.max(Number(value) || fallback, 1), 40);
+}
+
+function externalAbortSignal(timeoutMs = EXTERNAL_SEARCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  return { signal: controller.signal, clear: () => clearTimeout(timeout) };
+}
+
+function slugFallback(...parts) {
+  return parts.filter(Boolean).join('-').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || Date.now().toString(36);
+}
+
+function normalizeRawgGame(game) {
+  const platforms = Array.isArray(game.platforms)
+    ? game.platforms.map((entry) => entry.platform?.name).filter(Boolean)
+    : [];
+  const stores = Array.isArray(game.stores)
+    ? game.stores.map((entry) => entry.store?.name).filter(Boolean)
+    : [];
+  const genres = Array.isArray(game.genres) ? game.genres.map((genre) => genre.name).filter(Boolean) : [];
+  const category = genres[0] || 'Game';
+  const platform = platforms.slice(0, 3).join(' / ') || 'multi-platform';
+  const store = stores.slice(0, 3).join(' / ') || 'RAWG catalog';
+  const released = game.released ? `Released ${game.released}. ` : '';
+  const rating = Number.isFinite(Number(game.rating)) ? `RAWG rating ${game.rating}. ` : '';
+
+  return withGameSource({
+    id: game.id ? `rawg-${game.id}` : `rawg-${slugFallback(game.name, game.slug)}`,
+    title: game.name || 'RAWG game',
+    developer: 'RAWG catalog',
+    description: `${released}${rating}${category} challenge from RAWG search.`.trim(),
+    category,
+    platform,
+    store,
+    skillStyle: `${category.toLowerCase()} performance challenge`,
+    skill_verifiable: false,
+    source: 'rawg',
+    source_label: 'RAWG',
+    icon_url: game.background_image || '',
+    provider_ids: {
+      rawg: game.id || null,
+      rawg_slug: game.slug || null,
+    },
+  }, { id: 'rawg', label: 'RAWG' });
+}
 
 function activeGameProviders(env) {
   return GAME_PROVIDER_SLOTS
@@ -239,6 +290,22 @@ async function searchConfiguredGameProviders(_input, env) {
     };
   }
 
+  if (configured.some((provider) => provider.id === 'rawg')) {
+    try {
+      return await searchRawgGames(_input, env, configured);
+    } catch (error) {
+      return {
+        games: [],
+        totalResults: 0,
+        provider: 'rawg',
+        sourceLabel: 'RAWG',
+        providerStatus: 'provider_error',
+        providerMessage: error.name === 'AbortError' ? 'RAWG request timed out; showing sample game catalog fallback.' : 'RAWG request failed; showing sample game catalog fallback.',
+        activeProviders: configured,
+      };
+    }
+  }
+
   return {
     games: [],
     totalResults: 0,
@@ -247,6 +314,54 @@ async function searchConfiguredGameProviders(_input, env) {
     providerStatus: 'configured_placeholder',
     activeProviders: configured,
   };
+}
+
+async function searchRawgGames(input = {}, env, activeProviders = activeGameProviders(env)) {
+  const query = String(input.q || input.query || '').trim();
+  if (!query) {
+    return {
+      games: [],
+      totalResults: 0,
+      provider: 'rawg',
+      sourceLabel: 'RAWG',
+      providerStatus: 'empty_query',
+      activeProviders,
+    };
+  }
+
+  const limit = boundedLimit(input.limit, 24);
+  const offset = Math.max(Number(input.offset) || 0, 0);
+  const pageSize = limit;
+  const page = Math.floor(offset / pageSize) + 1;
+  const params = new URLSearchParams({
+    key: env.RAWG_API_KEY,
+    search: query,
+    page_size: String(pageSize),
+    page: String(page),
+  });
+  const { signal, clear } = externalAbortSignal();
+  try {
+    const response = await fetch(`${RAWG_SEARCH_URL}?${params.toString()}`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      signal,
+    });
+    if (!response.ok) {
+      throw new Error(`RAWG search failed with HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    const games = Array.isArray(data.results) ? data.results.map(normalizeRawgGame) : [];
+    return {
+      games,
+      totalResults: Number(data.count || games.length) || games.length,
+      provider: 'rawg',
+      sourceLabel: 'RAWG',
+      providerStatus: 'live',
+      activeProviders,
+    };
+  } finally {
+    clear();
+  }
 }
 
 export async function searchGamesAcrossProviders(input = {}, env = process.env) {
@@ -264,6 +379,7 @@ export async function searchGamesAcrossProviders(input = {}, env = process.env) 
     ...sample,
     activeProviders: configured.activeProviders || [],
     externalProviderStatus: configured.providerStatus,
+    providerMessage: configured.providerMessage || null,
     fallbackProvider: SAMPLE_PROVIDER.id,
     futureProviders: GAME_PROVIDER_SLOTS.map((provider) => provider.id),
   };

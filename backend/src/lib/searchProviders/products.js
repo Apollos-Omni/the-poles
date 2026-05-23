@@ -1,11 +1,17 @@
 import { searchProductCatalog } from '../../data/products.js';
 
+const EXTERNAL_SEARCH_TIMEOUT_MS = 7000;
+const EBAY_MARKETPLACE_ID = 'EBAY_US';
+const EBAY_OAUTH_URL = 'https://api.ebay.com/identity/v1/oauth2/token';
+const EBAY_SEARCH_URL = 'https://api.ebay.com/buy/browse/v1/item_summary/search';
+let ebayTokenCache = null;
+
 const PRODUCT_PROVIDER_SLOTS = [
   {
     id: 'ebay_browse',
     label: 'eBay Browse API',
     configured: (env) => Boolean(env.EBAY_CLIENT_ID && env.EBAY_CLIENT_SECRET),
-    status: 'placeholder',
+    status: 'live',
   },
   {
     id: 'amazon_paapi',
@@ -48,6 +54,111 @@ const DEMO_PROVIDER = {
   label: 'Demo product catalog',
 };
 
+function boundedLimit(value, fallback = 24) {
+  return Math.min(Math.max(Number(value) || fallback, 1), 50);
+}
+
+function toCents(value) {
+  const number = Number.parseFloat(String(value || ''));
+  return Number.isFinite(number) ? Math.round(number * 100) : 0;
+}
+
+function externalAbortSignal(timeoutMs = EXTERNAL_SEARCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  return { signal: controller.signal, clear: () => clearTimeout(timeout) };
+}
+
+function ebayHeaders(token) {
+  return {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/json',
+    'X-EBAY-C-MARKETPLACE-ID': EBAY_MARKETPLACE_ID,
+  };
+}
+
+function ebayAspect(item, name) {
+  const aspect = item.localizedAspects?.find((entry) => entry.name?.toLowerCase() === name.toLowerCase());
+  return aspect?.value || '';
+}
+
+async function getEbayAccessToken(env) {
+  if (ebayTokenCache?.token && ebayTokenCache.expiresAt > Date.now() + 60000) {
+    return ebayTokenCache.token;
+  }
+
+  const auth = Buffer.from(`${env.EBAY_CLIENT_ID}:${env.EBAY_CLIENT_SECRET}`).toString('base64');
+  const body = new URLSearchParams({
+    grant_type: 'client_credentials',
+    scope: 'https://api.ebay.com/oauth/api_scope',
+  });
+  const { signal, clear } = externalAbortSignal();
+  try {
+    const response = await fetch(EBAY_OAUTH_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Accept: 'application/json',
+      },
+      body,
+      signal,
+    });
+    if (!response.ok) {
+      throw new Error(`eBay OAuth failed with HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    if (!data.access_token) throw new Error('eBay OAuth response did not include an access token');
+    ebayTokenCache = {
+      token: data.access_token,
+      expiresAt: Date.now() + (Number(data.expires_in || 7200) * 1000),
+    };
+    return ebayTokenCache.token;
+  } finally {
+    clear();
+  }
+}
+
+function normalizeEbayItem(item) {
+  const price = item.price || {};
+  const priceCents = toCents(price.value);
+  const category = item.categories?.[0]?.categoryName || 'Prize';
+  const brand = ebayAspect(item, 'Brand') || item.seller?.username || 'eBay';
+  const imageUrl = item.image?.imageUrl || item.thumbnailImages?.[0]?.imageUrl || '';
+  const availability = item.estimatedAvailabilities?.[0]?.estimatedAvailableQuantity === 0 ? 'out_of_stock' : 'in_stock';
+  const productUrl = item.itemWebUrl || null;
+
+  return withProductSource({
+    id: item.itemId || item.legacyItemId || `ebay-${hashFallback(item.title, productUrl)}`,
+    title: item.title || 'eBay item',
+    brand,
+    category,
+    images: imageUrl ? [imageUrl] : [],
+    offers: [{
+      retailer: 'eBay',
+      price_cents: priceCents,
+      currency: price.currency || 'USD',
+      availability,
+      product_url: productUrl,
+      source: 'ebay_browse',
+      source_label: 'eBay Browse API',
+    }],
+    source: 'ebay_browse',
+    source_label: 'eBay Browse API',
+    product_url: productUrl,
+    price_cents: priceCents,
+    currency: price.currency || 'USD',
+    availability,
+    provider_ids: {
+      ebay_item_id: item.itemId || item.legacyItemId || null,
+    },
+  }, { id: 'ebay_browse', label: 'eBay Browse API' });
+}
+
+function hashFallback(...parts) {
+  return parts.filter(Boolean).join('-').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80) || Date.now().toString(36);
+}
+
 function activeProductProviders(env) {
   return PRODUCT_PROVIDER_SLOTS
     .filter((provider) => provider.configured(env))
@@ -89,7 +200,55 @@ function searchDemoCatalog(input) {
   };
 }
 
-async function searchConfiguredProductProviders(_input, env) {
+async function searchEbayBrowse(input, env) {
+  const q = String(input.q || input.query || '').trim();
+  if (!q) {
+    return {
+      products: [],
+      totalResults: 0,
+      provider: 'ebay_browse',
+      sourceLabel: 'eBay Browse API',
+      providerStatus: 'empty_query',
+      activeProviders: activeProductProviders(env),
+    };
+  }
+
+  const token = await getEbayAccessToken(env);
+  const limit = boundedLimit(input.limit, 24);
+  const offset = Math.max(Number(input.offset) || 0, 0);
+  const params = new URLSearchParams({
+    q,
+    limit: String(limit),
+    offset: String(offset),
+  });
+  const { signal, clear } = externalAbortSignal();
+  try {
+    const response = await fetch(`${EBAY_SEARCH_URL}?${params.toString()}`, {
+      method: 'GET',
+      headers: ebayHeaders(token),
+      signal,
+    });
+    if (!response.ok) {
+      throw new Error(`eBay Browse search failed with HTTP ${response.status}`);
+    }
+    const data = await response.json();
+    const products = Array.isArray(data.itemSummaries)
+      ? data.itemSummaries.map(normalizeEbayItem)
+      : [];
+    return {
+      products,
+      totalResults: Number(data.total || products.length) || products.length,
+      provider: 'ebay_browse',
+      sourceLabel: 'eBay Browse API',
+      providerStatus: 'live',
+      activeProviders: activeProductProviders(env),
+    };
+  } finally {
+    clear();
+  }
+}
+
+async function searchConfiguredProductProviders(input, env) {
   const configured = activeProductProviders(env);
 
   if (!configured.length) {
@@ -101,6 +260,22 @@ async function searchConfiguredProductProviders(_input, env) {
       providerStatus: 'not_configured',
       activeProviders: [],
     };
+  }
+
+  if (configured.some((provider) => provider.id === 'ebay_browse')) {
+    try {
+      return await searchEbayBrowse(input, env);
+    } catch (error) {
+      return {
+        products: [],
+        totalResults: 0,
+        provider: 'ebay_browse',
+        sourceLabel: 'eBay Browse API',
+        providerStatus: 'provider_error',
+        providerMessage: error.name === 'AbortError' ? 'eBay Browse API request timed out; showing demo catalog fallback.' : 'eBay Browse API request failed; showing demo catalog fallback.',
+        activeProviders: configured,
+      };
+    }
   }
 
   return {
@@ -128,6 +303,7 @@ export async function searchProductsAcrossProviders(input = {}, env = process.en
     ...demo,
     activeProviders: configured.activeProviders || [],
     externalProviderStatus: configured.providerStatus,
+    providerMessage: configured.providerMessage || null,
     fallbackProvider: DEMO_PROVIDER.id,
     futureProviders: PRODUCT_PROVIDER_SLOTS.map((provider) => provider.id),
   };
