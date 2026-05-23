@@ -105,9 +105,27 @@ function statusClass(status) {
   return 'bg-purple-600/20 text-purple-300 border-purple-600/30';
 }
 
+function currentUserMatchIds(user) {
+  return [
+    user?.id,
+    user?.auth_user_id,
+    user?.authUserId,
+    user?.user_id,
+  ].filter(Boolean).map(String);
+}
+
+function currentUserStoredMatchId(user) {
+  return user?.auth_user_id || user?.authUserId || user?.id || user?.user_id || null;
+}
+
+function matchIncludesUserId(matchIds, userIds) {
+  const normalizedMatchIds = new Set((matchIds || []).filter(Boolean).map(String));
+  return userIds.some((id) => normalizedMatchIds.has(id));
+}
+
 function NorthPoleMatchCard({
   match,
-  currentUserId,
+  currentUser,
   onJoin,
   isJoining,
   pendingJoinId,
@@ -117,10 +135,12 @@ function NorthPoleMatchCard({
   onJoinAgreementChange,
 }) {
   const playerIds = Array.isArray(match.player_ids) ? match.player_ids : [];
-  const isParticipant = Boolean(currentUserId && playerIds.includes(currentUserId));
+  const userIds = currentUserMatchIds(currentUser);
+  const isParticipant = matchIncludesUserId(playerIds, userIds);
+  const isCreator = matchIncludesUserId([match.creator_user_id, match.created_by], userIds);
   const isFull = playerIds.length >= Number(match.max_players || 0);
-  const canJoin = Boolean(currentUserId && !isParticipant && !isFull && ['open', 'pending'].includes(match.status));
-  const isPendingJoin = pendingJoinId === match.id;
+  const canJoin = Boolean(userIds.length && !isParticipant && !isFull && ['open', 'pending'].includes(match.status));
+  const isPendingJoin = pendingJoinId === match.id && canJoin;
   const plan = match.match_plan || match.prize_snapshot?.match_plan || {};
 
   return (
@@ -164,7 +184,7 @@ function NorthPoleMatchCard({
                 className="bg-purple-700 text-white hover:bg-purple-600"
               >
                 {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-                {isParticipant ? 'Joined' : isFull ? 'Full' : 'Join Match'}
+                {isCreator ? 'Your Match' : isParticipant ? 'Joined' : isFull ? 'Full' : 'Join Match'}
               </Button>
             ) : (
               <Button
@@ -274,6 +294,26 @@ function RealNorthPoleFlow({ user }) {
       setIsLoading(false);
     }
   }, []);
+
+  const upsertMatch = useCallback((nextMatch) => {
+    if (!nextMatch?.id) return;
+    setMatches((prev) => {
+      const nextRows = prev.filter((row) => row.id !== nextMatch.id);
+      return nextMatch.sandbox_mode ? nextRows : [nextMatch, ...nextRows];
+    });
+  }, []);
+
+  const markMatchAsJoined = useCallback((match) => {
+    const userId = currentUserStoredMatchId(user);
+    if (!match?.id || !userId) return;
+    setMatches((prev) => prev.map((row) => {
+      if (row.id !== match.id) return row;
+      const existingIds = Array.isArray(row.player_ids) ? row.player_ids.map(String) : [];
+      const nextPlayerIds = [...existingIds];
+      if (!nextPlayerIds.includes(String(userId))) nextPlayerIds.push(String(userId));
+      return { ...row, player_ids: nextPlayerIds };
+    }));
+  }, [user]);
 
   useEffect(() => {
     loadMatches();
@@ -468,7 +508,8 @@ function RealNorthPoleFlow({ user }) {
         skillAgreementVersion: SKILL_COMPETITION_AGREEMENT_VERSION,
       });
 
-      setMessage(`Created match ${created.match_id}. It will remain after refresh.`);
+      upsertMatch(created);
+      setMessage('Match created successfully. You are entered in this match.');
       setStep('prize');
       setSelectedPrize(null);
       setSelectedGame(null);
@@ -477,7 +518,6 @@ function RealNorthPoleFlow({ user }) {
       setEstimatedShipping('');
       setSelectedPlayers(PLAYER_OPTIONS[2]);
       setCreateAgreementAccepted(false);
-      await loadMatches();
     } catch (err) {
       setError(err.message || 'Could not create the North Pole match.');
     } finally {
@@ -499,17 +539,24 @@ function RealNorthPoleFlow({ user }) {
     setMessage('');
     setJoiningId(match.id);
     try {
-      await joinNorthPoleMatch({
+      const updated = await joinNorthPoleMatch({
         matchId: match.id,
         skillAgreementAccepted: true,
         skillAgreementVersion: SKILL_COMPETITION_AGREEMENT_VERSION,
       });
-      setMessage(`Joined ${match.match_id}. Payment remains simulated.`);
+      upsertMatch(updated || match);
+      setMessage('You joined this match successfully.');
       setPendingJoinId(null);
       setJoinAgreementAccepted(false);
-      await loadMatches();
     } catch (err) {
-      setError(err.message || 'Could not join this match.');
+      if (/already joined this match/i.test(err.message || '')) {
+        markMatchAsJoined(match);
+        setMessage('You are already entered in this match.');
+        setPendingJoinId(null);
+        setJoinAgreementAccepted(false);
+      } else {
+        setError(err.message || 'Could not join this match.');
+      }
     } finally {
       setJoiningId(null);
     }
@@ -932,7 +979,7 @@ function RealNorthPoleFlow({ user }) {
               <NorthPoleMatchCard
                 key={match.id}
                 match={match}
-                currentUserId={user?.id}
+                currentUser={user}
                 onJoin={joinMatch}
                 onPrepareJoin={prepareJoinMatch}
                 onCancelJoin={cancelJoinMatch}
