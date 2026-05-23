@@ -57,6 +57,7 @@ const PROTECTED_READ_TABLES = new Set([
 const ADMIN_READ_TABLES = new Set([
   'profiles',
   'users',
+  'north_pole_matches',
   'north_pole_fulfillments',
   'match_events',
   'fulfillments',
@@ -256,6 +257,61 @@ function getNorthPoleMatchId(input = {}) {
   return input.id || input.matchDbId || input.matchId || input.match_id;
 }
 
+async function createNorthPoleMatchRecord({ store, user, input, sandboxMode = false }) {
+  const gameId = input.gameId || input.game_id;
+  const prizeId = input.prizeId || input.prize_id;
+  const maxPlayers = input.maxPlayers || input.max_players;
+  const buyInCents = input.buyInCents ?? input.buy_in_cents;
+
+  if (!gameId || !prizeId) {
+    const error = new Error('Missing gameId or prizeId');
+    error.status = 400;
+    throw error;
+  }
+  if (!Number.isInteger(maxPlayers) || maxPlayers < 2 || maxPlayers > 100) {
+    const error = new Error('maxPlayers must be between 2 and 100');
+    error.status = 400;
+    throw error;
+  }
+  if (!Number.isInteger(buyInCents) || buyInCents < 0 || buyInCents > 10000000) {
+    const error = new Error('buyInCents is invalid');
+    error.status = 400;
+    throw error;
+  }
+
+  const matchId = generateNorthPoleMatchId();
+  const nowIso = new Date().toISOString();
+  const match = await store.create('north_pole_matches', {
+    match_id: matchId,
+    created_by: user.id,
+    creator_user_id: user.id,
+    game_id: gameId,
+    game_snapshot: sanitizeSnapshot(input.gameSnapshot || input.game_snapshot),
+    prize_id: prizeId,
+    prize_snapshot: sanitizeSnapshot(input.prizeSnapshot || input.prize_snapshot),
+    player_ids: [user.id],
+    scores: {},
+    status: sandboxMode ? 'active' : 'open',
+    sandbox_mode: sandboxMode,
+    fulfillment_mode: sandboxMode ? 'sandbox' : 'simulated',
+    prize_locked_at: nowIso,
+    started_at: nowIso,
+    buy_in_cents: buyInCents,
+    max_players: maxPlayers,
+    match_plan: sanitizeSnapshot(input.matchPlan || input.match_plan),
+  });
+
+  await store.create('match_events', {
+    match_id: matchId,
+    event_type: 'match_created',
+    actor_user_id: user.id,
+    data: { match_id: matchId, game_id: gameId, sandbox_mode: sandboxMode },
+    note: sandboxMode ? 'Sandbox match created' : 'North Pole match created',
+  });
+
+  return match;
+}
+
 export function createFunctionRouter({ store }) {
   const router = express.Router();
 
@@ -410,57 +466,48 @@ export function createFunctionRouter({ store }) {
     ok(res, await searchGamesAcrossProviders(req.body || {}, process.env));
   }));
 
+  router.post('/listOpenNorthPoleMatches', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+
+    const rows = await store.list('north_pole_matches', {}, entityOptions({
+      sort: req.body?.sort || '-created_date',
+      limit: parseLimit(req.body?.limit) ?? 100,
+    }));
+    const filtered = isAdminUser(user)
+      ? rows
+      : rows.filter((row) => !row.sandbox_mode && ['open', 'active'].includes(row.status));
+    ok(res, { rows: filtered, data: filtered });
+  }));
+
   router.post('/createNorthPoleMatch', asyncHandler(async (req, res) => {
     const user = await requireUser(req, res);
     if (!user) return;
 
     const input = createNorthPoleMatchSchema.parse(req.body || {});
-    const gameId = input.gameId || input.game_id;
-    const prizeId = input.prizeId || input.prize_id;
-    const maxPlayers = input.maxPlayers || input.max_players;
-    const buyInCents = input.buyInCents ?? input.buy_in_cents;
-    const sandboxMode = Boolean(input.sandboxMode || input.sandbox_mode);
-
-    if (!gameId || !prizeId) return res.status(400).json({ success: false, error: 'Missing gameId or prizeId' });
-    if (!Number.isInteger(maxPlayers) || maxPlayers < 2 || maxPlayers > 100) {
-      return res.status(400).json({ success: false, error: 'maxPlayers must be between 2 and 100' });
-    }
-    if (!Number.isInteger(buyInCents) || buyInCents < 0 || buyInCents > 10000000) {
-      return res.status(400).json({ success: false, error: 'buyInCents is invalid' });
+    if (input.sandboxMode || input.sandbox_mode) {
+      return res.status(403).json({ success: false, error: 'Use createSandboxNorthPoleMatch for sandbox matches' });
     }
 
-    const matchId = generateNorthPoleMatchId();
-    const status = sandboxMode ? 'active' : 'open';
-    const nowIso = new Date().toISOString();
-    const match = await store.create('north_pole_matches', {
-      match_id: matchId,
-      created_by: user.id,
-      creator_user_id: user.id,
-      game_id: gameId,
-      game_snapshot: sanitizeSnapshot(input.gameSnapshot || input.game_snapshot),
-      prize_id: prizeId,
-      prize_snapshot: sanitizeSnapshot(input.prizeSnapshot || input.prize_snapshot),
-      player_ids: [user.id],
-      scores: {},
-      status,
-      sandbox_mode: sandboxMode,
-      fulfillment_mode: sandboxMode ? 'sandbox' : 'simulated',
-      prize_locked_at: nowIso,
-      started_at: nowIso,
-      buy_in_cents: buyInCents,
-      max_players: maxPlayers,
-      match_plan: sanitizeSnapshot(input.matchPlan || input.match_plan),
-    });
+    try {
+      const match = await createNorthPoleMatchRecord({ store, user, input, sandboxMode: false });
+      ok(res, { match, row: match, data: match });
+    } catch (error) {
+      res.status(error.status || 500).json({ success: false, error: error.message || 'Could not create match' });
+    }
+  }));
 
-    await store.create('match_events', {
-      match_id: matchId,
-      event_type: 'match_created',
-      actor_user_id: user.id,
-      data: { match_id: matchId, game_id: gameId, sandbox_mode: sandboxMode },
-      note: sandboxMode ? 'Sandbox match created' : 'North Pole match created',
-    });
+  router.post('/createSandboxNorthPoleMatch', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
 
-    ok(res, { match, row: match, data: match });
+    const input = createNorthPoleMatchSchema.parse(req.body || {});
+    try {
+      const match = await createNorthPoleMatchRecord({ store, user, input, sandboxMode: true });
+      ok(res, { match, row: match, data: match });
+    } catch (error) {
+      res.status(error.status || 500).json({ success: false, error: error.message || 'Could not create sandbox match' });
+    }
   }));
 
   router.post('/joinNorthPoleMatch', asyncHandler(async (req, res) => {
@@ -650,12 +697,19 @@ export function createFunctionRouter({ store }) {
   }));
 
   router.post('/finalizeMatch', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+
     const { matchId, match_id } = req.body || {};
     const id = matchId || match_id;
     if (!id) return res.status(400).json({ success: false, error: 'Match ID required' });
 
     const match = await store.findOne(T.userMatches, { id });
     if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+    const ticket = await store.findOne(T.tickets, { match_id: id, user_id: user.id });
+    if (!isAdminUser(user) && !ticket) {
+      return res.status(403).json({ success: false, error: 'Only match participants or admins can finalize this match' });
+    }
 
     const scores = await store.list(T.scores, { match_id: id });
     if (!scores.length) return res.status(400).json({ success: false, error: 'No scores submitted for this match' });

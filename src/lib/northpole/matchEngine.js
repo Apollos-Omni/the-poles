@@ -26,7 +26,8 @@ export async function createNorthPoleMatch({
   matchPlan = null,
   gameSnapshot = null,
 }) {
-  const response = await invokeBackendFunction('createNorthPoleMatch', {
+  const functionName = sandboxMode ? 'createSandboxNorthPoleMatch' : 'createNorthPoleMatch';
+  const response = await invokeBackendFunction(functionName, {
     game_id: gameId,
     prize_id: prizeId,
     prize_snapshot: prizeSnapshot,
@@ -38,6 +39,15 @@ export async function createNorthPoleMatch({
   });
 
   return response.data?.match || response.data?.data;
+}
+
+export async function listOpenNorthPoleMatches({ sort = '-created_date', limit = 100 } = {}) {
+  const response = await invokeBackendFunction('listOpenNorthPoleMatches', {
+    sort,
+    limit,
+  });
+
+  return response.data?.rows || response.data?.data || [];
 }
 
 export async function joinNorthPoleMatch({ matchId }) {

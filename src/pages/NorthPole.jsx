@@ -36,6 +36,7 @@ import { searchProducts } from '@/functions/searchProducts';
 import { searchGames } from '@/functions/searchGames';
 import {
   createNorthPoleMatch,
+  listOpenNorthPoleMatches,
   joinNorthPoleMatch,
   finalizeAndVerify,
   createFulfillmentRecord,
@@ -220,7 +221,7 @@ function RealNorthPoleFlow({ user }) {
     setIsLoading(true);
     setError('');
     try {
-      const rows = await base44.entities.NorthPoleMatch.list('-created_date', 100);
+      const rows = await listOpenNorthPoleMatches({ sort: '-created_date', limit: 100 });
       setMatches(rows.filter((row) => !row.sandbox_mode));
     } catch (err) {
       setError(err.message || 'Could not load North Pole matches.');
