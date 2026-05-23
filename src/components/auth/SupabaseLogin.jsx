@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { isSupabaseAuthConfigured, signInWithPassword, signUp } from '@/api/supabaseAuthClient';
 
-export default function SupabaseLogin({ onSuccess, error }) {
-  const [mode, setMode] = useState('signin');
+export default function SupabaseLogin({ onSuccess, error, initialMode = 'signin' }) {
+  const [mode, setMode] = useState(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');

@@ -14,6 +14,7 @@ import SPLeagueDashboard from "@/components/south-pole/SPLeagueDashboard";
 import SPLeagueGroups from "@/components/south-pole/SPLeagueGroups";
 import { CATEGORIES, formatCents } from "@/components/south-pole/SPConstants";
 import SPRewardLinkChips from "@/components/south-pole/SPRewardLinkChips";
+import { PublicBetaBadge } from "@/components/public/PublicBetaLayout";
 
 function NorthPoleImpactPanel({ challenges }) {
   const totalDonation = challenges.reduce((s, c) => s + (c.north_pole_donation_cents || 0), 0);
@@ -150,6 +151,9 @@ export default function SouthPole() {
           ))}
         </div>
         <div className="relative max-w-5xl mx-auto px-4 py-10 md:py-16">
+          <div className="mb-4">
+            <PublicBetaBadge />
+          </div>
           <div className="flex items-center gap-3 mb-4">
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center shadow-lg shadow-cyan-900/50">
               <Mountain className="w-7 h-7 text-white" />

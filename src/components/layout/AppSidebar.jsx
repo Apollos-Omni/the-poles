@@ -57,6 +57,7 @@ const secondaryNavItems = [
   { title: "Hinge Admin", href: createPageUrl("HingeAdmin"), icon: Terminal, roles: ADMIN_ROLES },
   { title: "Agent Control", href: createPageUrl("AgentDashboard"), icon: Bot, roles: ADMIN_ROLES },
   { title: "Compliance", href: createPageUrl("ComplianceDashboard"), icon: Shield, roles: ADMIN_ROLES },
+  { title: "Beta Readiness", href: "/PublicBetaReadiness", icon: Trophy, roles: ADMIN_ROLES },
   { title: "Affiliate Admin", href: "/AffiliateAdmin", icon: Building, roles: AFFILIATE_ADMIN_ROLES },
   { title: "Diagnostics", href: createPageUrl("Diagnostics"), icon: Server, roles: ADMIN_ROLES },
 ];

@@ -5,7 +5,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import VisualEditAgent from '@/lib/VisualEditAgent'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
@@ -21,13 +21,16 @@ import AffiliateDisclosure from '@/pages/AffiliateDisclosure';
 import AffiliateOutRedirect from '@/pages/AffiliateOutRedirect';
 import AffiliateAdmin from '@/pages/AffiliateAdmin';
 import AffiliateCatalog from '@/pages/AffiliateCatalog';
+import LandingPage from '@/pages/LandingPage';
+import OfficialSkillCompetitionRules from '@/pages/OfficialSkillCompetitionRules';
+import AuthPage from '@/pages/AuthPage';
+import PublicBetaReadiness from '@/pages/PublicBetaReadiness';
 import RequireRole from '@/components/auth/RequireRole';
 import { ADMIN_ROLES, AFFILIATE_ADMIN_ROLES } from '@/lib/rbac';
 import { isSupabaseAuthMode } from '@/api/supabaseAuthClient';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
-const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
 
 const protectedPageRoles = {
   AgentDashboard: ADMIN_ROLES,
@@ -35,6 +38,18 @@ const protectedPageRoles = {
   Diagnostics: ADMIN_ROLES,
   HingeAdmin: ADMIN_ROLES,
 };
+
+const publicRoutePaths = new Set([
+  '/',
+  '/About',
+  '/Contact',
+  '/PrivacyPolicy',
+  '/TermsOfUse',
+  '/OfficialSkillCompetitionRules',
+  '/AffiliateDisclosure',
+  '/SignIn',
+  '/CreateAccount',
+]);
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
@@ -51,6 +66,7 @@ const pageElement = (path, Page) => {
 };
 
 const AuthenticatedApp = () => {
+  const location = useLocation();
   const {
     isLoadingAuth,
     isLoadingPublicSettings,
@@ -59,6 +75,25 @@ const AuthenticatedApp = () => {
     navigateToLogin,
     checkAppState,
   } = useAuth();
+
+  const publicRoutes = (
+    <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/About" element={<About />} />
+      <Route path="/Contact" element={<Contact />} />
+      <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
+      <Route path="/TermsOfUse" element={<TermsOfUse />} />
+      <Route path="/OfficialSkillCompetitionRules" element={<OfficialSkillCompetitionRules />} />
+      <Route path="/AffiliateDisclosure" element={<AffiliateDisclosure />} />
+      <Route path="/SignIn" element={<AuthPage mode="signin" />} />
+      <Route path="/CreateAccount" element={<AuthPage mode="signup" />} />
+      <Route path="*" element={<PageNotFound />} />
+    </Routes>
+  );
+
+  if (publicRoutePaths.has(location.pathname)) {
+    return publicRoutes;
+  }
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -91,7 +126,7 @@ const AuthenticatedApp = () => {
   return (
     <LayoutWrapper currentPageName={mainPageKey}>
       <Routes>
-        <Route path="/" element={<MainPage />} />
+        <Route path="/" element={<LandingPage />} />
         {Object.entries(Pages).map(([path, Page]) => (
           <Route key={path} path={`/${path}`} element={pageElement(path, Page)} />
         ))}
@@ -102,10 +137,12 @@ const AuthenticatedApp = () => {
         <Route path="/Contact" element={<Contact />} />
         <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />
         <Route path="/TermsOfUse" element={<TermsOfUse />} />
+        <Route path="/OfficialSkillCompetitionRules" element={<OfficialSkillCompetitionRules />} />
         <Route path="/AffiliateDisclosure" element={<AffiliateDisclosure />} />
         <Route path="/out/:offerId" element={<AffiliateOutRedirect />} />
         <Route path="/AffiliateAdmin" element={<RequireRole roles={AFFILIATE_ADMIN_ROLES}><AffiliateAdmin /></RequireRole>} />
         <Route path="/AffiliateCatalog" element={<AffiliateCatalog />} />
+        <Route path="/PublicBetaReadiness" element={<RequireRole roles={ADMIN_ROLES}><PublicBetaReadiness /></RequireRole>} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </LayoutWrapper>

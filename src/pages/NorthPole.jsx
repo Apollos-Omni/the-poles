@@ -33,6 +33,7 @@ import AdminDashboard from '@/components/northpole/AdminDashboard';
 import SkillCompetitionAgreement from '@/components/northpole/SkillCompetitionAgreement';
 import { GAME_ADAPTERS, getAdapter } from '@/lib/northpole/gameAdapter';
 import { ADMIN_ROLES, userHasRole } from '@/lib/rbac';
+import { PublicBetaBadge } from '@/components/public/PublicBetaLayout';
 import { searchProducts } from '@/functions/searchProducts';
 import { searchGames } from '@/functions/searchGames';
 import {
@@ -1262,6 +1263,7 @@ export default function NorthPole() {
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
+            <PublicBetaBadge />
             <Badge className="border border-green-700/30 bg-green-900/40 text-green-300">
               <ShieldCheck className="mr-1 h-3 w-3" />Persisted matches
             </Badge>

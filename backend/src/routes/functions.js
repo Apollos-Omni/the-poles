@@ -521,6 +521,64 @@ export function createFunctionRouter({ store }) {
     ok(res, await searchGamesAcrossProviders(req.body || {}, process.env));
   }));
 
+  router.post('/publicBetaReadiness', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    if (!isAdminUser(user)) return res.status(403).json({ success: false, error: 'Access denied' });
+
+    const paymentEnabled = process.env.PAYMENT_PROVIDER_ENABLED === 'true'
+      || Boolean(process.env.STRIPE_SECRET_KEY || process.env.STRIPE_WEBHOOK_SECRET);
+    const frontendOrigin = process.env.FRONTEND_ORIGIN || '';
+
+    ok(res, {
+      summary: 'Public beta readiness only. Live payments and real fulfillment remain disabled.',
+      checks: [
+        {
+          key: 'supabaseConnected',
+          label: 'Supabase connected',
+          status: Boolean(process.env.SUPABASE_URL && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)),
+          note: 'Checks server-side Supabase URL and key presence without exposing secrets.',
+        },
+        {
+          key: 'renderBackendHealth',
+          label: 'Render backend health',
+          status: true,
+          note: 'This admin-only function returned successfully from the backend.',
+        },
+        {
+          key: 'vercelFrontendLive',
+          label: 'Vercel frontend live',
+          status: Boolean(frontendOrigin && !frontendOrigin.includes('localhost')),
+          note: frontendOrigin ? `Configured frontend origin: ${frontendOrigin}` : 'FRONTEND_ORIGIN is not configured.',
+        },
+        {
+          key: 'ebayKeyConfigured',
+          label: 'eBay key configured',
+          status: Boolean(process.env.EBAY_CLIENT_ID && process.env.EBAY_CLIENT_SECRET),
+          note: 'Used for live prize search when configured; sample fallback remains available.',
+        },
+        {
+          key: 'rawgKeyConfigured',
+          label: 'RAWG key configured',
+          status: Boolean(process.env.RAWG_API_KEY),
+          note: 'Used for live game search when configured; sample fallback remains available.',
+        },
+        {
+          key: 'paymentProviderNotEnabled',
+          label: 'Payment provider not enabled',
+          status: !paymentEnabled,
+          note: 'Public beta must keep live payment collection disabled.',
+        },
+        {
+          key: 'legalReviewPending',
+          label: 'Legal review pending',
+          status: 'pending',
+          note: 'No page or checklist item claims legal compliance is complete.',
+        },
+      ],
+    });
+  }));
+
   router.post('/listOpenNorthPoleMatches', asyncHandler(async (req, res) => {
     const user = await requireUser(req, res);
     if (!user) return;
