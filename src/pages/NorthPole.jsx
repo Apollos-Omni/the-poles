@@ -36,9 +36,9 @@ import { searchProducts } from '@/functions/searchProducts';
 import { searchGames } from '@/functions/searchGames';
 import {
   createNorthPoleMatch,
+  joinNorthPoleMatch,
   finalizeAndVerify,
   createFulfillmentRecord,
-  logEvent,
 } from '@/lib/northpole/matchEngine';
 
 const STEPS = {
@@ -442,23 +442,7 @@ function RealNorthPoleFlow({ user }) {
     setMessage('');
     setJoiningId(match.id);
     try {
-      const playerIds = Array.isArray(match.player_ids) ? match.player_ids : [];
-      if (playerIds.includes(user.id)) {
-        setMessage('You already joined this match.');
-        return;
-      }
-
-      const nextPlayerIds = [...playerIds, user.id];
-      const isFull = nextPlayerIds.length >= Number(match.max_players || 0);
-      await base44.entities.NorthPoleMatch.update(match.id, {
-        player_ids: nextPlayerIds,
-        status: isFull ? 'active' : 'open',
-        joined_at: new Date().toISOString(),
-      });
-      await logEvent(match.match_id, 'match_started', user.id, {
-        player_count: nextPlayerIds.length,
-        max_players: match.max_players,
-      }, isFull ? 'Match filled and is ready to start' : 'Player joined match');
+      await joinNorthPoleMatch({ matchId: match.id });
       setMessage(`Joined ${match.match_id}. Payment remains simulated.`);
       await loadMatches();
     } catch (err) {
@@ -950,10 +934,6 @@ function DemoSimulation({ user }) {
       });
       setFulfillment(ff);
 
-      const updated = await base44.entities.NorthPoleMatch.update(verified.id, {
-        status: 'fulfillment_pending',
-      });
-      setCurrentMatch(updated);
       setStep(STEPS.RESULT);
     } catch (err) {
       setVerifyError(err.message || 'Demo verification failed.');

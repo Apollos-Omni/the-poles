@@ -27,177 +27,6 @@ const ok = (res, data = {}) => res.json({ success: true, ...data });
 const ADMIN_ROLES = [ROLES.OWNER, ROLES.ADMIN];
 const AFFILIATE_ADMIN_ROLES = [ROLES.OWNER, ROLES.ADMIN, ROLES.AFFILIATE_MANAGER];
 
-const SAMPLE_GAME_CATALOG = [
-  {
-    id: 'game-clash-of-clans',
-    title: 'Clash of Clans',
-    developer: 'Supercell',
-    description: 'Build a village, train troops, and compete in strategic attacks and defenses.',
-    category: 'Strategy',
-    platform: 'mobile',
-    store: 'Apple App Store / Google Play',
-    source: 'sample_game_catalog',
-    skillStyle: 'strategy planning, timing, and resource management',
-    skill_verifiable: true,
-    icon_url: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=200&h=200&fit=crop',
-    provider_ids: { app_store: '553834731', google_play: 'com.supercell.clashofclans' },
-  },
-  {
-    id: 'game-pubg-mobile',
-    title: 'PUBG Mobile',
-    developer: 'PUBG Corporation',
-    description: 'Battle royale competition with survival, aim, movement, and positioning skill.',
-    category: 'Action',
-    platform: 'mobile',
-    store: 'Apple App Store / Google Play',
-    source: 'sample_game_catalog',
-    skillStyle: 'survival placement, eliminations, and verified score reports',
-    skill_verifiable: true,
-    icon_url: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=200&h=200&fit=crop',
-    provider_ids: { google_play: 'com.pubg.mobile' },
-  },
-  {
-    id: 'game-real-racing-3',
-    title: 'Real Racing 3',
-    developer: 'EA Mobile',
-    description: 'Mobile racing competition with lap times and clean-driving skill.',
-    category: 'Racing',
-    platform: 'mobile',
-    store: 'Mobile app stores',
-    source: 'sample_game_catalog',
-    skillStyle: 'time trial and lap ranking',
-    skill_verifiable: true,
-    icon_url: 'https://images.unsplash.com/photo-1593341646797-278c77220268?w=200&h=200&fit=crop',
-    provider_ids: { google_play: 'com.ea.games.r3_row' },
-  },
-  {
-    id: 'game-counter-strike-2',
-    title: 'Counter-Strike 2',
-    developer: 'Valve',
-    description: 'Competitive FPS with aim, team tactics, objective play, and scoreboards.',
-    category: 'FPS',
-    platform: 'desktop',
-    store: 'Steam',
-    source: 'sample_game_catalog',
-    skillStyle: 'kills, wins, objective stats, and match score',
-    skill_verifiable: true,
-    icon_url: 'https://images.unsplash.com/photo-1560419015-7c427e8ae5ba?w=200&h=200&fit=crop',
-    provider_ids: { steam: '730' },
-  },
-  {
-    id: 'game-fortnite',
-    title: 'Fortnite',
-    developer: 'Epic Games',
-    description: 'Battle royale and creative modes with placement, eliminations, and building skill.',
-    category: 'Battle Royale',
-    platform: 'desktop/console',
-    store: 'Epic Games / console stores',
-    source: 'sample_game_catalog',
-    skillStyle: 'placement, eliminations, and match performance',
-    skill_verifiable: true,
-    icon_url: 'https://images.unsplash.com/photo-1612287230491-645511cf2980?w=200&h=200&fit=crop',
-    provider_ids: { epic: 'fortnite' },
-  },
-  {
-    id: 'game-forza-horizon-5',
-    title: 'Forza Horizon 5',
-    developer: 'Playground Games',
-    description: 'Racing challenges with lap times, events, and driving precision.',
-    category: 'Racing',
-    platform: 'desktop/console',
-    store: 'Xbox / Microsoft Store / Steam',
-    source: 'sample_game_catalog',
-    skillStyle: 'lap time and event ranking',
-    skill_verifiable: true,
-    icon_url: 'https://images.unsplash.com/photo-1627943534575-b6d44f6f7b1e?w=200&h=200&fit=crop',
-    provider_ids: { xbox: '9NBLGGH4T4X7' },
-  },
-  {
-    id: 'game-fifa-fc',
-    title: 'EA Sports FC',
-    developer: 'EA Sports',
-    description: 'Sports competition built around match wins, goals, and verified results.',
-    category: 'Sports',
-    platform: 'console/desktop',
-    store: 'PlayStation / Xbox / PC stores',
-    source: 'sample_game_catalog',
-    skillStyle: 'head-to-head match result',
-    skill_verifiable: true,
-    icon_url: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=200&h=200&fit=crop',
-    provider_ids: {},
-  },
-  {
-    id: 'game-beat-saber',
-    title: 'Beat Saber',
-    developer: 'Beat Games',
-    description: 'VR rhythm game where precision, timing, and score determine the winner.',
-    category: 'Rhythm',
-    platform: 'vr',
-    store: 'Meta Quest / SteamVR',
-    source: 'sample_game_catalog',
-    skillStyle: 'score and accuracy challenge',
-    skill_verifiable: true,
-    icon_url: 'https://images.unsplash.com/photo-1593508512255-86ab42a8e620?w=200&h=200&fit=crop',
-    provider_ids: { steam: '620980' },
-  },
-  {
-    id: 'game-celeste',
-    title: 'Celeste',
-    developer: 'Maddy Makes Games',
-    description: 'Precision platforming challenges with speedrun and completion-time scoring.',
-    category: 'Platformer',
-    platform: 'desktop/console',
-    store: 'Steam / itch.io / console stores',
-    source: 'sample_game_catalog',
-    skillStyle: 'speedrun time and completion proof',
-    skill_verifiable: true,
-    icon_url: 'https://images.unsplash.com/photo-1585860250091-a6b10b0e5c94?w=200&h=200&fit=crop',
-    provider_ids: { itch_io: 'celeste' },
-  },
-  {
-    id: 'challenge-trivia-champion',
-    title: 'Trivia Champion',
-    developer: 'The Poles',
-    description: 'Knowledge challenge where correct answers and completion time determine ranking.',
-    category: 'Trivia',
-    platform: 'web',
-    store: 'The Poles challenge',
-    source: 'sample_game_catalog',
-    skillStyle: 'correct answers and speed',
-    skill_verifiable: true,
-    icon_url: '',
-    provider_ids: {},
-  },
-];
-
-function searchGameCatalog({ q = '', category = null, platform = null, limit = 24, offset = 0 } = {}) {
-  const query = String(q || '').trim().toLowerCase();
-  const normalizedCategory = category ? String(category).toLowerCase() : null;
-  const normalizedPlatform = platform ? String(platform).toLowerCase() : null;
-  const boundedLimit = Math.min(Math.max(Number(limit) || 24, 1), 50);
-  const boundedOffset = Math.max(Number(offset) || 0, 0);
-
-  const games = SAMPLE_GAME_CATALOG.filter((game) => {
-    const matchesQuery = !query || [
-      game.title,
-      game.developer,
-      game.description,
-      game.category,
-      game.platform,
-      game.skillStyle,
-      game.store,
-    ].some((value) => String(value || '').toLowerCase().includes(query));
-    const matchesCategory = !normalizedCategory || String(game.category || '').toLowerCase() === normalizedCategory;
-    const matchesPlatform = !normalizedPlatform || String(game.platform || '').toLowerCase().includes(normalizedPlatform);
-    return matchesQuery && matchesCategory && matchesPlatform;
-  });
-
-  return {
-    games: games.slice(boundedOffset, boundedOffset + boundedLimit),
-    totalResults: games.length,
-  };
-}
-
 const WRITE_POLICIES = {
   affiliate_merchants: AFFILIATE_ADMIN_ROLES,
   affiliate_offers: AFFILIATE_ADMIN_ROLES,
@@ -205,9 +34,41 @@ const WRITE_POLICIES = {
   fulfillments: ADMIN_ROLES,
   fulfillment_events: ADMIN_ROLES,
   north_pole_fulfillments: ADMIN_ROLES,
+  north_pole_matches: ADMIN_ROLES,
+  match_events: ADMIN_ROLES,
 };
 
 const ROLE_PROTECTED_TABLES = new Set(['profiles', 'users']);
+const PROTECTED_READ_TABLES = new Set([
+  'profiles',
+  'users',
+  'north_pole_matches',
+  'north_pole_fulfillments',
+  'match_events',
+  'fulfillments',
+  'fulfillment_events',
+  'audit_events',
+  'audit_logs',
+  'hinge_commands',
+  'push_subscriptions',
+  'affiliate_clicks',
+  'affiliate_applications',
+]);
+const ADMIN_READ_TABLES = new Set([
+  'profiles',
+  'users',
+  'north_pole_fulfillments',
+  'match_events',
+  'fulfillments',
+  'fulfillment_events',
+  'audit_events',
+  'audit_logs',
+  'hinge_commands',
+  'push_subscriptions',
+  'affiliate_clicks',
+  'affiliate_applications',
+]);
+const PUBLIC_READ_TABLES = new Set(['affiliate_offers', 'products', 'prizes', 'games']);
 
 const entityRequestSchema = z.object({
   entity: z.string().optional(),
@@ -271,6 +132,37 @@ const requireEntityTable = (body, res) => {
 };
 
 const hasRole = (user, roles = []) => roles.includes(user?.role);
+const isAdminUser = (user) => hasRole(user, ADMIN_ROLES);
+
+async function requireAuthenticatedUser(req, res, store) {
+  const user = await getRequestUser(req, store);
+  if (!user?.id) {
+    res.status(401).json({ success: false, error: 'Authentication required' });
+    return null;
+  }
+  return user;
+}
+
+function isPublicEntityRead(table, filters = {}) {
+  if (!PUBLIC_READ_TABLES.has(table)) return false;
+  if (table !== 'affiliate_offers') return true;
+  const status = String(filters.status || '').toLowerCase();
+  return status === 'active' || filters.active === true || filters.is_active === true;
+}
+
+async function authorizeEntityRead(req, res, store, table, filters = {}) {
+  if (!PROTECTED_READ_TABLES.has(table) && isPublicEntityRead(table, filters)) return { public: true };
+
+  const user = await requireAuthenticatedUser(req, res, store);
+  if (!user) return null;
+
+  if (ADMIN_READ_TABLES.has(table) && !isAdminUser(user)) {
+    res.status(403).json({ success: false, error: 'Access denied' });
+    return null;
+  }
+
+  return user;
+}
 
 function containsRoleField(value) {
   if (!value || typeof value !== 'object') return false;
@@ -280,7 +172,8 @@ function containsRoleField(value) {
 }
 
 async function authorizeEntityWrite(req, res, store, table, payload = {}) {
-  const user = await getRequestUser(req, store);
+  const user = await requireAuthenticatedUser(req, res, store);
+  if (!user) return false;
   const allowedRoles = WRITE_POLICIES[table];
   if (allowedRoles && !hasRole(user, allowedRoles)) {
     res.status(403).json({ success: false, error: 'Access denied' });
@@ -316,14 +209,62 @@ const createMatchSchema = z.object({
   productOffer: z.unknown().optional(),
 }).passthrough();
 
+const northPoleSnapshotSchema = z.record(z.unknown()).optional().nullable();
+const createNorthPoleMatchSchema = z.object({
+  gameId: z.string().min(1).optional(),
+  game_id: z.string().min(1).optional(),
+  prizeId: z.string().min(1).optional(),
+  prize_id: z.string().min(1).optional(),
+  maxPlayers: z.number().int().min(2).max(100).optional(),
+  max_players: z.number().int().min(2).max(100).optional(),
+  buyInCents: z.number().int().min(0).max(10000000).optional(),
+  buy_in_cents: z.number().int().min(0).max(10000000).optional(),
+  prizeSnapshot: northPoleSnapshotSchema,
+  prize_snapshot: northPoleSnapshotSchema,
+  gameSnapshot: northPoleSnapshotSchema,
+  game_snapshot: northPoleSnapshotSchema,
+  matchPlan: northPoleSnapshotSchema,
+  match_plan: northPoleSnapshotSchema,
+  sandboxMode: z.boolean().optional(),
+  sandbox_mode: z.boolean().optional(),
+}).passthrough();
+
+const joinNorthPoleMatchSchema = z.object({
+  id: z.string().min(1).optional(),
+  matchId: z.string().min(1).optional(),
+  match_id: z.string().min(1).optional(),
+});
+
+const finalizeNorthPoleMatchSchema = z.object({
+  id: z.string().min(1).optional(),
+  matchDbId: z.string().min(1).optional(),
+  match_id: z.string().min(1).optional(),
+  resultPayload: z.record(z.unknown()).optional(),
+  result_payload: z.record(z.unknown()).optional(),
+});
+
+function generateNorthPoleMatchId() {
+  return `NP-${Date.now().toString(36).toUpperCase()}`;
+}
+
+function sanitizeSnapshot(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return value;
+}
+
+function getNorthPoleMatchId(input = {}) {
+  return input.id || input.matchDbId || input.matchId || input.match_id;
+}
+
 export function createFunctionRouter({ store }) {
   const router = express.Router();
 
-  const requireUser = async (req) => getRequestUser(req, store);
+  const requireUser = async (req, res) => requireAuthenticatedUser(req, res, store);
 
   router.post('/entityList', asyncHandler(async (req, res) => {
     const table = requireEntityTable(req.body, res);
     if (!table) return;
+    if (!(await authorizeEntityRead(req, res, store, table))) return;
     const rows = await store.list(table, {}, entityOptions(req.body));
     ok(res, { rows, data: rows });
   }));
@@ -332,6 +273,7 @@ export function createFunctionRouter({ store }) {
     const table = requireEntityTable(req.body, res);
     if (!table) return;
     const filters = req.body?.filters && typeof req.body.filters === 'object' ? req.body.filters : {};
+    if (!(await authorizeEntityRead(req, res, store, table, filters))) return;
     const rows = await store.list(table, filters, entityOptions(req.body));
     ok(res, { rows, data: rows });
   }));
@@ -339,6 +281,7 @@ export function createFunctionRouter({ store }) {
   router.post('/entityGet', asyncHandler(async (req, res) => {
     const table = requireEntityTable(req.body, res);
     if (!table) return;
+    if (!(await authorizeEntityRead(req, res, store, table))) return;
     const id = req.body?.id;
     if (!id) return res.status(400).json({ success: false, error: 'Missing entity row id' });
     const row = await store.findOne(table, { id });
@@ -399,7 +342,8 @@ export function createFunctionRouter({ store }) {
   }));
 
   router.all('/managePushSubscription', asyncHandler(async (req, res) => {
-    const user = await requireUser(req);
+    const user = await requireUser(req, res);
+    if (!user) return;
 
     if (req.method === 'GET') {
       const subscriptions = await store.list(T.pushSubscriptions, { user_id: user.id, is_active: true });
@@ -466,8 +410,169 @@ export function createFunctionRouter({ store }) {
     ok(res, await searchGamesAcrossProviders(req.body || {}, process.env));
   }));
 
+  router.post('/createNorthPoleMatch', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+
+    const input = createNorthPoleMatchSchema.parse(req.body || {});
+    const gameId = input.gameId || input.game_id;
+    const prizeId = input.prizeId || input.prize_id;
+    const maxPlayers = input.maxPlayers || input.max_players;
+    const buyInCents = input.buyInCents ?? input.buy_in_cents;
+    const sandboxMode = Boolean(input.sandboxMode || input.sandbox_mode);
+
+    if (!gameId || !prizeId) return res.status(400).json({ success: false, error: 'Missing gameId or prizeId' });
+    if (!Number.isInteger(maxPlayers) || maxPlayers < 2 || maxPlayers > 100) {
+      return res.status(400).json({ success: false, error: 'maxPlayers must be between 2 and 100' });
+    }
+    if (!Number.isInteger(buyInCents) || buyInCents < 0 || buyInCents > 10000000) {
+      return res.status(400).json({ success: false, error: 'buyInCents is invalid' });
+    }
+
+    const matchId = generateNorthPoleMatchId();
+    const status = sandboxMode ? 'active' : 'open';
+    const nowIso = new Date().toISOString();
+    const match = await store.create('north_pole_matches', {
+      match_id: matchId,
+      created_by: user.id,
+      creator_user_id: user.id,
+      game_id: gameId,
+      game_snapshot: sanitizeSnapshot(input.gameSnapshot || input.game_snapshot),
+      prize_id: prizeId,
+      prize_snapshot: sanitizeSnapshot(input.prizeSnapshot || input.prize_snapshot),
+      player_ids: [user.id],
+      scores: {},
+      status,
+      sandbox_mode: sandboxMode,
+      fulfillment_mode: sandboxMode ? 'sandbox' : 'simulated',
+      prize_locked_at: nowIso,
+      started_at: nowIso,
+      buy_in_cents: buyInCents,
+      max_players: maxPlayers,
+      match_plan: sanitizeSnapshot(input.matchPlan || input.match_plan),
+    });
+
+    await store.create('match_events', {
+      match_id: matchId,
+      event_type: 'match_created',
+      actor_user_id: user.id,
+      data: { match_id: matchId, game_id: gameId, sandbox_mode: sandboxMode },
+      note: sandboxMode ? 'Sandbox match created' : 'North Pole match created',
+    });
+
+    ok(res, { match, row: match, data: match });
+  }));
+
+  router.post('/joinNorthPoleMatch', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+
+    const input = joinNorthPoleMatchSchema.parse(req.body || {});
+    const id = getNorthPoleMatchId(input);
+    if (!id) return res.status(400).json({ success: false, error: 'Match ID is required' });
+
+    const match = await store.findOne('north_pole_matches', { id }) || await store.findOne('north_pole_matches', { match_id: id });
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+    if (match.sandbox_mode) return res.status(400).json({ success: false, error: 'Sandbox matches are not joinable from the real flow' });
+    if (match.status !== 'open') return res.status(400).json({ success: false, error: 'Match is not open for joining' });
+
+    const playerIds = Array.isArray(match.player_ids) ? match.player_ids : [];
+    if (playerIds.includes(user.id)) return res.status(400).json({ success: false, error: 'You have already joined this match' });
+    const maxPlayers = Number(match.max_players || 0);
+    if (!Number.isInteger(maxPlayers) || maxPlayers < 2) return res.status(400).json({ success: false, error: 'Match capacity is invalid' });
+    if (playerIds.length >= maxPlayers) return res.status(400).json({ success: false, error: 'This match is already full' });
+
+    const nextPlayerIds = [...playerIds, user.id];
+    const nextStatus = nextPlayerIds.length >= maxPlayers ? 'active' : 'open';
+    const updated = await store.update('north_pole_matches', match.id, {
+      player_ids: nextPlayerIds,
+      status: nextStatus,
+      joined_at: new Date().toISOString(),
+    });
+
+    await store.create('match_events', {
+      match_id: match.match_id,
+      event_type: nextStatus === 'active' ? 'match_started' : 'player_joined',
+      actor_user_id: user.id,
+      data: { player_count: nextPlayerIds.length, max_players: maxPlayers },
+      note: nextStatus === 'active' ? 'Match filled and is ready to start' : 'Player joined match',
+    });
+
+    ok(res, { match: updated, row: updated, data: updated });
+  }));
+
+  router.post('/finalizeNorthPoleMatchResult', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+
+    const input = finalizeNorthPoleMatchSchema.parse(req.body || {});
+    const id = getNorthPoleMatchId(input);
+    const resultPayload = input.resultPayload || input.result_payload || {};
+    if (!id) return res.status(400).json({ success: false, error: 'Match ID is required' });
+
+    const match = await store.findOne('north_pole_matches', { id }) || await store.findOne('north_pole_matches', { match_id: id });
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+    if (!match.sandbox_mode && !isAdminUser(user)) {
+      return res.status(403).json({ success: false, error: 'Only sandbox matches or admins can be finalized here' });
+    }
+
+    const scores = resultPayload.scores && typeof resultPayload.scores === 'object' ? resultPayload.scores : null;
+    const winnerUserId = resultPayload.winner?.userId || resultPayload.winner_user_id;
+    if (!scores || !winnerUserId) return res.status(400).json({ success: false, error: 'Invalid result payload' });
+
+    await store.update('north_pole_matches', match.id, {
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      raw_result_payload: resultPayload,
+      scores,
+    });
+    await store.create('match_events', {
+      match_id: match.match_id,
+      event_type: 'match_completed',
+      actor_user_id: user.id,
+      data: { scores },
+      note: 'Match completed - scores finalized',
+    });
+
+    const verified = await store.update('north_pole_matches', match.id, {
+      status: 'verified',
+      winner_user_id: winnerUserId,
+      winner_locked_at: new Date().toISOString(),
+    });
+    await store.create('match_events', {
+      match_id: match.match_id,
+      event_type: 'winner_verified',
+      actor_user_id: 'system',
+      data: { winner_user_id: winnerUserId },
+      note: `Winner locked: ${winnerUserId}`,
+    });
+
+    let fulfillment = null;
+    if (match.sandbox_mode) {
+      fulfillment = await store.create('north_pole_fulfillments', {
+        match_id: match.match_id,
+        winner_user_id: winnerUserId,
+        prize_id: match.prize_id,
+        prize_snapshot: match.prize_snapshot,
+        admin_status: 'pending_review',
+        order_status: 'sandbox_created',
+        sandbox_mode: true,
+      });
+      await store.create('match_events', {
+        match_id: match.match_id,
+        event_type: 'fulfillment_created',
+        actor_user_id: 'system',
+        data: { fulfillment_id: fulfillment.id },
+        note: 'Fulfillment record created - pending admin review',
+      });
+    }
+
+    ok(res, { match: verified, fulfillment, row: verified, data: verified });
+  }));
+
   router.post('/createMatch', asyncHandler(async (req, res) => {
-    const user = await requireUser(req);
+    const user = await requireUser(req, res);
+    if (!user) return;
     const input = createMatchSchema.parse(req.body || {});
     const gameId = input.gameId || input.game_id;
     const productId = input.productId || input.product_id || input.productOffer?.product_id || input.productOffer?.id;
@@ -499,7 +604,8 @@ export function createFunctionRouter({ store }) {
   }));
 
   router.post('/joinMatch', asyncHandler(async (req, res) => {
-    const user = await requireUser(req);
+    const user = await requireUser(req, res);
+    if (!user) return;
     const { matchId, match_id, method = 'paid' } = req.body || {};
     const id = matchId || match_id;
     if (!id) return res.status(400).json({ success: false, error: 'Match ID is required' });
@@ -522,7 +628,8 @@ export function createFunctionRouter({ store }) {
   }));
 
   router.post('/submitScore', asyncHandler(async (req, res) => {
-    const user = await requireUser(req);
+    const user = await requireUser(req, res);
+    if (!user) return;
     const { matchId, match_id, score, proofMeta = {}, meta = {} } = req.body || {};
     const id = matchId || match_id;
     if (!id || typeof score !== 'number') return res.status(400).json({ success: false, error: 'Missing matchId or numeric score' });
@@ -575,7 +682,8 @@ export function createFunctionRouter({ store }) {
       affiliate_url: 'https://example.com',
       disclosure_text: process.env.AFFILIATE_DISCLOSURE_TEXT || 'We may earn from qualifying purchases.',
     };
-    const user = await requireUser(req);
+    const user = await requireUser(req, res);
+    if (!user) return;
     await store.create('affiliate_clicks', {
       offer_id: offerId,
       affiliate_offer_id: offerId,
@@ -592,7 +700,8 @@ export function createFunctionRouter({ store }) {
   }));
 
   router.post('/publishHingeCommand', asyncHandler(async (req, res) => {
-    const user = await requireUser(req);
+    const user = await requireUser(req, res);
+    if (!user) return;
     const { deviceId, commandType, args = {} } = req.body || {};
     if (!deviceId || !commandType) return res.status(400).json({ success: false, error: 'Missing deviceId or commandType' });
     const command = await store.create(T.hingeCommands, { user_id: user.id, device_id: deviceId, command_type: commandType, args, status: 'queued' });

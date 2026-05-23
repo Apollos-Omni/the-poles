@@ -9,6 +9,10 @@ export const ROLES = {
 
 const VALID_ROLES = new Set(Object.values(ROLES));
 
+function demoAuthEnabled() {
+  return process.env.NODE_ENV === 'development' && process.env.ENABLE_DEMO_AUTH === 'true';
+}
+
 export function normalizeRole(role, fallback = ROLES.USER) {
   return VALID_ROLES.has(role) ? role : fallback;
 }
@@ -30,7 +34,10 @@ export async function getRequestUser(req, store) {
       return null;
     });
     if (user) {
-      const role = normalizeRole(user.app_metadata?.role || user.user_metadata?.role || ROLES.USER);
+      const profile = store.findProfileByAuthUserId
+        ? await store.findProfileByAuthUserId(user.id).catch(() => null)
+        : null;
+      const role = normalizeRole(profile?.role || user.app_metadata?.role || user.user_metadata?.role || ROLES.USER);
       return {
         id: user.id,
         email: user.email,
@@ -39,12 +46,12 @@ export async function getRequestUser(req, store) {
     }
   }
 
-  // Local/demo fallback. This keeps the MVP usable while auth is migrated.
-  const isProduction = process.env.NODE_ENV === 'production';
+  if (!demoAuthEnabled()) return null;
+
+  // Local/demo fallback is opt-in and development-only.
   const email = req.headers['x-demo-user-email'] || process.env.DEMO_USER_EMAIL || 'demo@thepoles.local';
   const requestedRole = req.headers['x-demo-user-role'];
-  const defaultRole = isProduction ? ROLES.USER : ROLES.OWNER;
-  const role = isProduction ? defaultRole : normalizeRole(requestedRole, defaultRole);
+  const role = normalizeRole(requestedRole, ROLES.OWNER);
 
   return {
     id: req.headers['x-demo-user-id'] || process.env.DEMO_USER_ID || 'demo-user',
