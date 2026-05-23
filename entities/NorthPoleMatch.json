@@ -87,6 +87,27 @@
     },
     "max_players": {
       "type": "number"
+    },
+    "skill_agreement_required": {
+      "type": "boolean",
+      "description": "Whether skill-based competition agreement acceptance is required for this match"
+    },
+    "skill_agreement_version": {
+      "type": "string",
+      "description": "Version of the skill-based competition agreement accepted for this match"
+    },
+    "creator_agreement_accepted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the creator accepted the skill-based competition agreement"
+    },
+    "creator_agreement_user_id": {
+      "type": "string",
+      "description": "User ID that accepted the creator agreement"
+    },
+    "participant_agreements": {
+      "type": "object",
+      "description": "Map of userId to skill-based competition agreement acceptance metadata"
     }
   },
   "required": [

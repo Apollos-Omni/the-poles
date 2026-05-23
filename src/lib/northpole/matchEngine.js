@@ -1,6 +1,8 @@
 import { base44 } from '@/api/base44Client';
 import { invokeBackendFunction } from '@/api/apiClient';
 
+export const SKILL_COMPETITION_AGREEMENT_VERSION = 'skill_competition_agreement_v1';
+
 export function generateMatchId() {
   const ts = Date.now().toString(36).toUpperCase();
   return `NP-${ts}`;
@@ -25,6 +27,8 @@ export async function createNorthPoleMatch({
   sandboxMode = false,
   matchPlan = null,
   gameSnapshot = null,
+  skillAgreementAccepted = false,
+  skillAgreementVersion = SKILL_COMPETITION_AGREEMENT_VERSION,
 }) {
   const functionName = sandboxMode ? 'createSandboxNorthPoleMatch' : 'createNorthPoleMatch';
   const response = await invokeBackendFunction(functionName, {
@@ -36,6 +40,8 @@ export async function createNorthPoleMatch({
     buy_in_cents: buyInCents,
     match_plan: matchPlan || prizeSnapshot?.match_plan || null,
     sandbox_mode: sandboxMode,
+    skill_agreement_accepted: skillAgreementAccepted,
+    skill_agreement_version: skillAgreementVersion,
   });
 
   return response.data?.match || response.data?.data;
@@ -50,9 +56,15 @@ export async function listOpenNorthPoleMatches({ sort = '-created_date', limit =
   return response.data?.rows || response.data?.data || [];
 }
 
-export async function joinNorthPoleMatch({ matchId }) {
+export async function joinNorthPoleMatch({
+  matchId,
+  skillAgreementAccepted = false,
+  skillAgreementVersion = SKILL_COMPETITION_AGREEMENT_VERSION,
+}) {
   const response = await invokeBackendFunction('joinNorthPoleMatch', {
     id: matchId,
+    skill_agreement_accepted: skillAgreementAccepted,
+    skill_agreement_version: skillAgreementVersion,
   });
 
   return response.data?.match || response.data?.data;

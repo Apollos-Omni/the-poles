@@ -26,6 +26,8 @@ const hash = (value) => crypto.createHash('sha256').update(JSON.stringify(value)
 const ok = (res, data = {}) => res.json({ success: true, ...data });
 const ADMIN_ROLES = [ROLES.OWNER, ROLES.ADMIN];
 const AFFILIATE_ADMIN_ROLES = [ROLES.OWNER, ROLES.ADMIN, ROLES.AFFILIATE_MANAGER];
+const SKILL_COMPETITION_AGREEMENT_VERSION = 'skill_competition_agreement_v1';
+const SKILL_AGREEMENT_REQUIRED_ERROR = 'Skill-based competition agreement must be accepted before entering this match.';
 
 const WRITE_POLICIES = {
   affiliate_merchants: AFFILIATE_ADMIN_ROLES,
@@ -228,12 +230,20 @@ const createNorthPoleMatchSchema = z.object({
   match_plan: northPoleSnapshotSchema,
   sandboxMode: z.boolean().optional(),
   sandbox_mode: z.boolean().optional(),
+  skillAgreementAccepted: z.boolean().optional(),
+  skill_agreement_accepted: z.boolean().optional(),
+  skillAgreementVersion: z.string().min(1).optional(),
+  skill_agreement_version: z.string().min(1).optional(),
 }).passthrough();
 
 const joinNorthPoleMatchSchema = z.object({
   id: z.string().min(1).optional(),
   matchId: z.string().min(1).optional(),
   match_id: z.string().min(1).optional(),
+  skillAgreementAccepted: z.boolean().optional(),
+  skill_agreement_accepted: z.boolean().optional(),
+  skillAgreementVersion: z.string().min(1).optional(),
+  skill_agreement_version: z.string().min(1).optional(),
 });
 
 const finalizeNorthPoleMatchSchema = z.object({
@@ -257,7 +267,38 @@ function getNorthPoleMatchId(input = {}) {
   return input.id || input.matchDbId || input.matchId || input.match_id;
 }
 
-async function createNorthPoleMatchRecord({ store, user, input, sandboxMode = false }) {
+function getSkillAgreementVersion(input = {}) {
+  return input.skillAgreementVersion || input.skill_agreement_version;
+}
+
+function requireSkillCompetitionAgreement(input = {}) {
+  const accepted = input.skillAgreementAccepted === true || input.skill_agreement_accepted === true;
+  const version = getSkillAgreementVersion(input);
+  if (!accepted || version !== SKILL_COMPETITION_AGREEMENT_VERSION) {
+    const error = new Error(SKILL_AGREEMENT_REQUIRED_ERROR);
+    error.status = 400;
+    throw error;
+  }
+  return version;
+}
+
+function normalizeParticipantAgreements(value) {
+  if (!value || typeof value !== 'object') return {};
+  if (!Array.isArray(value)) return value;
+  return value.reduce((acc, item) => {
+    if (item?.user_id) acc[item.user_id] = item;
+    return acc;
+  }, {});
+}
+
+function canFinalizeNorthPoleMatch(user, match) {
+  if (isAdminUser(user)) return true;
+  if (!match?.sandbox_mode) return false;
+  const playerIds = Array.isArray(match.player_ids) ? match.player_ids : [];
+  return match.creator_user_id === user.id || match.created_by === user.id || playerIds.includes(user.id);
+}
+
+async function createNorthPoleMatchRecord({ store, user, input, sandboxMode = false, skillAgreementVersion = null }) {
   const gameId = input.gameId || input.game_id;
   const prizeId = input.prizeId || input.prize_id;
   const maxPlayers = input.maxPlayers || input.max_players;
@@ -281,6 +322,19 @@ async function createNorthPoleMatchRecord({ store, user, input, sandboxMode = fa
 
   const matchId = generateNorthPoleMatchId();
   const nowIso = new Date().toISOString();
+  const agreementFields = skillAgreementVersion ? {
+    skill_agreement_required: true,
+    skill_agreement_version: skillAgreementVersion,
+    creator_agreement_accepted_at: nowIso,
+    creator_agreement_user_id: user.id,
+    participant_agreements: {
+      [user.id]: {
+        user_id: user.id,
+        accepted_at: nowIso,
+        agreement_version: skillAgreementVersion,
+      },
+    },
+  } : {};
   const match = await store.create('north_pole_matches', {
     match_id: matchId,
     created_by: user.id,
@@ -299,6 +353,7 @@ async function createNorthPoleMatchRecord({ store, user, input, sandboxMode = fa
     buy_in_cents: buyInCents,
     max_players: maxPlayers,
     match_plan: sanitizeSnapshot(input.matchPlan || input.match_plan),
+    ...agreementFields,
   });
 
   await store.create('match_events', {
@@ -470,14 +525,17 @@ export function createFunctionRouter({ store }) {
     const user = await requireUser(req, res);
     if (!user) return;
 
-    const rows = await store.list('north_pole_matches', {}, entityOptions({
+    const options = entityOptions({
       sort: req.body?.sort || '-created_date',
       limit: parseLimit(req.body?.limit) ?? 100,
-    }));
-    const filtered = isAdminUser(user)
-      ? rows
-      : rows.filter((row) => !row.sandbox_mode && ['open', 'active'].includes(row.status));
-    ok(res, { rows: filtered, data: filtered });
+    });
+    const rows = isAdminUser(user)
+      ? await store.list('north_pole_matches', {}, options)
+      : await store.list('north_pole_matches', {
+        sandbox_mode: false,
+        status: ['open', 'active'],
+      }, options);
+    ok(res, { rows, data: rows });
   }));
 
   router.post('/createNorthPoleMatch', asyncHandler(async (req, res) => {
@@ -490,7 +548,14 @@ export function createFunctionRouter({ store }) {
     }
 
     try {
-      const match = await createNorthPoleMatchRecord({ store, user, input, sandboxMode: false });
+      const skillAgreementVersion = requireSkillCompetitionAgreement(input);
+      const match = await createNorthPoleMatchRecord({
+        store,
+        user,
+        input,
+        sandboxMode: false,
+        skillAgreementVersion,
+      });
       ok(res, { match, row: match, data: match });
     } catch (error) {
       res.status(error.status || 500).json({ success: false, error: error.message || 'Could not create match' });
@@ -523,6 +588,13 @@ export function createFunctionRouter({ store }) {
     if (match.sandbox_mode) return res.status(400).json({ success: false, error: 'Sandbox matches are not joinable from the real flow' });
     if (match.status !== 'open') return res.status(400).json({ success: false, error: 'Match is not open for joining' });
 
+    let skillAgreementVersion;
+    try {
+      skillAgreementVersion = requireSkillCompetitionAgreement(input);
+    } catch (error) {
+      return res.status(error.status || 400).json({ success: false, error: error.message });
+    }
+
     const playerIds = Array.isArray(match.player_ids) ? match.player_ids : [];
     if (playerIds.includes(user.id)) return res.status(400).json({ success: false, error: 'You have already joined this match' });
     const maxPlayers = Number(match.max_players || 0);
@@ -531,10 +603,22 @@ export function createFunctionRouter({ store }) {
 
     const nextPlayerIds = [...playerIds, user.id];
     const nextStatus = nextPlayerIds.length >= maxPlayers ? 'active' : 'open';
+    const acceptedAt = new Date().toISOString();
+    const participantAgreements = normalizeParticipantAgreements(match.participant_agreements);
     const updated = await store.update('north_pole_matches', match.id, {
       player_ids: nextPlayerIds,
       status: nextStatus,
-      joined_at: new Date().toISOString(),
+      joined_at: acceptedAt,
+      skill_agreement_required: true,
+      skill_agreement_version: match.skill_agreement_version || skillAgreementVersion,
+      participant_agreements: {
+        ...participantAgreements,
+        [user.id]: {
+          user_id: user.id,
+          accepted_at: acceptedAt,
+          agreement_version: skillAgreementVersion,
+        },
+      },
     });
 
     await store.create('match_events', {
@@ -559,8 +643,8 @@ export function createFunctionRouter({ store }) {
 
     const match = await store.findOne('north_pole_matches', { id }) || await store.findOne('north_pole_matches', { match_id: id });
     if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
-    if (!match.sandbox_mode && !isAdminUser(user)) {
-      return res.status(403).json({ success: false, error: 'Only sandbox matches or admins can be finalized here' });
+    if (!canFinalizeNorthPoleMatch(user, match)) {
+      return res.status(403).json({ success: false, error: 'Only match participants, match creators, or admins can finalize this match' });
     }
 
     const scores = resultPayload.scores && typeof resultPayload.scores === 'object' ? resultPayload.scores : null;

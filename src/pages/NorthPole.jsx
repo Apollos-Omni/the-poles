@@ -30,6 +30,7 @@ import PrizeSelector, { DEMO_PRIZES } from '@/components/northpole/PrizeSelector
 import GameLobby from '@/components/northpole/GameLobby';
 import MatchResultScreen from '@/components/northpole/MatchResultScreen';
 import AdminDashboard from '@/components/northpole/AdminDashboard';
+import SkillCompetitionAgreement from '@/components/northpole/SkillCompetitionAgreement';
 import { GAME_ADAPTERS, getAdapter } from '@/lib/northpole/gameAdapter';
 import { ADMIN_ROLES, userHasRole } from '@/lib/rbac';
 import { searchProducts } from '@/functions/searchProducts';
@@ -40,6 +41,7 @@ import {
   joinNorthPoleMatch,
   finalizeAndVerify,
   createFulfillmentRecord,
+  SKILL_COMPETITION_AGREEMENT_VERSION,
 } from '@/lib/northpole/matchEngine';
 
 const STEPS = {
@@ -103,10 +105,22 @@ function statusClass(status) {
   return 'bg-purple-600/20 text-purple-300 border-purple-600/30';
 }
 
-function NorthPoleMatchCard({ match, currentUserId, onJoin, isJoining }) {
+function NorthPoleMatchCard({
+  match,
+  currentUserId,
+  onJoin,
+  isJoining,
+  pendingJoinId,
+  joinAgreementAccepted,
+  onPrepareJoin,
+  onCancelJoin,
+  onJoinAgreementChange,
+}) {
   const playerIds = Array.isArray(match.player_ids) ? match.player_ids : [];
   const isParticipant = Boolean(currentUserId && playerIds.includes(currentUserId));
   const isFull = playerIds.length >= Number(match.max_players || 0);
+  const canJoin = Boolean(currentUserId && !isParticipant && !isFull && ['open', 'pending'].includes(match.status));
+  const isPendingJoin = pendingJoinId === match.id;
   const plan = match.match_plan || match.prize_snapshot?.match_plan || {};
 
   return (
@@ -143,16 +157,44 @@ function NorthPoleMatchCard({ match, currentUserId, onJoin, isJoining }) {
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-2">
-            <Button
-              onClick={() => onJoin(match)}
-              disabled={isJoining || isParticipant || isFull || !currentUserId || !['open', 'pending'].includes(match.status)}
-              className="bg-purple-700 text-white hover:bg-purple-600"
-            >
-              {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-              {isParticipant ? 'Joined' : isFull ? 'Full' : 'Join Match'}
-            </Button>
+            {!isPendingJoin ? (
+              <Button
+                onClick={() => onPrepareJoin(match)}
+                disabled={isJoining || !canJoin}
+                className="bg-purple-700 text-white hover:bg-purple-600"
+              >
+                {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+                {isParticipant ? 'Joined' : isFull ? 'Full' : 'Join Match'}
+              </Button>
+            ) : (
+              <Button
+                onClick={() => onJoin(match)}
+                disabled={isJoining || !joinAgreementAccepted}
+                className="bg-green-700 text-white hover:bg-green-600"
+              >
+                {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
+                Confirm Join Match
+              </Button>
+            )}
           </div>
         </div>
+        {isPendingJoin && (
+          <div className="mt-4 space-y-3">
+            <SkillCompetitionAgreement
+              id={`join-skill-agreement-${match.id}`}
+              accepted={joinAgreementAccepted}
+              onAcceptedChange={onJoinAgreementChange}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancelJoin}
+              className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40"
+            >
+              Cancel
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -179,6 +221,9 @@ function RealNorthPoleFlow({ user }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [joiningId, setJoiningId] = useState(null);
+  const [createAgreementAccepted, setCreateAgreementAccepted] = useState(false);
+  const [pendingJoinId, setPendingJoinId] = useState(null);
+  const [joinAgreementAccepted, setJoinAgreementAccepted] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -389,6 +434,10 @@ function RealNorthPoleFlow({ user }) {
       setError('Enter prize price, tax, or shipping so the match can calculate a cost.');
       return;
     }
+    if (!createAgreementAccepted) {
+      setError('Confirm the skill-based competition agreement before creating this match.');
+      return;
+    }
 
     setIsCreating(true);
     try {
@@ -415,6 +464,8 @@ function RealNorthPoleFlow({ user }) {
         sandboxMode: false,
         matchPlan: selectedPlan,
         gameSnapshot: selectedGame,
+        skillAgreementAccepted: true,
+        skillAgreementVersion: SKILL_COMPETITION_AGREEMENT_VERSION,
       });
 
       setMessage(`Created match ${created.match_id}. It will remain after refresh.`);
@@ -425,6 +476,7 @@ function RealNorthPoleFlow({ user }) {
       setEstimatedTax('');
       setEstimatedShipping('');
       setSelectedPlayers(PLAYER_OPTIONS[2]);
+      setCreateAgreementAccepted(false);
       await loadMatches();
     } catch (err) {
       setError(err.message || 'Could not create the North Pole match.');
@@ -438,19 +490,45 @@ function RealNorthPoleFlow({ user }) {
       setError('Sign in before joining a North Pole match.');
       return;
     }
+    if (pendingJoinId !== match.id || !joinAgreementAccepted) {
+      setError('Confirm the skill-based competition agreement before joining this match.');
+      return;
+    }
 
     setError('');
     setMessage('');
     setJoiningId(match.id);
     try {
-      await joinNorthPoleMatch({ matchId: match.id });
+      await joinNorthPoleMatch({
+        matchId: match.id,
+        skillAgreementAccepted: true,
+        skillAgreementVersion: SKILL_COMPETITION_AGREEMENT_VERSION,
+      });
       setMessage(`Joined ${match.match_id}. Payment remains simulated.`);
+      setPendingJoinId(null);
+      setJoinAgreementAccepted(false);
       await loadMatches();
     } catch (err) {
       setError(err.message || 'Could not join this match.');
     } finally {
       setJoiningId(null);
     }
+  };
+
+  const prepareJoinMatch = (match) => {
+    if (!user?.id) {
+      setError('Sign in before joining a North Pole match.');
+      return;
+    }
+    setPendingJoinId(match.id);
+    setJoinAgreementAccepted(false);
+    setError('');
+    setMessage('');
+  };
+
+  const cancelJoinMatch = () => {
+    setPendingJoinId(null);
+    setJoinAgreementAccepted(false);
   };
 
   return (
@@ -809,9 +887,15 @@ function RealNorthPoleFlow({ user }) {
                 </div>
               </div>
 
+              <SkillCompetitionAgreement
+                id="create-skill-agreement"
+                accepted={createAgreementAccepted}
+                onAcceptedChange={setCreateAgreementAccepted}
+              />
+
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Button variant="outline" onClick={() => setStep('game')} className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40">Back to Games</Button>
-                <Button onClick={createMatch} disabled={isCreating} className="flex-1 bg-green-700 text-white hover:bg-green-600">
+                <Button onClick={createMatch} disabled={isCreating || !createAgreementAccepted} className="flex-1 bg-green-700 text-white hover:bg-green-600">
                   {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
                   Create Persisted Match
                 </Button>
@@ -850,6 +934,11 @@ function RealNorthPoleFlow({ user }) {
                 match={match}
                 currentUserId={user?.id}
                 onJoin={joinMatch}
+                onPrepareJoin={prepareJoinMatch}
+                onCancelJoin={cancelJoinMatch}
+                onJoinAgreementChange={setJoinAgreementAccepted}
+                pendingJoinId={pendingJoinId}
+                joinAgreementAccepted={pendingJoinId === match.id && joinAgreementAccepted}
                 isJoining={joiningId === match.id}
               />
             ))
