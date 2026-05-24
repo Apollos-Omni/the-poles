@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { FlaskConical } from 'lucide-react';
+import { PARTNER_EMAIL, SUPPORT_EMAIL, partnerMailto, supportMailto } from '@/config/contact';
 
 const footerLinks = [
   { to: '/PrivacyPolicy', label: 'Privacy' },
@@ -39,6 +40,10 @@ export function PublicFooter() {
         <div>
           <Link to="/" className="font-semibold text-white">The Poles</Link>
           <p className="mt-1 text-xs text-purple-100/50">Public beta. No live payments or real prize fulfillment enabled.</p>
+          <div className="mt-2 flex flex-col gap-1 text-xs text-purple-100/55 sm:flex-row sm:gap-3">
+            <a href={supportMailto({ subject: 'Support request for The Poles' })} className="hover:text-white">Support: {SUPPORT_EMAIL}</a>
+            <a href={partnerMailto({ subject: 'Partnership inquiry for The Poles' })} className="hover:text-white">Partners: {PARTNER_EMAIL}</a>
+          </div>
         </div>
         <nav className="flex flex-wrap gap-4">
           {footerLinks.map((link) => (

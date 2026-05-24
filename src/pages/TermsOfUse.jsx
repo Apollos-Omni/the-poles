@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { FileText } from 'lucide-react';
 import PublicBetaLayout, { BetaDisclosurePanel, PublicBetaBadge } from '@/components/public/PublicBetaLayout';
+import { SUPPORT_EMAIL, supportMailto } from '@/config/contact';
 
 const Section = ({ title, children }) => (
   <section className="space-y-3">
@@ -59,6 +60,12 @@ export default function TermsOfUse() {
           <p>
             The platform may display affiliate links or referral disclosures. Affiliate relationships do not mean a
             retailer sponsors, administers, or fulfills a competition unless that relationship is expressly stated.
+          </p>
+        </Section>
+
+        <Section title="Support">
+          <p>
+            For login help, account issues, parent questions, safety concerns, payment/refund questions, or fulfillment and shipping issues, contact <a href={supportMailto({ subject: 'Terms support question for The Poles' })} className="text-cyan-200 hover:underline">{SUPPORT_EMAIL}</a>.
           </p>
         </Section>
       </div>

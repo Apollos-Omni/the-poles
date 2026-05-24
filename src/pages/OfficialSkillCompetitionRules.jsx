@@ -1,6 +1,7 @@
 import React from 'react';
 import { Trophy } from 'lucide-react';
 import PublicBetaLayout, { BetaDisclosurePanel, PublicBetaBadge } from '@/components/public/PublicBetaLayout';
+import { SUPPORT_EMAIL, supportMailto } from '@/config/contact';
 
 const Section = ({ title, children }) => (
   <section className="space-y-3">
@@ -55,6 +56,12 @@ export default function OfficialSkillCompetitionRules() {
           <p>
             Admin review screens may be used to test verification and fulfillment workflows. During beta, admin approval
             does not create a real shipping, ordering, payment, or prize obligation.
+          </p>
+        </Section>
+
+        <Section title="Questions And Support">
+          <p>
+            For rules, safety, parent, prize path, league support, or fulfillment questions, contact <a href={supportMailto({ subject: 'Skill competition rules question for The Poles' })} className="text-cyan-200 hover:underline">{SUPPORT_EMAIL}</a>.
           </p>
         </Section>
       </div>

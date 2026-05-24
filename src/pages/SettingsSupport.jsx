@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import SettingsLayout from '@/components/settings/SettingsLayout';
 import SettingsSection from '@/components/settings/SettingsSection';
+import { SUPPORT_EMAIL, supportMailto } from '@/config/contact';
 
 export default function SettingsSupport() {
-  const [sent, setSent] = useState(false);
+  const [draftOpened, setDraftOpened] = useState(false);
   const [form, setForm] = useState({
     subject: '',
     category: 'other',
@@ -20,10 +21,16 @@ export default function SettingsSupport() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const submit = async () => {
-    // TODO: Wire this to a support ticket or backend email workflow.
-    console.log('Submitting support form:', form);
-    setSent(true);
+  const submit = () => {
+    const subject = `[${form.category || 'support'}] ${form.subject || 'Support request'}`;
+    const body = [
+      `Category: ${form.category || 'other'}`,
+      `Reply email: ${form.email || ''}`,
+      '',
+      form.body || '',
+    ].join('\n');
+    window.location.href = supportMailto({ subject, body });
+    setDraftOpened(true);
   };
 
   return (
@@ -44,13 +51,13 @@ export default function SettingsSupport() {
           </div>
         </div>
 
-        {sent ? (
+        {draftOpened ? (
           <SettingsSection
-            title="Message Received"
-            description="We will route your request to the right support path."
+            title="Email Draft Opened"
+            description={`Your email client should now have a draft addressed to ${SUPPORT_EMAIL}.`}
           >
             <div className="rounded-2xl border border-emerald-400/25 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-              Thanks. We received your message and will follow up based on category and urgency.
+              Send the draft from your email client to complete the support request. The app has not submitted a saved ticket yet.
             </div>
           </SettingsSection>
         ) : (
@@ -113,7 +120,7 @@ export default function SettingsSupport() {
 
               <div className="flex flex-col gap-3 rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4 text-sm text-cyan-100/75 sm:flex-row sm:items-center">
                 <ShieldCheck className="h-5 w-5 shrink-0 text-cyan-200" />
-                Support requests are reviewed as skill match, account, safety, or fulfillment issues. Prize-related requests should include the exact prize path and match context.
+                Support requests go to <a href={supportMailto({ subject: 'Support request for The Poles' })} className="font-semibold text-white hover:underline">{SUPPORT_EMAIL}</a>. Include the exact prize path, league, skill match, or fulfillment context when relevant.
               </div>
 
               <Button

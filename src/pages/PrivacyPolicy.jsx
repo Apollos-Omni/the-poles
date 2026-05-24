@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Shield } from 'lucide-react';
 import PublicBetaLayout, { BetaDisclosurePanel, PublicBetaBadge } from '@/components/public/PublicBetaLayout';
+import { SUPPORT_EMAIL, supportMailto } from '@/config/contact';
 
 const Section = ({ title, children }) => (
   <section className="space-y-3">
@@ -56,7 +57,7 @@ export default function PrivacyPolicy() {
 
         <Section title="Contact">
           <p>
-            For privacy questions during beta, contact <Link to="/Contact" className="text-cyan-200 hover:underline">support</Link>.
+            For privacy questions during beta, contact <a href={supportMailto({ subject: 'Privacy question for The Poles' })} className="text-cyan-200 hover:underline">{SUPPORT_EMAIL}</a> or use the <Link to="/Contact" className="text-cyan-200 hover:underline">support page</Link>.
           </p>
         </Section>
       </div>
