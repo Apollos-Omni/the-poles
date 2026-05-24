@@ -300,6 +300,29 @@ const normalizeBackendUser = (payload = {}) => {
   };
 };
 
+const normalizeSessionUser = (session) => {
+  const user = session?.user || {};
+  const metadata = {
+    ...(user.user_metadata && typeof user.user_metadata === 'object' ? user.user_metadata : {}),
+    ...(user.app_metadata && typeof user.app_metadata === 'object' ? user.app_metadata : {}),
+  };
+  const fullName = metadata.full_name || metadata.name || user.email || 'The Poles Player';
+
+  return {
+    id: user.id,
+    authUserId: user.id,
+    auth_user_id: user.id,
+    email: user.email || '',
+    role: metadata.role || 'user',
+    full_name: fullName,
+    name: metadata.name || fullName,
+    avatar_url: metadata.avatar_url || '',
+    created_date: user.created_at,
+    created_at: user.created_at,
+    backend_profile_unavailable: true,
+  };
+};
+
 async function backendMe() {
   if (!isSupabaseAuthConfigured) {
     const error = new Error('Supabase auth is not configured.');
@@ -314,8 +337,17 @@ async function backendMe() {
     throw error;
   }
 
-  const payload = await apiRequest('/api/auth/me');
-  return normalizeBackendUser(payload);
+  try {
+    const payload = await apiRequest('/api/auth/me');
+    return normalizeBackendUser(payload);
+  } catch (error) {
+    warnOnce(
+      'auth-backend-me-fallback',
+      '[base44:auth] Backend /api/auth/me failed after Supabase session was established; using session user fallback.',
+      error
+    );
+    return normalizeSessionUser(session);
+  }
 }
 
 async function backendUpdateMe(patch = {}) {

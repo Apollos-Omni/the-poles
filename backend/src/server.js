@@ -27,6 +27,15 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 const store = createStore();
 
+app.get('/', (_req, res) => {
+  res.json({ status: 'ok', service: 'the-poles-backend' });
+});
+
+app.get('/health', async (_req, res) => {
+  const storage = store.kind;
+  res.json({ status: 'ok', service: 'the-poles-backend', storage, timestamp: new Date().toISOString() });
+});
+
 app.get('/api/health', async (_req, res) => {
   const storage = store.kind;
   res.json({ ok: true, app: 'the-poles-backend', storage, timestamp: new Date().toISOString() });

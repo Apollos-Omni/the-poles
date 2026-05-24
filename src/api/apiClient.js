@@ -21,7 +21,10 @@ async function parseJsonResponse(response) {
 
   if (!response.ok) {
     const message = payload.error || payload.message || `Request failed with HTTP ${response.status}`;
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
   }
 
   return payload;
