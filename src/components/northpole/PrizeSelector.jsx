@@ -81,7 +81,7 @@ export default function PrizeSelector({ onSelect }) {
                   <span className="text-white font-semibold">${(prize.price_cents / 100).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Buy-in (demo)</span>
+                  <span>Entry contribution (demo)</span>
                   <span className="text-green-400 font-semibold">${(prize.buy_in_cents / 100).toFixed(2)}</span>
                 </div>
               </div>

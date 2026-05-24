@@ -10,6 +10,8 @@ export const AuthProvider = ({ children }) => {
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
   const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
   const [authError, setAuthError] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [session, setSession] = useState(null);
   const [appPublicSettings, setAppPublicSettings] = useState({ public_settings: { auth_required: false } });
 
   useEffect(() => {
@@ -43,12 +45,14 @@ export const AuthProvider = ({ children }) => {
       // Now check if the user is authenticated
       setIsLoadingAuth(true);
       if (isSupabaseAuthMode) {
-        const session = await getSession();
-        if (!session) {
+        const currentSession = await getSession();
+        setSession(currentSession);
+        if (!currentSession) {
           setUser(null);
           setIsAuthenticated(false);
           setAuthError(null);
           setIsLoadingAuth(false);
+          setAuthChecked(true);
           return;
         }
       }
@@ -56,11 +60,15 @@ export const AuthProvider = ({ children }) => {
       const currentUser = await base44.auth.me();
       setUser(currentUser);
       setIsAuthenticated(true);
+      setAuthError(null);
       setIsLoadingAuth(false);
+      setAuthChecked(true);
     } catch (error) {
       console.error('User auth check failed:', error);
       setIsLoadingAuth(false);
       setIsAuthenticated(false);
+      setSession(null);
+      setAuthChecked(true);
       
       // If user auth fails, it might be an expired token
       if (error.status === 401 || error.status === 403) {
@@ -72,11 +80,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = (shouldRedirect = true) => {
+  const logout = async (shouldRedirect = true) => {
     setUser(null);
     setIsAuthenticated(false);
+    setSession(null);
     
-    base44.auth.logout(shouldRedirect ? window.location.href : undefined);
+    await base44.auth.logout(shouldRedirect ? window.location.origin : undefined);
   };
 
   const navigateToLogin = () => {
@@ -87,14 +96,17 @@ export const AuthProvider = ({ children }) => {
   return (
     <AuthContext.Provider value={{ 
       user, 
+      session,
       isAuthenticated, 
       isLoadingAuth,
       isLoadingPublicSettings,
+      authChecked,
       authError,
       appPublicSettings,
       logout,
       navigateToLogin,
-      checkAppState
+      checkAppState,
+      checkUserAuth
     }}>
       {children}
     </AuthContext.Provider>

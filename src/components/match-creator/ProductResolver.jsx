@@ -201,7 +201,7 @@ export default function ProductResolver({ onProductResolved }) {
                       <div>
                         <span className="font-medium">{room.players} Players</span>
                         <div className="text-sm text-slate-600">
-                          Buy-in: ${(room.buyInCents / 100).toFixed(2)}
+                          Entry contribution: ${(room.buyInCents / 100).toFixed(2)}
                         </div>
                       </div>
                       <Button 

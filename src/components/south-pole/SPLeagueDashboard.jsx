@@ -7,9 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft, Users, Calendar, Trophy, MessageSquare, BarChart3,
   Heart, Shield, CheckCircle, AlertTriangle, Send, Upload,
-  Plus, Edit3, Play, ClipboardList, Star, Layers
+  Plus, Edit3, Play, ClipboardList, Star, Layers, Activity
 } from "lucide-react";
 import { formatCents } from "./SPConstants";
+import SPStatTemplatePanel from "./SPStatTemplatePanel";
 
 // ─── Mock schedule generator ──────────────────────────────────────────────────
 function generateBracket(participants, format) {
@@ -367,6 +368,7 @@ export default function SPLeagueDashboard({ league, participants = [], onBack, i
               { v: "roster", label: "Roster", icon: Users },
               { v: "schedule", label: "Schedule", icon: Calendar },
               { v: "standings", label: "Standings", icon: BarChart3 },
+              { v: "stats", label: "Stats", icon: Activity },
               { v: "results", label: "Results", icon: Trophy },
               { v: "chat", label: "Chat", icon: MessageSquare },
               { v: "rules", label: "Rules", icon: ClipboardList },
@@ -388,6 +390,9 @@ export default function SPLeagueDashboard({ league, participants = [], onBack, i
           </TabsContent>
           <TabsContent value="standings">
             <StandingsPanel participants={participants} />
+          </TabsContent>
+          <TabsContent value="stats">
+            <SPStatTemplatePanel league={league} />
           </TabsContent>
           <TabsContent value="results">
             <ResultsPanel league={league} participants={participants} isOrganizer={isOrganizer} onVerifyWinner={onVerifyWinner} />

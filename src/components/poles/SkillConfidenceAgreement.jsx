@@ -22,7 +22,7 @@ export default function SkillConfidenceAgreement({ open, onConfirm, onCancel }) 
               By entering this match, you acknowledge that you have spent time, effort, and practice developing the skill required to compete.
             </p>
             <p className="text-purple-200/80 leading-relaxed">
-              You understand that this is a <strong>skill-based competition</strong>. The outcome is not based on chance, luck, or a random drawing. The outcome is determined by the performance, preparation, and ability of the players involved.
+              You understand that this is a <strong>skill-based competition</strong>. The outcome is not based on chance or luck. The outcome is determined by the performance, preparation, and ability of the players involved.
             </p>
           </div>
 

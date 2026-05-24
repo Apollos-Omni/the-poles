@@ -34,7 +34,7 @@ export default function OfficialSkillCompetitionRules() {
         <Section title="Skill-Based Outcomes">
           <p>
             Competitions should be structured so outcomes are determined by objective skill measures such as score,
-            time, completion accuracy, judged performance criteria, or verified event results. Random winner selection
+            time, completion accuracy, judged performance criteria, or verified event results. Chance-based winner selection
             is not part of the intended competition model.
           </p>
         </Section>

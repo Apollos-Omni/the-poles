@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Loader2, ChevronRight, ChevronLeft, Trophy, Heart } from "lucide-react";
 import { CATEGORIES, PRIZE_TYPES, WINNING_CONDITIONS, VERIFICATION_METHODS, formatCents, calcChallengeFunding } from "./SPConstants";
+import SportSelector from "@/components/sports/SportSelector";
 
 const STEPS = ["Challenge Info", "Prize / Experience", "Rules & Verification", "Settings & Review"];
 
@@ -14,6 +15,7 @@ export default function SPCreateChallengeForm({ onSubmit, onCancel, isLoading })
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     title: "", description: "", category: "custom",
+    sport_id: "", sport_name: "", sport_category: "",
     prize_type: "custom_reward", prize_title: "", prize_description: "",
     prize_value_cents: 10000, num_participants_needed: 5,
     entry_amount_cents: 0, location: "", is_online: false,
@@ -40,6 +42,7 @@ export default function SPCreateChallengeForm({ onSubmit, onCancel, isLoading })
     const tags = form.skill_tags ? form.skill_tags.split(",").map(t => t.trim()).filter(Boolean) : [];
     onSubmit({
       ...form,
+      category: form.sport_category || form.category,
       prize_value_cents: Number(form.prize_value_cents),
       num_participants_needed: Number(form.num_participants_needed),
       entry_amount_cents: fin.perParticipant,
@@ -90,6 +93,18 @@ export default function SPCreateChallengeForm({ onSubmit, onCancel, isLoading })
               </SelectContent>
             </Select>
           </div>
+          <SportSelector
+            value={form.sport_id}
+            label="Sport / game type"
+            onChange={(sport) => setForm(f => ({
+              ...f,
+              sport_id: sport.id,
+              sport_name: sport.name,
+              sport_category: sport.category,
+              category: sport.category,
+              skill_tags: f.skill_tags || sport.name.toLowerCase(),
+            }))}
+          />
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label className="text-purple-200 text-sm">Participants Needed</Label>
@@ -223,12 +238,13 @@ export default function SPCreateChallengeForm({ onSubmit, onCancel, isLoading })
               <span>💰 {formatCents(fin.perParticipant)} / person</span>
               <span>📍 {form.is_online ? "Online" : (form.location || "TBD")}</span>
               <span>⭐ {form.category}</span>
+              {form.sport_name && <span>Sport: {form.sport_name}</span>}
             </div>
           </div>
 
           <div className="bg-gray-900/60 border border-gray-700/40 rounded-xl p-3 text-xs text-gray-400 space-y-1">
             <p className="font-semibold text-gray-300">Platform Disclaimer</p>
-            <p>This is a skill-based competitive challenge. No random winner selection. By creating this challenge you agree to comply with all local laws, venue rules, age restrictions, safety requirements, and charitable contribution rules. 10% of the prize value is donated to The North Pole Fund.</p>
+            <p>This is a skill-based competitive challenge. Outcomes are based on verified performance. By creating this challenge you agree to comply with all local laws, venue rules, age restrictions, safety requirements, and charitable contribution rules. 10% of the prize value is donated to The North Pole Fund.</p>
           </div>
         </div>
       )}

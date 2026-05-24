@@ -29,7 +29,7 @@ export default function SkillCompetitionAgreement({
         </p>
         <p>
           You understand that this is a skill-based competition. The outcome is not based on
-          luck or a random drawing. The outcome is determined by the performance, preparation,
+          luck or chance selection. The outcome is determined by the performance, preparation,
           and ability of the players involved.
         </p>
 

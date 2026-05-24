@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShieldCheck, RefreshCw, Smartphone } from 'lucide-react';
-import SecuritySettingsComponent from '@/components/profile/SecuritySettings'; // Changed import
 import { tryRegisterNow } from '@/components/pwa/ServiceWorkerManager';
 
 export default function SettingsSecurity() {
@@ -21,20 +20,21 @@ export default function SettingsSecurity() {
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="min-h-screen space-y-6 bg-transparent p-4 text-white md:p-8">
+      <Card className="border-cyan-300/20 bg-white/[0.06] text-white backdrop-blur-xl">
         <CardHeader>
-          <CardTitle>Two-Factor Authentication</CardTitle>
+          <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-cyan-200" /> Security Settings</CardTitle>
           <CardDescription>
-            Secure your account with two-factor authentication.
+            MFA is prepared for future high-risk actions, but it is not required on first login yet.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <SecuritySettingsComponent />
+        <CardContent className="space-y-3 text-sm text-purple-100/70">
+          <p>Future enforcement targets: admin, payment, fulfillment, shipping address, and prize-related actions.</p>
+          <p>TODO: enroll TOTP with <code className="rounded bg-black/40 px-1 text-cyan-100">supabase.auth.mfa.enroll</code>, verify setup with <code className="rounded bg-black/40 px-1 text-cyan-100">supabase.auth.mfa.challengeAndVerify</code>, then gate sensitive routes by AAL level.</p>
         </CardContent>
       </Card>
       
-      <Card>
+      <Card className="border-purple-300/20 bg-white/[0.06] text-white backdrop-blur-xl">
         <CardHeader>
           <CardTitle>Progressive Web App (PWA)</CardTitle>
           <CardDescription>

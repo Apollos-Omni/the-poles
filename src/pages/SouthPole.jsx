@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -167,34 +168,54 @@ export default function SouthPole() {
             Real-world skill-based challenges for vacations, concerts, cruises, events, and experiences. Compete for what you want. Meet people who share your drive. 10% funds gifts for children.
           </p>
           <SPRewardLinkChips />
+          <div className="mt-6 rounded-2xl border border-purple-500/25 bg-black/35 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-700/40">
+                  <Trophy className="h-5 w-5 text-purple-100" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-white">League Organization Hub</h2>
+                  <p className="mt-1 max-w-2xl text-sm text-purple-100/60">
+                    Create a home for leagues, clubs, gyms, schools, gaming groups, teams, schedules, standings, media, discussion, verified stats, and league reward tracking.
+                  </p>
+                </div>
+              </div>
+              <Link to="/Leagues">
+                <Button className="bg-purple-700 text-white hover:bg-purple-600">
+                  Open League Hub
+                </Button>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-6">
         <Tabs value={tab} onValueChange={v => { setTab(v); setSelected(null); setCreating(false); }}>
-          <div className="flex items-center justify-between mb-4 gap-3 flex-wrap">
-            <div className="overflow-x-auto flex-1">
-            <TabsList className="bg-black/40 border border-cyan-700/30 inline-flex min-w-max">
-              <TabsTrigger value="browse" className="data-[state=active]:bg-cyan-700 text-cyan-200 text-xs sm:text-sm">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:flex-1 sm:px-0">
+            <TabsList className="inline-flex h-auto min-w-max border border-cyan-700/30 bg-black/40 p-1">
+              <TabsTrigger value="browse" className="shrink-0 whitespace-nowrap data-[state=active]:bg-cyan-700 text-cyan-200 text-xs sm:text-sm">
                 <Compass className="w-4 h-4 mr-1.5" />Browse
               </TabsTrigger>
-              <TabsTrigger value="leagues" className="data-[state=active]:bg-purple-700 text-purple-200 text-xs sm:text-sm">
+              <TabsTrigger value="leagues" className="shrink-0 whitespace-nowrap data-[state=active]:bg-purple-700 text-purple-200 text-xs sm:text-sm">
                 <Layers className="w-4 h-4 mr-1.5" />Leagues & Events
               </TabsTrigger>
-              <TabsTrigger value="my_challenges" className="data-[state=active]:bg-cyan-700 text-cyan-200 text-xs sm:text-sm">
+              <TabsTrigger value="my_challenges" className="shrink-0 whitespace-nowrap data-[state=active]:bg-cyan-700 text-cyan-200 text-xs sm:text-sm">
                 <Star className="w-4 h-4 mr-1.5" />My Challenges
               </TabsTrigger>
-              <TabsTrigger value="impact" className="data-[state=active]:bg-cyan-700 text-cyan-200 text-xs sm:text-sm">
+              <TabsTrigger value="impact" className="shrink-0 whitespace-nowrap data-[state=active]:bg-cyan-700 text-cyan-200 text-xs sm:text-sm">
                 <Heart className="w-4 h-4 mr-1.5" />Impact
               </TabsTrigger>
-              <TabsTrigger value="admin" className="data-[state=active]:bg-cyan-700 text-cyan-200 text-xs sm:text-sm">
+              <TabsTrigger value="admin" className="shrink-0 whitespace-nowrap data-[state=active]:bg-cyan-700 text-cyan-200 text-xs sm:text-sm">
                 <Shield className="w-4 h-4 mr-1.5" />Admin
               </TabsTrigger>
             </TabsList>
           </div>
             {!creating && !selected && tab !== "leagues" && (
               <Button onClick={() => { setCreating(true); setTab("browse"); }}
-                className="bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white shadow-lg">
+                className="w-full bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-lg hover:from-cyan-500 hover:to-teal-500 sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" /> Create Challenge
               </Button>
             )}
@@ -219,14 +240,14 @@ export default function SouthPole() {
             ) : (
               <div className="space-y-4">
                 {/* Search + filter */}
-                <div className="flex gap-3 flex-wrap">
-                  <div className="relative flex-1 min-w-48">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                  <div className="relative min-w-0 flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400/40" />
                     <Input value={search} onChange={e => setSearch(e.target.value)}
                       placeholder="Search challenges..." className="bg-black/40 border-cyan-700/40 text-white pl-9" />
                   </div>
                   <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
-                    className="bg-black/40 border border-cyan-700/40 rounded-lg px-3 py-2 text-white text-sm">
+                    className="rounded-lg border border-cyan-700/40 bg-black/40 px-3 py-2 text-sm text-white">
                     <option value="all">All Categories</option>
                     {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
@@ -257,7 +278,7 @@ export default function SouthPole() {
                     <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
                     <div className="space-y-1">
                       <p className="font-semibold text-gray-300">Platform Disclaimer</p>
-                      <p>The South Pole is a skill-based, performance-based competitive challenge platform. No random winner selection occurs. All challenges must comply with local laws, venue rules, age restrictions, travel restrictions, event ticket terms, safety requirements, and charitable contribution rules. Winners are determined solely by skill, performance, judging, scoring, or verified completion based on the rules stated before the challenge begins. 10% of each prize value is donated to The North Pole Fund. Platform approval is required for high-value prizes. This is currently in demo/sandbox mode.</p>
+                      <p>The South Pole is a skill-based, performance-based competitive challenge platform. All challenges must comply with local laws, venue rules, age restrictions, travel restrictions, event ticket terms, safety requirements, and charitable contribution rules. Winners are determined solely by skill, performance, judging, scoring, or verified completion based on the rules stated before the challenge begins. 10% of each prize value is donated to The North Pole Fund. Platform approval is required for high-value prizes. This is currently in demo/sandbox mode.</p>
                     </div>
                   </div>
                 </div>
@@ -299,14 +320,14 @@ export default function SouthPole() {
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center justify-between gap-3 flex-wrap">
-                  <div className="relative flex-1 min-w-48">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                  <div className="relative min-w-0 flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/40" />
                     <Input value={leagueSearch} onChange={e => setLeagueSearch(e.target.value)}
                       placeholder="Search leagues & events..." className="bg-black/40 border-purple-700/40 text-white pl-9" />
                   </div>
                   <Button onClick={() => setCreatingLeague(true)}
-                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white shadow-lg">
+                    className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg hover:from-purple-500 hover:to-indigo-500 sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" /> Create League / Event
                   </Button>
                 </div>

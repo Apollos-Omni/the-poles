@@ -164,7 +164,7 @@ function NorthPoleMatchCard({
                 Players: <strong className="text-white">{playerIds.length}/{match.max_players || plan.players || '-'}</strong>
               </span>
               <span className="rounded-lg bg-purple-950/40 px-3 py-2">
-                Buy-in: <strong className="text-green-300">{formatMoney(match.buy_in_cents)}</strong>
+                Entry contribution: <strong className="text-green-300">{formatMoney(match.buy_in_cents)}</strong>
               </span>
               <span className="rounded-lg bg-purple-950/40 px-3 py-2">
                 Fund: <strong className="text-pink-300">{formatMoney(plan.donationCents)}</strong>
@@ -894,7 +894,7 @@ function RealNorthPoleFlow({ user }) {
               <div className="rounded-2xl border border-purple-700/30 bg-black/30 p-4">
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <DollarSign className="h-4 w-4 text-green-300" />
-                  <h3 className="text-sm font-bold text-white">Room and Buy-in Options</h3>
+                  <h3 className="text-sm font-bold text-white">Room and Entry Contribution Options</h3>
                   <Badge className="border border-pink-500/30 bg-pink-600/15 text-pink-200">
                     {Math.round(NORTH_POLE_COST_MODEL.donationRate * 100)}% North Pole fund
                   </Badge>

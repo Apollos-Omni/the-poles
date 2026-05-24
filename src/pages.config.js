@@ -47,57 +47,56 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import AgentDashboard from './pages/AgentDashboard';
-import Arcade from './pages/Arcade';
-import CommandCenter from './pages/CommandCenter';
-import ComplianceDashboard from './pages/ComplianceDashboard';
-import ContactUs from './pages/ContactUs';
-import CreateMatch from './pages/CreateMatch';
-import CreatorPortal from './pages/CreatorPortal';
-import Dashboard from './pages/Dashboard';
-import Diagnostics from './pages/Diagnostics';
-import Feed from './pages/Feed';
-import HingeAdmin from './pages/HingeAdmin';
-import HingeControl from './pages/HingeControl';
-import Home from './pages/Home';
-import HomeLayoutDesigner from './pages/HomeLayoutDesigner';
-import HomeWorld from './pages/HomeWorld';
-import HomelessToHomeowner from './pages/HomelessToHomeowner';
-import MVP from './pages/MVP';
-import MyHeavenOS from './pages/MyHeavenOS';
-import Organizations from './pages/Organizations';
-import Profile from './pages/Profile';
-import Promotions from './pages/Promotions';
-import NorthPole from './pages/NorthPole';
-import SantaClause from './pages/SantaClause';
-import SecurityMonitor from './pages/SecurityMonitor';
-import Settings from './pages/Settings';
-import SettingsAccount from './pages/SettingsAccount';
-import SettingsAppearance from './pages/SettingsAppearance';
-import SettingsDangerZone from './pages/SettingsDangerZone';
-import SettingsData from './pages/SettingsData';
-import SettingsIdentity from './pages/SettingsIdentity';
-import SettingsIntegrations from './pages/SettingsIntegrations';
-import SettingsNotifications from './pages/SettingsNotifications';
-import SettingsPayments from './pages/SettingsPayments';
-import SettingsPlaceholder from './pages/SettingsPlaceholder';
-import SettingsPrivacy from './pages/SettingsPrivacy';
-import SettingsProfile from './pages/SettingsProfile';
-import SettingsRegional from './pages/SettingsRegional';
-import SettingsSecurity from './pages/SettingsSecurity';
-import SettingsSupport from './pages/SettingsSupport';
-import Store from './pages/Store';
-import Sweepstakes from './pages/Sweepstakes';
-import Unsent from './pages/Unsent';
-import VisionDetail from './pages/VisionDetail';
-import VisionTracker from './pages/VisionTracker';
+import { lazy } from 'react';
 import __Layout from './Layout.jsx';
+
+const AgentDashboard = lazy(() => import('./pages/AgentDashboard'));
+const Arcade = lazy(() => import('./pages/Arcade'));
+const ComplianceDashboard = lazy(() => import('./pages/ComplianceDashboard'));
+const ContactUs = lazy(() => import('./pages/ContactUs'));
+const CreateMatch = lazy(() => import('./pages/CreateMatch'));
+const CreatorPortal = lazy(() => import('./pages/CreatorPortal'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Diagnostics = lazy(() => import('./pages/Diagnostics'));
+const Feed = lazy(() => import('./pages/Feed'));
+const HingeAdmin = lazy(() => import('./pages/HingeAdmin'));
+const HingeControl = lazy(() => import('./pages/HingeControl'));
+const Home = lazy(() => import('./pages/Home'));
+const HomeLayoutDesigner = lazy(() => import('./pages/HomeLayoutDesigner'));
+const HomeWorld = lazy(() => import('./pages/HomeWorld'));
+const HomelessToHomeowner = lazy(() => import('./pages/HomelessToHomeowner'));
+const MVP = lazy(() => import('./pages/MVP'));
+const MyHeavenOS = lazy(() => import('./pages/MyHeavenOS'));
+const Organizations = lazy(() => import('./pages/Organizations'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Promotions = lazy(() => import('./pages/Promotions'));
+const NorthPole = lazy(() => import('./pages/NorthPole'));
+const SantaClause = lazy(() => import('./pages/SantaClause'));
+const SecurityMonitor = lazy(() => import('./pages/SecurityMonitor'));
+const Settings = lazy(() => import('./pages/Settings'));
+const SettingsAccount = lazy(() => import('./pages/SettingsAccount'));
+const SettingsAppearance = lazy(() => import('./pages/SettingsAppearance'));
+const SettingsDangerZone = lazy(() => import('./pages/SettingsDangerZone'));
+const SettingsData = lazy(() => import('./pages/SettingsData'));
+const SettingsIdentity = lazy(() => import('./pages/SettingsIdentity'));
+const SettingsIntegrations = lazy(() => import('./pages/SettingsIntegrations'));
+const SettingsNotifications = lazy(() => import('./pages/SettingsNotifications'));
+const SettingsPayments = lazy(() => import('./pages/SettingsPayments'));
+const SettingsPlaceholder = lazy(() => import('./pages/SettingsPlaceholder'));
+const SettingsPrivacy = lazy(() => import('./pages/SettingsPrivacy'));
+const SettingsProfile = lazy(() => import('./pages/SettingsProfile'));
+const SettingsRegional = lazy(() => import('./pages/SettingsRegional'));
+const SettingsSecurity = lazy(() => import('./pages/SettingsSecurity'));
+const SettingsSupport = lazy(() => import('./pages/SettingsSupport'));
+const Store = lazy(() => import('./pages/Store'));
+const Unsent = lazy(() => import('./pages/Unsent'));
+const VisionDetail = lazy(() => import('./pages/VisionDetail'));
+const VisionTracker = lazy(() => import('./pages/VisionTracker'));
 
 
 export const PAGES = {
     "AgentDashboard": AgentDashboard,
     "Arcade": Arcade,
-    "CommandCenter": CommandCenter,
     "ComplianceDashboard": ComplianceDashboard,
     "ContactUs": ContactUs,
     "CreateMatch": CreateMatch,
@@ -135,7 +134,6 @@ export const PAGES = {
     "SettingsSecurity": SettingsSecurity,
     "SettingsSupport": SettingsSupport,
     "Store": Store,
-    "Sweepstakes": Sweepstakes,
     "Unsent": Unsent,
     "VisionDetail": VisionDetail,
     "VisionTracker": VisionTracker,

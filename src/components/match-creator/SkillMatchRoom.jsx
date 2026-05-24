@@ -200,7 +200,7 @@ export default function SkillMatchRoom({ product, roomConfig, gameId = 'skychess
                 </span>
                 <span className="flex items-center gap-1">
                   <Target className="w-4 h-4" />
-                  ${(roomConfig.buyInCents / 100).toFixed(2)} Buy-in
+                  ${(roomConfig.buyInCents / 100).toFixed(2)} entry contribution
                 </span>
               </div>
             </div>

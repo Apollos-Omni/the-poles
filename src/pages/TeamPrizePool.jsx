@@ -324,7 +324,7 @@ export default function TeamPrizePool() {
                     <AlertTriangle className="w-4 h-4 text-yellow-500 flex-shrink-0 mt-0.5" />
                     <div className="text-xs text-gray-400 space-y-1">
                       <p className="font-semibold text-gray-300">Platform Disclaimer</p>
-                      <p>Team Prize Pool campaigns are <strong>skill and performance-based only</strong>. No random winner selection occurs. All outcomes must be verified by league officials, verified standings, or admin review before prizes are released.</p>
+                      <p>Team Prize Pool campaigns are <strong>skill and performance-based only</strong>. Outcomes must be verified by league officials, verified standings, or admin review before prizes are released.</p>
                       <p>Campaigns are subject to all applicable local laws, league regulations, parental consent requirements, and charitable compliance rules. The 10% North Pole Fund donation supports child gifting programs. Organizers are solely responsible for obtaining all required permissions, consents, and regulatory approvals before launching a campaign.</p>
                     </div>
                   </div>

@@ -7,6 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Loader2, ChevronRight, ChevronLeft, Trophy, Heart, Layers } from "lucide-react";
 import { WINNING_CONDITIONS, VERIFICATION_METHODS, formatCents } from "./SPConstants";
+import SPSportStatTemplateSelector from "./SPSportStatTemplateSelector";
+import { fieldsForStatsMode, getFormatTemplate } from "@/lib/south-pole/statTemplates";
+import SportSelector from "@/components/sports/SportSelector";
 
 const STEPS = ["Event Info", "Format & Schedule", "Prize & Funding", "Rules & Verification", "Review & Launch"];
 
@@ -56,7 +59,9 @@ export default function SPCreateLeagueForm({ onSubmit, onCancel, isLoading }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({
     title: "", description: "", sport_type: "basketball", sport_emoji: "🏀",
+    sport_id: "basketball", sport_name: "Basketball", sport_category: "Team Sports",
     format: "tournament", is_online: false, location: "",
+    game_format_id: "basketball_5v5", stat_template_id: "basketball_5v5_player", stats_mode: "basic",
     start_date: "", end_date: "",
     max_participants: 8, team_size: 1, is_teams: false,
     prize_title: "", prize_description: "", prize_value_cents: 50000,
@@ -67,6 +72,46 @@ export default function SPCreateLeagueForm({ onSubmit, onCancel, isLoading }) {
   });
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSportSelect = (sport) => {
+    const sportId = sport.slug || sport.id;
+    const formatTemplate = getFormatTemplate(sportId);
+    setForm(f => ({
+      ...f,
+      sport_id: sport.id,
+      sport_type: sportId,
+      sport_name: sport.name,
+      sport_category: sport.category,
+      sport_emoji: sportId === "basketball" ? "🏀" : "🏆",
+      game_format_id: formatTemplate?.id || "basic_custom_format",
+      stat_template_id: formatTemplate?.templateId || "basic_custom_stats",
+      custom_rules: sport.proposedRules || null,
+      custom_stat_fields: sport.proposedStatFields || [],
+    }));
+  };
+
+  const setStatTemplate = (patch) => {
+    setForm(f => {
+      const sport = SPORT_TYPES.find(x => x.value === patch.sport_type);
+      const next = { ...f, ...patch, sport_emoji: sport?.emoji || f.sport_emoji };
+      const formatTemplate = getFormatTemplate(next.sport_type, next.game_format_id);
+      const statFields = fieldsForStatsMode(formatTemplate?.fields || [], next.stats_mode);
+      return {
+        ...next,
+        stat_template_id: next.stat_template_id || formatTemplate?.templateId || null,
+        stat_fields: statFields,
+        verification_levels: [
+          "self_reported",
+          "opponent_confirmed",
+          "scorekeeper_verified",
+          "organizer_verified",
+          "video_reviewed",
+          "admin_verified",
+          "system_verified",
+        ],
+      };
+    });
+  };
 
   const toggleGroup = (g) => {
     setForm(f => ({
@@ -90,8 +135,20 @@ export default function SPCreateLeagueForm({ onSubmit, onCancel, isLoading }) {
   };
 
   const handleSubmit = () => {
+    const formatTemplate = getFormatTemplate(form.sport_type, form.game_format_id);
+    const statFields = formatTemplate
+      ? fieldsForStatsMode(formatTemplate.fields || [], form.stats_mode)
+      : (form.custom_stat_fields || []);
     onSubmit({
       ...form,
+      sport_id: form.sport_id || form.sport_type,
+      game_format_label: formatTemplate?.label || form.format,
+      stat_template_id: form.stat_template_id || formatTemplate?.templateId || null,
+      stat_fields: statFields,
+      stat_field_keys: statFields.map((field) => field.key),
+      supports_performance_history: true,
+      supports_skill_rating: true,
+      matchmaking_uses_verified_history: true,
       prize_value_cents: Number(form.prize_value_cents),
       max_participants: Number(form.max_participants),
       team_size: Number(form.team_size),
@@ -139,7 +196,19 @@ export default function SPCreateLeagueForm({ onSubmit, onCancel, isLoading }) {
               placeholder="What is this event? Who is it for? What makes it special?" rows={3}
               className="bg-black/40 border-purple-700/40 text-white mt-1" />
           </div>
-          <div>
+          <SportSelector value={form.sport_id || form.sport_type} onChange={handleSportSelect} />
+          {form.sport_type === "basketball" ? (
+            <SPSportStatTemplateSelector value={form} onChange={setStatTemplate} />
+          ) : form.custom_stat_fields?.length || form.custom_rules ? (
+            <div className="rounded-xl border border-cyan-700/25 bg-cyan-950/15 p-4 text-sm text-cyan-100/80">
+              Custom rules and stat fields loaded for {form.sport_name}.
+            </div>
+          ) : (
+            <div className="rounded-xl border border-purple-700/25 bg-purple-950/20 p-4 text-sm text-purple-100/75">
+              Basic stat template available. Advanced template coming soon.
+            </div>
+          )}
+          <div className="hidden">
             <Label className="text-purple-200 text-sm">Sport / Game Type *</Label>
             <Select value={form.sport_type} onValueChange={v => {
               const s = SPORT_TYPES.find(x => x.value === v);
@@ -334,6 +403,7 @@ export default function SPCreateLeagueForm({ onSubmit, onCancel, isLoading }) {
               <span>💰 {formatCents(perParticipant)}/person</span>
               <span>📍 {form.is_online ? "Online" : (form.location || "TBD")}</span>
               <span>📋 {form.format?.replace(/_/g, " ")}</span>
+              <span>Stats: {form.game_format_id?.replace(/_/g, " ")}</span>
               <span>📅 {form.start_date ? new Date(form.start_date).toLocaleDateString() : "TBD"}</span>
               <span>❤️ {formatCents(donation)} → NP Fund</span>
             </div>
@@ -345,7 +415,7 @@ export default function SPCreateLeagueForm({ onSubmit, onCancel, isLoading }) {
           </div>
           <div className="bg-gray-900/60 border border-gray-700/40 rounded-xl p-3 text-xs text-gray-400 space-y-1">
             <p className="font-semibold text-gray-300">Platform Disclaimer</p>
-            <p>This is a skill-based competitive event. No random winner selection. Organizer agrees to comply with all local laws, venue rules, age restrictions, safety requirements, and charitable contribution rules. 10% of the prize value is donated to The North Pole Fund.</p>
+            <p>This is a skill-based competitive event. Outcomes are based on verified performance. Organizer agrees to comply with all local laws, venue rules, age restrictions, safety requirements, and charitable contribution rules. 10% of the prize value is donated to The North Pole Fund.</p>
           </div>
         </div>
       )}

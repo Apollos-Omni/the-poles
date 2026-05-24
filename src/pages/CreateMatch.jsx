@@ -13,6 +13,7 @@ import { Gamepad2, ShoppingCart, Trophy, Calculator, Heart, AlertTriangle } from
 
 import GameBrowser from '../components/match-creator/GameBrowser';
 import MatchPreview from '../components/match-creator/MatchPreview';
+import SportSelector from '@/components/sports/SportSelector';
 
 export default function CreateMatch() {
     const navigate = useNavigate();
@@ -30,6 +31,7 @@ export default function CreateMatch() {
         verificationMethod: 'screenshot',
         charityPercentage: 10
     });
+    const [selectedSport, setSelectedSport] = useState(null);
     const [calculatedBuyIn, setCalculatedBuyIn] = useState(0);
 
     useEffect(() => {
@@ -71,7 +73,7 @@ export default function CreateMatch() {
         const M = Math.round(P * 0.10); // 10% margin
         const F = Math.round(P * 0.03); // 3% fees
         const B = Math.round(P * 0.02); // 2% buffer
-        const C = Math.round((M * matchSettings.charityPercentage) / 100); // Charity portion
+        const C = Math.round((M * matchSettings.charityPercentage) / 100); // North Pole fund portion
         
         const totalPot = P + M + F + B;
         const buyInPerPlayer = Math.ceil(totalPot / matchSettings.maxPlayers);
@@ -102,6 +104,9 @@ export default function CreateMatch() {
                 rules: matchSettings.rules,
                 verification_method: matchSettings.verificationMethod,
                 charity_percentage: matchSettings.charityPercentage,
+                sport_id: selectedSport?.id || selectedGame?.id,
+                sport_name: selectedSport?.name || selectedGame?.title,
+                sport_category: selectedSport?.category || selectedGame?.category,
                 selected_prize_id: selectedPrize.id,
                 selected_prize_title: selectedPrize.title,
                 selected_prize_image: selectedPrize.image,
@@ -158,8 +163,8 @@ export default function CreateMatch() {
                 <div className="mb-8 p-5 bg-yellow-900/30 border border-yellow-700/40 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <AlertTriangle className="w-6 h-6 text-yellow-400 flex-shrink-0" />
                     <div className="flex-1">
-                        <p className="text-yellow-300 font-semibold">No prize selected yet</p>
-                        <p className="text-yellow-200/70 text-sm mt-1">You must select a prize from the North Pole Shop before creating a match.</p>
+                        <p className="text-yellow-300 font-semibold">No prize path selected yet</p>
+                        <p className="text-yellow-200/70 text-sm mt-1">Select a prize path from the North Pole shop before creating a skill match.</p>
                     </div>
                     <Button onClick={() => navigate('/SantaClause')} className="bg-purple-700 hover:bg-purple-600 text-white flex-shrink-0">
                         🎁 Go to Prize Shop
@@ -190,11 +195,11 @@ export default function CreateMatch() {
                                 <p className="text-white font-bold">{players}</p>
                             </div>
                             <div className="bg-black/30 rounded-lg p-2 text-center">
-                                <p className="text-purple-400 text-xs">Entry / Player</p>
+                                <p className="text-purple-400 text-xs">Entry Contribution</p>
                                 <p className="text-green-300 font-bold">${entryPerPlayer}</p>
                             </div>
                             <div className="bg-black/30 rounded-lg p-2 text-center">
-                                <p className="text-pink-400 text-xs flex items-center justify-center gap-1"><Heart className="w-3 h-3" /> Children's Fund</p>
+                                <p className="text-pink-400 text-xs flex items-center justify-center gap-1"><Heart className="w-3 h-3" /> North Pole Fund</p>
                                 <p className="text-pink-300 font-bold">${donation}</p>
                             </div>
                         </div>
@@ -252,6 +257,14 @@ export default function CreateMatch() {
                                 <button onClick={() => { setSelectedGame(null); setStep(1); }} className="ml-auto text-xs text-purple-400/60 hover:text-purple-300">Change</button>
                             </div>
                         )}
+
+                        <div className="mb-6">
+                            <SportSelector
+                                value={selectedSport?.id}
+                                label="Sport / game profile"
+                                onChange={setSelectedSport}
+                            />
+                        </div>
 
                         <Card className="bg-black/40 border-purple-700/30">
                             <CardContent className="p-6">
@@ -317,7 +330,7 @@ export default function CreateMatch() {
                                     <div className="mt-6 p-4 bg-green-900/20 border border-green-700/30 rounded-lg">
                                         <div className="flex items-center gap-2 mb-3">
                                             <Calculator className="w-5 h-5 text-green-400" />
-                                            <h3 className="font-semibold text-green-300">Entry Cost Breakdown</h3>
+                                            <h3 className="font-semibold text-green-300">Entry Contribution Breakdown</h3>
                                         </div>
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                             <div>
@@ -329,7 +342,7 @@ export default function CreateMatch() {
                                                 <p className="text-white font-semibold">${((selectedProduct?.price_cents || 0) * 0.10 / 100).toFixed(2)}</p>
                                             </div>
                                             <div>
-                                                <p className="text-green-400">To Children's Fund</p>
+                                                <p className="text-green-400">North Pole Fund</p>
                                                 <p className="text-white font-semibold">${((selectedProduct?.price_cents || 0) * 0.10 * matchSettings.charityPercentage / 10000).toFixed(2)}</p>
                                             </div>
                                             <div>

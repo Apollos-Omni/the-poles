@@ -26,10 +26,10 @@ const mockDevices = [
 ];
 
 export default function SecuritySettings({ user, profile, onClose, onUpdated }) {
-  const [twoFactor, setTwoFactor] = useState(profile.twofa_enabled || false);
+  const [twoFactor, setTwoFactor] = useState(profile?.twofa_enabled || false);
   const [isVerifying, setIsVerifying] = useState(false);
   
-  const kycInfo = kycTierLabels[profile.kyc_tier || 0];
+  const kycInfo = kycTierLabels[profile?.kyc_tier || 0];
 
   const handleVerifyIdentity = () => {
     setIsVerifying(true);
@@ -69,7 +69,7 @@ export default function SecuritySettings({ user, profile, onClose, onUpdated }) 
                     </p>
                     <p className="text-sm text-blue-300/70">{kycInfo.description}</p>
                 </div>
-                {profile.kyc_tier < 2 && (
+                {(profile?.kyc_tier || 0) < 2 && (
                     <Button onClick={handleVerifyIdentity} disabled={isVerifying} className="bg-blue-600 hover:bg-blue-700">
                         {isVerifying ? 'Starting...' : 'Verify Identity'}
                     </Button>
@@ -87,6 +87,9 @@ export default function SecuritySettings({ user, profile, onClose, onUpdated }) 
                 <div className="flex items-center justify-between">
                     <div>
                         <p className="text-gray-300">Keep your account secure with an extra layer of protection.</p>
+                        <p className="mt-1 text-xs text-gray-400">
+                          TODO: wire Supabase MFA enrollment and challenge flow with supabase.auth.mfa before requiring MFA for admin, payment, fulfillment, shipping address, or prize actions.
+                        </p>
                         <p className={`text-sm ${twoFactor ? 'text-green-400' : 'text-yellow-400'}`}>
                           Status: {twoFactor ? 'Enabled' : 'Disabled'}
                         </p>

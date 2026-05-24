@@ -26,11 +26,11 @@ import {
   Server,
   Mail,
   Trophy,
-  Mountain
+  Mountain,
+  ClipboardList
 } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useAuth } from '@/lib/AuthContext';
 import { ADMIN_ROLES, AFFILIATE_ADMIN_ROLES, userHasRole } from '@/lib/rbac';
 
 const mainNavItems = [
@@ -43,10 +43,12 @@ const mainNavItems = [
   { name: 'Home Layout', icon: Layout, page: 'HomeLayoutDesigner' },
   { name: 'Security', icon: Shield, page: 'SecurityMonitor'},
   { name: 'Homeless to Homeowner', icon: Heart, page: 'HomelessToHomeowner' },
-  { name: 'Store', icon: Store, page: 'Store' },
-  { name: 'Arcade', icon: Gamepad2, page: 'Arcade' },
+    { name: 'Store', icon: Store, page: 'Store' },
+    { name: 'Arcade', icon: Gamepad2, page: 'Arcade' },
+    { name: 'Create Skill Match', icon: Trophy, page: 'CreateMatch' },
   { name: 'The North Pole', icon: Gift, page: 'NorthPole', href: '/NorthPole' },
   { name: 'The South Pole', icon: Mountain, page: 'SouthPole', href: '/SouthPole' },
+  { name: 'League Hub', icon: Trophy, page: 'LeagueHub', href: '/Leagues' },
   { name: 'Affiliate Catalog', icon: Store, page: 'AffiliateCatalog', href: '/AffiliateCatalog' },
   { name: 'Agent Dashboard', icon: Bot, page: 'AgentDashboard', roles: ADMIN_ROLES },
   { name: 'Compliance', icon: Shield, page: 'ComplianceDashboard', roles: ADMIN_ROLES },
@@ -58,6 +60,7 @@ const secondaryNavItems = [
   { title: "Agent Control", href: createPageUrl("AgentDashboard"), icon: Bot, roles: ADMIN_ROLES },
   { title: "Compliance", href: createPageUrl("ComplianceDashboard"), icon: Shield, roles: ADMIN_ROLES },
   { title: "Beta Readiness", href: "/PublicBetaReadiness", icon: Trophy, roles: ADMIN_ROLES },
+  { title: "Custom Sports", href: "/CustomSportReviewAdmin", icon: ClipboardList, roles: ADMIN_ROLES },
   { title: "Affiliate Admin", href: "/AffiliateAdmin", icon: Building, roles: AFFILIATE_ADMIN_ROLES },
   { title: "Diagnostics", href: createPageUrl("Diagnostics"), icon: Server, roles: ADMIN_ROLES },
 ];
@@ -83,11 +86,10 @@ const NavItem = ({ label, to, icon: Icon, onNavigate }) => {
 };
 
 export default function AppSidebar({ onNavigate }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = async () => {
-    await base44.auth.logout();
-    window.location.reload();
+    await logout(true);
   };
 
   const hasAccess = (item) => {
@@ -103,12 +105,13 @@ export default function AppSidebar({ onNavigate }) {
   ];
 
   return (
-    <div className="h-full overflow-y-auto p-4 bg-gradient-to-b from-black via-purple-950/30 to-black text-white">
+    <div className="h-full overflow-y-auto p-4 bg-gradient-to-b from-black/45 via-purple-950/30 to-slate-950/50 text-white">
       <div className="mb-8">
         <Link to={createPageUrl("Dashboard")} className="flex items-center gap-2 px-2">
-          <Gift className="w-8 h-8 text-purple-400" />
-          <span className="text-xl font-bold text-white">DivineHinge</span>
+          <Gift className="w-8 h-8 text-cyan-200" />
+          <span className="text-xl font-bold text-white">The Poles</span>
         </Link>
+        <p className="mt-2 px-2 text-xs text-purple-100/45">Verified challenge operations</p>
       </div>
 
       <nav className="space-y-2 mb-6">

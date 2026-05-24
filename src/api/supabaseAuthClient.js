@@ -53,11 +53,35 @@ export async function signInWithPassword(email, password) {
   return client.auth.signInWithPassword({ email, password });
 }
 
+export async function signInWithGoogle() {
+  const client = getSupabaseClient();
+  if (!client) return { data: null, error: null };
+
+  return client.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+    },
+  });
+}
+
 export async function signOut() {
   const client = getSupabaseClient();
   if (!client) return { error: null };
 
   return client.auth.signOut();
+}
+
+export async function exchangeCodeForSession() {
+  const client = getSupabaseClient();
+  if (!client) return { data: null, error: null };
+
+  return client.auth.exchangeCodeForSession(window.location.href);
+}
+
+export function getMfaApi() {
+  const client = getSupabaseClient();
+  return client?.auth?.mfa || null;
 }
 
 export function onAuthStateChange(callback) {
