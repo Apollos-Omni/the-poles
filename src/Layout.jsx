@@ -6,7 +6,7 @@ import { CrashReporter } from './components/observability/CrashReporter';
 import { AnalyticsProvider } from './components/analytics/Analytics'; 
 import { PerformanceDebugger } from './components/performance/PerformanceMonitor';
 import { HealthIndicator } from './components/health/HealthCheck';
-import { Home, Target, User as UserIcon, Menu as MenuIcon, Gift, LogOut, Loader2, ShieldCheck, X } from 'lucide-react';
+import { Home, User as UserIcon, Menu as MenuIcon, Gift, LogIn, LogOut, Loader2, Mountain, ShieldCheck, Trophy, X } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,10 @@ import { ServiceWorkerManager, PWAInstallManager } from '@/components/pwa/Servic
 import DeepLinkHandler from '@/components/notifications/DeepLinkHandler';
 
 const mobileNavItems = [
-  { title: "Feed", href: createPageUrl("Feed"), icon: Home },
-  { title: "Visions", href: createPageUrl("VisionTracker"), icon: Target },
-  { title: "North Pole", href: "/NorthPole", icon: Gift },
+  { title: "Home", href: createPageUrl("Dashboard"), icon: Home },
+  { title: "North", href: "/NorthPole", icon: Gift },
+  { title: "South", href: "/SouthPole", icon: Mountain },
+  { title: "Create", href: createPageUrl("CreateMatch"), icon: Trophy },
   { title: "Profile", href: createPageUrl("Profile"), icon: UserIcon },
 ];
 
@@ -62,7 +63,7 @@ const LayoutContent = ({ children, currentPageName }) => {
   // Check if we're in development mode using window location
   const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('preview');
 
-  const isActive = (url) => location.pathname === url || (url === createPageUrl("Feed") && location.pathname === "/");
+  const isActive = (url) => location.pathname === url || (url === createPageUrl("Dashboard") && location.pathname === "/");
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -91,7 +92,7 @@ const LayoutContent = ({ children, currentPageName }) => {
   return (
     <AnalyticsProvider>
       <CrashReporter />
-      <div className="relative flex h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.22),transparent_30%),linear-gradient(135deg,#020617,#0b0618_42%,#020617)] text-white">
+      <div className="relative flex h-screen min-w-0 overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,0.18),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.22),transparent_30%),linear-gradient(135deg,#020617,#0b0618_42%,#020617)] text-white">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:44px_44px]" />
         {/* PWA and Service Worker Setup */}
         <ServiceWorkerManager />
@@ -106,12 +107,12 @@ const LayoutContent = ({ children, currentPageName }) => {
         {/* Mobile Sidebar Overlay */}
         {isMobileMenuOpen && (
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 lg:hidden"
+            className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm lg:hidden"
             onClick={() => setIsMobileMenuOpen(false)}
           >
             {/* Mobile Sidebar */}
             <div 
-              className="fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-gradient-to-b from-black via-purple-950/95 to-slate-950 shadow-2xl transform transition-transform duration-300 ease-out overflow-y-auto"
+              className="fixed bottom-0 left-0 top-0 w-80 max-w-[88vw] overflow-y-auto border-r border-cyan-200/10 bg-gradient-to-b from-black via-purple-950/95 to-slate-950 shadow-2xl shadow-purple-950/60"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Close Button */}
@@ -137,12 +138,22 @@ const LayoutContent = ({ children, currentPageName }) => {
         )}
         
         {/* Main content area */}
-        <main className="relative z-10 flex-1 w-full overflow-y-auto bg-black/10 pb-20 lg:pb-0">
-          <div className="sticky top-0 z-30 border-b border-white/10 bg-black/45 px-4 py-3 backdrop-blur-xl md:px-6">
+        <main className="relative z-10 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-black/10 pb-24 lg:pb-0">
+          <div className="sticky top-0 z-30 border-b border-white/10 bg-black/45 px-3 py-2.5 backdrop-blur-xl md:px-6 md:py-3">
             <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-purple-100 hover:bg-purple-900/40 lg:hidden"
+                  aria-label="Open menu"
+                >
+                  <MenuIcon className="h-5 w-5" />
+                </button>
+                <div className="min-w-0">
                 <p className="text-xs uppercase tracking-[0.18em] text-cyan-100/55">The Poles Command</p>
                 <h2 className="truncate text-sm font-semibold text-white md:text-base">{displayName}</h2>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <div className="hidden items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100 sm:flex">
@@ -165,24 +176,17 @@ const LayoutContent = ({ children, currentPageName }) => {
         </main>
         
         {/* Mobile Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 h-16 bg-black/80 backdrop-blur-lg border-t border-purple-700/30 flex justify-around items-center lg:hidden z-40">
+        <div className="fixed bottom-0 left-0 right-0 z-40 flex h-[76px] items-center justify-around border-t border-cyan-200/10 bg-black/82 px-1 pb-[env(safe-area-inset-bottom)] shadow-2xl shadow-purple-950/60 backdrop-blur-xl lg:hidden">
           {mobileNavItems.map(item => (
             <Link 
               key={item.href} 
               to={item.href} 
-              className={`flex flex-col items-center justify-center w-full h-full ${isActive(item.href) ? 'text-purple-400' : 'text-purple-200/70'}`}
+              className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-semibold transition-colors ${isActive(item.href) ? 'bg-cyan-400/10 text-cyan-100' : 'text-purple-100/65 hover:bg-white/5 hover:text-white'}`}
             >
-              <item.icon className="w-6 h-6" />
-              <span className="text-xs mt-1">{item.title}</span>
+              <item.icon className="h-5 w-5" />
+              <span className="max-w-full truncate">{item.title}</span>
             </Link>
           ))}
-          <button 
-            onClick={() => setIsMobileMenuOpen(true)}
-            className={`flex flex-col items-center justify-center w-full h-full ${isMobileMenuOpen ? 'text-purple-400' : 'text-purple-200/70'}`}
-          >
-            <MenuIcon className="w-6 h-6" />
-            <span className="text-xs mt-1">Menu</span>
-          </button>
         </div>
         
         {/* Always show health indicator */}

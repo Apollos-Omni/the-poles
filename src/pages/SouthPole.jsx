@@ -142,7 +142,7 @@ export default function SouthPole() {
   const myChallenges = challenges.filter(c => c.creator_user_id === currentUser?.email);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-cyan-950/30 to-black text-white">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-black via-cyan-950/30 to-black text-white">
       {/* Hero */}
       <div className="relative overflow-hidden bg-gradient-to-br from-black via-cyan-900/20 to-teal-900/20 border-b border-cyan-700/20">
         <div className="absolute inset-0 opacity-10">

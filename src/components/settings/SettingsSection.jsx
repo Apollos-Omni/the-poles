@@ -3,14 +3,14 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 export default function SettingsSection({ title, description, children, className = "" }) {
   return (
-    <Card className={`bg-[rgb(var(--grey-1))] border-[rgb(var(--grey-2))] ${className}`}>
+    <Card className={`border-white/10 bg-black/24 text-white shadow-xl shadow-purple-950/10 backdrop-blur ${className}`}>
       {title && (
         <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-semibold text-[rgb(var(--accent-soft-white))]">
+          <CardTitle className="text-lg font-semibold text-white">
             {title}
           </CardTitle>
           {description && (
-            <p className="text-sm text-[rgb(var(--grey-3))] mt-1">{description}</p>
+            <p className="mt-1 text-sm text-purple-100/60">{description}</p>
           )}
         </CardHeader>
       )}

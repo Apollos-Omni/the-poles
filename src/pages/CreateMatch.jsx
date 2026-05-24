@@ -129,7 +129,7 @@ export default function CreateMatch() {
     };
 
     const StepIndicator = ({ currentStep, totalSteps }) => (
-        <div className="flex items-center justify-center mb-8">
+        <div className="mb-8 flex items-center justify-center overflow-x-auto pb-2">
             {Array.from({ length: totalSteps }, (_, i) => i + 1).map((stepNum) => (
                 <React.Fragment key={stepNum}>
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
@@ -151,7 +151,7 @@ export default function CreateMatch() {
 
     if (!user) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-purple-900 text-white p-8">
+            <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-gray-900 via-black to-purple-900 p-4 text-white sm:p-8">
                 <div className="text-center">Loading...</div>
             </div>
         );
@@ -166,8 +166,8 @@ export default function CreateMatch() {
                         <p className="text-yellow-300 font-semibold">No prize path selected yet</p>
                         <p className="text-yellow-200/70 text-sm mt-1">Select a prize path from the North Pole shop before creating a skill match.</p>
                     </div>
-                    <Button onClick={() => navigate('/SantaClause')} className="bg-purple-700 hover:bg-purple-600 text-white flex-shrink-0">
-                        🎁 Go to Prize Shop
+                    <Button onClick={() => navigate('/SantaClause')} className="min-h-11 w-full flex-shrink-0 bg-purple-700 text-white hover:bg-purple-600 sm:w-auto">
+                        Go to Prize Shop
                     </Button>
                 </div>
             );
@@ -181,8 +181,8 @@ export default function CreateMatch() {
 
         return (
             <div className="mb-8 bg-gradient-to-r from-purple-900/60 to-indigo-900/60 border border-purple-500/40 rounded-2xl p-5">
-                <p className="text-xs text-purple-400 font-semibold uppercase tracking-wider mb-3">🏆 Selected Prize</p>
-                <div className="flex gap-4 items-start">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-purple-400">Selected Prize Path</p>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                     {selectedPrize.image && (
                         <img src={selectedPrize.image} alt={selectedPrize.title} className="w-20 h-20 object-cover rounded-xl flex-shrink-0" onError={e => { e.target.style.display = 'none'; }} />
                     )}
@@ -211,13 +211,13 @@ export default function CreateMatch() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-purple-900 text-white p-4 md:p-8">
+        <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-gray-900 via-black to-purple-900 p-4 text-white md:p-8">
             <div className="max-w-6xl mx-auto">
                 <div className="text-center mb-8">
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-300 via-white to-indigo-300 bg-clip-text text-transparent mb-4">
                         Create Skill-Based Match
                     </h1>
-                    <p className="text-purple-200/80">Select a game and set your rules — the winner is determined by verified skill.</p>
+                    <p className="text-purple-200/80">Select a game and set your rules. The winner is determined by verified skill.</p>
                 </div>
 
                 {/* Prize Banner — always visible */}

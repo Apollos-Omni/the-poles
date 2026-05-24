@@ -1248,7 +1248,7 @@ export default function NorthPole() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-purple-950 to-black text-white">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-black via-purple-950 to-black text-white">
       <div className="mx-auto max-w-6xl p-4 md:p-8">
         <div className="mb-8 text-center">
           <div className="mb-3 flex items-center justify-center gap-3">

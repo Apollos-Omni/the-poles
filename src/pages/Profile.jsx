@@ -128,15 +128,15 @@ export default function Profile() {
 
   if (isLoading || !user || !profileData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[rgb(var(--dark-base))] via-[rgb(var(--grey-1))] to-[rgb(var(--dark-base))] text-[rgb(var(--accent-soft-white))] p-6">
+      <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-black via-purple-950/70 to-black p-4 text-white sm:p-6">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-[rgb(var(--grey-1))] rounded-2xl p-8 animate-pulse">
+          <div className="animate-pulse rounded-3xl border border-purple-400/20 bg-white/5 p-5 shadow-2xl shadow-purple-950/30 sm:p-8">
             <div className="flex items-start gap-6 mb-8">
-              <div className="w-20 h-20 bg-[rgb(var(--grey-2))] rounded-full"></div>
+              <div className="h-20 w-20 rounded-full bg-purple-400/20"></div>
               <div className="space-y-3 flex-1">
-                <div className="h-6 bg-[rgb(var(--grey-2))] rounded w-48"></div>
-                <div className="h-4 bg-[rgb(var(--grey-2))] rounded w-32"></div>
-                <div className="h-12 bg-[rgb(var(--grey-2))] rounded"></div>
+                <div className="h-6 w-48 rounded bg-purple-400/20"></div>
+                <div className="h-4 w-32 rounded bg-cyan-400/15"></div>
+                <div className="h-12 rounded bg-white/10"></div>
               </div>
             </div>
           </div>
@@ -146,7 +146,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[rgb(var(--dark-base))] via-[rgb(var(--grey-1))] to-[rgb(var(--dark-base))] text-[rgb(var(--accent-soft-white))] p-4 md:p-8">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-black via-purple-950/70 to-black p-4 text-white md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Profile Header */}
         <ProfileHeader 
@@ -160,7 +160,7 @@ export default function Profile() {
 
         {/* Owner-Only Actions */}
         {isOwnProfile && (
-          <div className="grid md:grid-cols-3 gap-4 mb-8">
+          <div className="mb-8 grid gap-4 md:grid-cols-3">
             <button
               onClick={() => setShowEditModal(true)}
               className="flex items-center gap-3 p-4 bg-gradient-to-r from-purple-600/20 to-purple-700/20 hover:from-purple-600/30 hover:to-purple-700/30 border border-purple-500/30 rounded-xl transition-all duration-300"
