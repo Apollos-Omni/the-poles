@@ -16,6 +16,7 @@ import SPLeagueGroups from "@/components/south-pole/SPLeagueGroups";
 import { CATEGORIES, formatCents } from "@/components/south-pole/SPConstants";
 import SPRewardLinkChips from "@/components/south-pole/SPRewardLinkChips";
 import { PublicBetaBadge } from "@/components/public/PublicBetaLayout";
+import { MediaHero, MissionMediaCard, VideoBackgroundCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 function NorthPoleImpactPanel({ challenges }) {
   const totalDonation = challenges.reduce((s, c) => s + (c.north_pole_donation_cents || 0), 0);
@@ -26,10 +27,10 @@ function NorthPoleImpactPanel({ challenges }) {
     <div className="bg-gradient-to-r from-pink-900/20 to-red-900/20 border border-pink-700/30 rounded-2xl p-5">
       <div className="flex items-center gap-2 mb-4">
         <Heart className="w-5 h-5 text-pink-400" />
-        <h3 className="font-bold text-white">North Pole Fund Impact</h3>
+        <h3 className="font-bold text-white">The Poles Fund Impact</h3>
       </div>
       <p className="text-sm text-pink-300/70 mb-4">
-        10% of every South Pole Challenge prize value is donated to The North Pole Fund — turning competition into gifts for children.
+        Creator contributions may support The Poles Fund, turning competition into approved gift and growth opportunities.
       </p>
       <div className="grid grid-cols-3 gap-3 text-center">
         <div>
@@ -143,55 +144,52 @@ export default function SouthPole() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-black via-cyan-950/30 to-black text-white">
-      {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-black via-cyan-900/20 to-teal-900/20 border-b border-cyan-700/20">
-        <div className="absolute inset-0 opacity-10">
-          {[...Array(20)].map((_, i) => (
-            <div key={i} className="absolute w-1 h-1 bg-cyan-400 rounded-full animate-pulse"
-              style={{ left: `${Math.random() * 100}%`, top: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 3}s` }} />
-          ))}
-        </div>
-        <div className="relative max-w-5xl mx-auto px-4 py-10 md:py-16">
-          <div className="mb-4">
-            <PublicBetaBadge />
-          </div>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center shadow-lg shadow-cyan-900/50">
-              <Mountain className="w-7 h-7 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">The South Pole</h1>
-              <p className="text-cyan-400 font-medium">Create the challenge. Find the competition. Win the experience.</p>
-            </div>
-          </div>
-          <p className="text-cyan-200/60 text-sm max-w-2xl leading-relaxed">
-            Real-world skill-based challenges for vacations, concerts, cruises, events, and experiences. Compete for what you want. Meet people who share your drive. 10% funds gifts for children.
-          </p>
-          <SPRewardLinkChips />
-          <div className="mt-6 rounded-2xl border border-purple-500/25 bg-black/35 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-700/40">
-                  <Trophy className="h-5 w-5 text-purple-100" />
-                </div>
-                <div>
-                  <h2 className="font-bold text-white">League Organization Hub</h2>
-                  <p className="mt-1 max-w-2xl text-sm text-purple-100/60">
-                    Create a home for leagues, clubs, gyms, schools, gaming groups, teams, schedules, standings, media, discussion, verified stats, and league reward tracking.
-                  </p>
-                </div>
-              </div>
-              <Link to="/Leagues">
-                <Button className="bg-purple-700 text-white hover:bg-purple-600">
-                  Open League Hub
-                </Button>
-              </Link>
-            </div>
+      <MediaHero
+        eyebrow="The South Pole"
+        title="Find your field. Earn your moment."
+        description="Sports, teams, leagues, courts, fields, training days, and championship energy belong here. South Pole should feel local, social, competitive, and worth showing up for."
+        image={mediaImages.southCourt}
+        tone="cyan"
+        badges={["Teams and leagues", "Training to championship", "Verified performance", "Community pride"]}
+        primaryAction={{ href: "/Leagues", label: "Open League Hub" }}
+        secondaryAction={{ href: "#south-pole-events", label: "Browse challenges" }}
+      >
+        <div className="space-y-3">
+          <VideoBackgroundCard
+            title="Local championship energy"
+            description="Use media cards for courts, fields, scoreboards, and highlight clips so users can picture themselves competing."
+            image={mediaImages.southTeam}
+            label="Season reel"
+            metric="Teams"
+          />
+          <div className="rounded-2xl border border-white/15 bg-black/42 p-4 backdrop-blur">
+            <div className="mb-3"><PublicBetaBadge /></div>
+            <SPRewardLinkChips />
           </div>
         </div>
-      </div>
+      </MediaHero>
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div id="south-pole-events" className="max-w-5xl mx-auto px-4 py-6">
+        <div className="mb-5 rounded-2xl border border-purple-500/25 bg-black/35 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-700/40">
+                <Trophy className="h-5 w-5 text-purple-100" />
+              </div>
+              <div>
+                <h2 className="font-bold text-white">League Organization Hub</h2>
+                <p className="mt-1 max-w-2xl text-sm text-purple-100/60">
+                  Create a home for leagues, clubs, gyms, schools, gaming groups, teams, schedules, standings, media, discussion, verified stats, and league reward tracking.
+                </p>
+              </div>
+            </div>
+            <Link to="/Leagues">
+              <Button className="bg-purple-700 text-white hover:bg-purple-600">
+                Open League Hub
+              </Button>
+            </Link>
+          </div>
+        </div>
         <Tabs value={tab} onValueChange={v => { setTab(v); setSelected(null); setCreating(false); }}>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:flex-1 sm:px-0">
@@ -278,7 +276,7 @@ export default function SouthPole() {
                     <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0 mt-0.5" />
                     <div className="space-y-1">
                       <p className="font-semibold text-gray-300">Platform Disclaimer</p>
-                      <p>The South Pole is a skill-based, performance-based competitive challenge platform. All challenges must comply with local laws, venue rules, age restrictions, travel restrictions, event ticket terms, safety requirements, and charitable contribution rules. Winners are determined solely by skill, performance, judging, scoring, or verified completion based on the rules stated before the challenge begins. 10% of each prize value is donated to The North Pole Fund. Platform approval is required for high-value prizes. This is currently in demo/sandbox mode.</p>
+                      <p>The South Pole is a skill-based, performance-based competitive challenge platform. All challenges must comply with local laws, venue rules, age restrictions, travel restrictions, event ticket terms, safety requirements, and mission contribution rules. Winners are determined solely by skill, performance, judging, scoring, or verified completion based on the rules stated before the challenge begins. Creator contributions may support The Poles Fund. Platform approval is required for high-value prizes. This is currently in demo/sandbox mode.</p>
                     </div>
                   </div>
                 </div>
@@ -418,6 +416,12 @@ export default function SouthPole() {
           {/* IMPACT */}
           <TabsContent value="impact">
             <div className="space-y-6">
+              <MissionMediaCard
+                title="Competition creates purpose."
+                description="South Pole competitions route part of prize value into approved gift categories and growth tools without exposing private child information."
+                image={mediaImages.fundTools}
+                points={["Books and school supplies", "Sports gear", "Art and music tools", "Technology access"]}
+              />
               <NorthPoleImpactPanel challenges={challenges} />
               <div className="bg-black/30 border border-pink-700/20 rounded-2xl p-6 space-y-4">
                 <h3 className="font-bold text-white text-lg flex items-center gap-2">
@@ -430,7 +434,7 @@ export default function SouthPole() {
                   </div>
                   <div className="bg-blue-900/20 border border-blue-700/20 rounded-xl p-4 space-y-2">
                     <h4 className="font-semibold text-blue-300">🎅 The North Pole</h4>
-                    <p>Gifts for children. Physical prizes. Family joy. Every South Pole Challenge donates 10% of its prize value to help make that possible.</p>
+                    <p>Gifts, growth tools, and approved mission categories. South Pole challenges can help make that possible through creator contributions.</p>
                   </div>
                 </div>
                 <p className="text-sm text-pink-300/60 italic text-center">

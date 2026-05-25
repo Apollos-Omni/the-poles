@@ -44,6 +44,7 @@ import {
   createFulfillmentRecord,
   SKILL_COMPETITION_AGREEMENT_VERSION,
 } from '@/lib/northpole/matchEngine';
+import { MediaHero, VideoBackgroundCard, PrizeMediaCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 const STEPS = {
   PRIZE_SELECT: 'prize_select',
@@ -896,7 +897,7 @@ function RealNorthPoleFlow({ user }) {
                   <DollarSign className="h-4 w-4 text-green-300" />
                   <h3 className="text-sm font-bold text-white">Room and Entry Contribution Options</h3>
                   <Badge className="border border-pink-500/30 bg-pink-600/15 text-pink-200">
-                    {Math.round(NORTH_POLE_COST_MODEL.donationRate * 100)}% North Pole fund
+                    The Poles Fund
                   </Badge>
                 </div>
                 <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
@@ -1249,33 +1250,44 @@ export default function NorthPole() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-black via-purple-950 to-black text-white">
-      <div className="mx-auto max-w-6xl p-4 md:p-8">
-        <div className="mb-8 text-center">
-          <div className="mb-3 flex items-center justify-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-yellow-500 to-orange-600 shadow-lg">
-              <Gift className="h-7 w-7 text-white" />
-            </div>
-            <div>
-              <h1 className="bg-gradient-to-r from-yellow-300 to-orange-400 bg-clip-text text-4xl font-bold text-transparent">
-                The North Pole
-              </h1>
-              <p className="text-sm text-purple-300">Create or join skill-based prize matches.</p>
-            </div>
+      <MediaHero
+        eyebrow="The North Pole"
+        title="Digital arenas. Real confidence."
+        description="Create prize rooms around games, creators, streamers, and esports-style skill. Every room should feel like stepping under the lights with a clear path to compete, verify, and win."
+        image={mediaImages.northArena}
+        badges={["Neon arena energy", "Skill-verified matches", "Prize room momentum", "Fund included"]}
+        primaryAction={{ href: "#north-pole-flow", label: "Build a prize room" }}
+        secondaryAction={{ href: "/AffiliateCatalog", label: "Browse prize catalog" }}
+      >
+        <div className="grid gap-3">
+          <VideoBackgroundCard
+            title="Creator match night"
+            description="Use short, poster-backed media moments to make each match feel public, social, and worth promoting."
+            image={mediaImages.northPrize}
+            label="Arena preview"
+            metric="Live"
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <PrizeMediaCard title="Prize vault" description="Gear, consoles, collectibles, and experiences." image={mediaImages.northPrize} meta="Rewards" />
+            <PrizeMediaCard title="Score lock" description="Transparent skill rules before players enter." image={mediaImages.northArena} meta="Trust" />
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <PublicBetaBadge />
-            <Badge className="border border-green-700/30 bg-green-900/40 text-green-300">
-              <ShieldCheck className="mr-1 h-3 w-3" />Persisted matches
+        </div>
+      </MediaHero>
+
+      <div id="north-pole-flow" className="mx-auto max-w-6xl p-4 md:p-8">
+        <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
+          <PublicBetaBadge />
+          <Badge className="border border-green-700/30 bg-green-900/40 text-green-300">
+            <ShieldCheck className="mr-1 h-3 w-3" />Persisted matches
+          </Badge>
+          <Badge className="border border-pink-700/30 bg-pink-900/40 text-pink-300">
+            <Heart className="mr-1 h-3 w-3" />The Poles Fund
+          </Badge>
+          {user && (
+            <Badge className="border border-purple-700/30 bg-purple-900/40 text-purple-300">
+              {user.full_name || user.email}
             </Badge>
-            <Badge className="border border-pink-700/30 bg-pink-900/40 text-pink-300">
-              <Heart className="mr-1 h-3 w-3" />North Pole fund included
-            </Badge>
-            {user && (
-              <Badge className="border border-purple-700/30 bg-purple-900/40 text-purple-300">
-                {user.full_name || user.email}
-              </Badge>
-            )}
-          </div>
+          )}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>

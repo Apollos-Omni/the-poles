@@ -5,6 +5,7 @@ import { Search, ExternalLink, ArrowLeft, AlertTriangle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MediaHero, PrizeMediaCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 const CATEGORIES = [
   "All",
@@ -51,6 +52,16 @@ export default function AffiliateCatalog() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-purple-950/20 to-black text-white">
+      <MediaHero
+        eyebrow="Prize catalog"
+        title="Shop the feeling before the match."
+        description="Prize rooms need visual stakes: gaming gear, sports gear, travel, tickets, creative tools, and approved gift categories presented as trustworthy media cards."
+        image={mediaImages.catalogShelf}
+        badges={["Affiliate disclosure", "Prize discovery", "Media-first cards"]}
+        primaryAction={{ href: "/NorthPole", label: "Create a prize room" }}
+        secondaryAction={{ href: "/SouthPole", label: "Create an event" }}
+      />
+
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-6">
 
         <div className="flex items-center gap-4">
@@ -67,6 +78,12 @@ export default function AffiliateCatalog() {
         <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-xl p-3 flex gap-2 text-xs text-yellow-200/80">
           <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
           <span>Some links are paid affiliate links. We may earn a commission at no cost to you. <Link to="/AffiliateDisclosure" className="underline">Learn more</Link></span>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <PrizeMediaCard title="Gaming and creator gear" description="Use prizes that feel competitive, aspirational, and shareable." image={mediaImages.northPrize} meta="North Pole" />
+          <PrizeMediaCard title="Sports and training gear" description="Support athletes, teams, leagues, and local competition." image={mediaImages.southTeam} meta="South Pole" />
+          <PrizeMediaCard title="Approved gift categories" description="Keep mission visuals category-based and public-safe." image={mediaImages.fundTools} meta="Fund" />
         </div>
 
         {/* Search */}
@@ -122,7 +139,7 @@ function OfferCard({ offer }) {
   return (
     <div className="bg-black/40 border border-purple-700/20 rounded-2xl overflow-hidden flex flex-col hover:border-purple-500/40 transition-colors">
       {offer.image_url && (
-        <img src={offer.image_url} alt={offer.title} className="w-full h-44 object-cover" />
+        <img src={offer.image_url} alt={offer.title} loading="lazy" decoding="async" className="w-full h-44 object-cover" />
       )}
       <div className="p-4 flex flex-col gap-3 flex-1">
         <div className="flex items-start justify-between gap-2">

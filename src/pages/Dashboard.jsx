@@ -28,13 +28,16 @@ import HallwayHomeScreen from "@/components/dashboard/HallwayHomeScreen";
 import KarmaOverview from "@/components/dashboard/KarmaOverview";
 import QuickHingeCreation from "@/components/dashboard/QuickHingeCreation";
 import VisionBoard from "@/components/dashboard/VisionBoard";
+import { MediaHero, VideoBackgroundCard, WorldFeatureCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 const actionCards = [
   {
     title: "North Pole",
-    description: "Digital skill matches, prize paths, and the North Pole fund.",
+    description: "Digital skill matches, prize paths, and The Poles Fund.",
     href: "/NorthPole",
     icon: Gift,
+    image: mediaImages.northArena,
+    mediaAccent: "gold",
     accent: "from-cyan-500/25 via-blue-500/15 to-purple-500/20",
     border: "border-cyan-300/25",
   },
@@ -43,6 +46,8 @@ const actionCards = [
     description: "Leagues, real-world challenges, standings, and verified results.",
     href: "/SouthPole",
     icon: Mountain,
+    image: mediaImages.southCourt,
+    mediaAccent: "cyan",
     accent: "from-purple-500/25 via-fuchsia-500/15 to-cyan-500/15",
     border: "border-purple-300/25",
   },
@@ -51,6 +56,8 @@ const actionCards = [
     description: "Choose a game, set rules, and build a verified challenge.",
     href: createPageUrl("CreateMatch"),
     icon: Trophy,
+    image: mediaImages.northPrize,
+    mediaAccent: "gold",
     accent: "from-yellow-500/20 via-purple-500/15 to-cyan-500/15",
     border: "border-yellow-200/20",
   },
@@ -59,6 +66,8 @@ const actionCards = [
     description: "Open seasons, teams, schedules, media, and reward tracking.",
     href: "/Leagues",
     icon: Users,
+    image: mediaImages.southTeam,
+    mediaAccent: "cyan",
     accent: "from-indigo-500/25 via-purple-500/15 to-blue-500/15",
     border: "border-indigo-300/25",
   },
@@ -67,6 +76,8 @@ const actionCards = [
     description: "Manage your player profile, security, wallet, and history.",
     href: createPageUrl("Profile"),
     icon: UserIcon,
+    image: mediaImages.profileStudio,
+    mediaAccent: "purple",
     accent: "from-blue-500/20 via-cyan-500/15 to-purple-500/15",
     border: "border-blue-300/25",
   },
@@ -75,6 +86,8 @@ const actionCards = [
     description: "Send feedback, report issues, or get account help.",
     href: createPageUrl("ContactUs"),
     icon: LifeBuoy,
+    image: mediaImages.fundGifts,
+    mediaAccent: "rose",
     accent: "from-pink-500/20 via-purple-500/15 to-cyan-500/15",
     border: "border-pink-300/20",
   },
@@ -180,59 +193,47 @@ export default function Dashboard() {
 
   return (
     <div className="relative min-h-screen bg-transparent text-white">
-      <section className="relative overflow-hidden border-b border-white/10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.18),transparent_34%),linear-gradient(90deg,rgba(88,28,135,0.24),rgba(0,0,0,0.32),rgba(30,64,175,0.18))]" />
-        <div className="relative mx-auto max-w-7xl px-4 py-6 sm:px-6 md:px-8 md:py-8">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 items-center gap-4">
+      <MediaHero
+        eyebrow="Command Center"
+        title="Step into the competition."
+        description={`Welcome back, ${user.full_name || user.name || "Player"}. Choose a digital arena, join a real-world challenge, build your profile, and make every match point toward something bigger.`}
+        image={mediaImages.northArena}
+        badges={["Verified skill paths", "Prize rooms", "Mission-backed competition"]}
+        primaryAction={{ href: "/NorthPole", label: "Enter North Pole" }}
+        secondaryAction={{ href: "/SouthPole", label: "Find South Pole events" }}
+      >
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+          <div className="rounded-2xl border border-white/15 bg-black/38 p-4 backdrop-blur">
+            <div className="flex items-center gap-3">
               <DivineAuraDisplay user={user} />
-              <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-100/60">Command Center</p>
-                <h1 className="mt-1 bg-gradient-to-r from-cyan-100 via-white to-purple-200 bg-clip-text text-3xl font-black tracking-tight text-transparent sm:text-4xl">
-                  The Poles Dashboard
-                </h1>
-                <p className="mt-1 max-w-2xl text-sm leading-relaxed text-purple-100/70 sm:text-base">
-                  Welcome back, {user.full_name || user.name || "Player"}. Choose your pole, create a verified challenge, or manage your account.
-                </p>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/50">Player identity</p>
+                <p className="text-lg font-black text-white">{user.full_name || user.name || "Player"}</p>
               </div>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Link to="/NorthPole">
-                <button className="min-h-11 w-full rounded-xl border border-cyan-300/20 bg-cyan-500/15 px-4 py-2.5 text-sm font-semibold text-cyan-50 shadow-lg shadow-cyan-950/20 hover:bg-cyan-500/20 sm:w-auto">
-                  North Pole
-                </button>
-              </Link>
-              <button
-                onClick={() => setShowHingeCreation(true)}
-                className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-purple-300/25 bg-gradient-to-r from-purple-600/80 to-indigo-600/80 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-purple-950/30 hover:from-purple-500 hover:to-indigo-500 sm:w-auto"
-              >
-                <Plus className="h-5 w-5" />
-                Gateway
-              </button>
-            </div>
           </div>
+          <VideoBackgroundCard
+            title="Purpose-built play"
+            description="Prize rooms, leagues, and fund impact are grouped into one clear path from preparation to verified result."
+            image={mediaImages.fundGifts}
+            label="Mission reel"
+            metric="Mission"
+          />
         </div>
-      </section>
+      </MediaHero>
 
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-5 sm:px-6 md:px-8 md:py-8">
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {actionCards.map(({ title, description, href, icon: Icon, accent, border }) => (
-            <Link
+          {actionCards.map(({ title, description, href, icon: Icon, image, mediaAccent }) => (
+            <WorldFeatureCard
               key={title}
-              to={href}
-              className={`group min-h-[150px] rounded-2xl border ${border} bg-white/[0.055] p-4 shadow-2xl shadow-purple-950/20 backdrop-blur-xl transition-all hover:-translate-y-0.5 hover:bg-white/[0.08] sm:p-5`}
-            >
-              <div className={`mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${accent} ring-1 ring-white/10`}>
-                <Icon className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="text-lg font-black text-white">{title}</h2>
-                  <p className="mt-2 text-sm leading-relaxed text-purple-100/64">{description}</p>
-                </div>
-                <ChevronRight className="mt-1 h-5 w-5 shrink-0 text-cyan-100/50 transition-transform group-hover:translate-x-1 group-hover:text-cyan-100" />
-              </div>
-            </Link>
+              title={title}
+              description={description}
+              href={href}
+              icon={Icon}
+              image={image}
+              accent={mediaAccent}
+            />
           ))}
         </section>
 

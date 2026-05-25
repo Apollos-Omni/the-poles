@@ -12,6 +12,7 @@ import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { ServiceWorkerManager, PWAInstallManager } from '@/components/pwa/ServiceWorkerManager';
 import DeepLinkHandler from '@/components/notifications/DeepLinkHandler';
+import { MobileActionBar } from '@/components/media/MediaPrimitives';
 
 const mobileNavItems = [
   { title: "Home", href: createPageUrl("Dashboard"), icon: Home },
@@ -176,18 +177,7 @@ const LayoutContent = ({ children, currentPageName }) => {
         </main>
         
         {/* Mobile Bottom Navigation */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 flex h-[76px] items-center justify-around border-t border-cyan-200/10 bg-black/82 px-1 pb-[env(safe-area-inset-bottom)] shadow-2xl shadow-purple-950/60 backdrop-blur-xl lg:hidden">
-          {mobileNavItems.map(item => (
-            <Link 
-              key={item.href} 
-              to={item.href} 
-              className={`flex h-full min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-semibold transition-colors ${isActive(item.href) ? 'bg-cyan-400/10 text-cyan-100' : 'text-purple-100/65 hover:bg-white/5 hover:text-white'}`}
-            >
-              <item.icon className="h-5 w-5" />
-              <span className="max-w-full truncate">{item.title}</span>
-            </Link>
-          ))}
-        </div>
+        <MobileActionBar items={mobileNavItems} isActive={isActive} />
         
         {/* Always show health indicator */}
         <HealthIndicator />

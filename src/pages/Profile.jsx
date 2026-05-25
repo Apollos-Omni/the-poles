@@ -28,6 +28,7 @@ import ProfileTabs from '../components/profile/ProfileTabs';
 import EditProfileModal from '../components/profile/EditProfileModal';
 import PaymentsHub from '../components/profile/PaymentsHub';
 import SecuritySettings from '../components/profile/SecuritySettings';
+import { PrizeMediaCard, VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 export default function Profile() {
   const { userId } = useParams(); // If viewing another user's profile
@@ -199,6 +200,32 @@ export default function Profile() {
             </button>
           </div>
         )}
+
+        <div className="mb-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <VideoBackgroundCard
+            title="Pin your best moment"
+            description="A profile should sell the player: banner media, highlight clips, promoted games, social posts, creator links, and mission badges all belong above the fold."
+            image={mediaImages.profileStudio}
+            label="Highlight reel"
+            metric="Promote"
+          />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+            <PrizeMediaCard
+              title="Created prize rooms"
+              description="Show rooms this player hosts or promotes, with thumbnails and clear entry status."
+              image={mediaImages.northPrize}
+              meta="North Pole"
+              actionLabel="Add media"
+            />
+            <PrizeMediaCard
+              title="Supported leagues"
+              description="Surface leagues, teams, mission badges, and the communities this player backs."
+              image={mediaImages.southTeam}
+              meta="South Pole"
+              actionLabel="Feature league"
+            />
+          </div>
+        </div>
 
         {/* Profile Stats */}
         <ProfileStats stats={stats} />
