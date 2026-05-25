@@ -90,6 +90,10 @@ const ENTITY_TABLE_ALIASES = {
   CampaignPlayer: 'campaign_players',
   TeamPrizePool: 'team_prize_pools',
   TeamPrizeCampaign: 'team_prize_campaigns',
+  MissionContribution: 'mission_contributions',
+  MissionLedgerEntry: 'mission_ledger_entries',
+  SponsorPackage: 'sponsor_packages',
+  PartnerInquiry: 'partner_inquiries',
 };
 
 const normalizeEntityTable = (rawName) => {
@@ -253,6 +257,144 @@ const finalizeNorthPoleMatchSchema = z.object({
   resultPayload: z.record(z.unknown()).optional(),
   result_payload: z.record(z.unknown()).optional(),
 });
+
+const missionCheckoutSchema = z.object({
+  amount_cents: z.number().int().min(100).max(100000000),
+  currency: z.string().default('USD'),
+  contribution_type: z.string().min(1).max(80).default('mission_support'),
+  public_label: z.string().max(80).optional(),
+  contributor_display_name: z.string().max(80).optional(),
+  email: z.string().email().optional().or(z.literal('')),
+  mission_category: z.string().min(1).max(80).default('Approved Gifts'),
+  package_id: z.string().max(80).optional(),
+  package_label: z.string().max(120).optional(),
+});
+
+function publicOrigin(req) {
+  const configured = process.env.FRONTEND_ORIGIN;
+  if (configured) return configured.replace(/\/$/, '');
+  const origin = req.headers.origin;
+  if (origin) return origin.replace(/\/$/, '');
+  return `${req.protocol}://${req.get('host')}`;
+}
+
+function sanitizePublicLabel(value) {
+  const label = String(value || '').trim();
+  return label ? label.slice(0, 80) : 'Mission Supporter';
+}
+
+function sanitizeMissionLedgerRow(row = {}) {
+  return {
+    id: row.id,
+    date: row.created_at || row.created_date,
+    public_label: sanitizePublicLabel(row.public_label || row.contributor_display_name),
+    contribution_type: row.contribution_type || 'mission_support',
+    amount_cents: Number(row.amount_cents || 0),
+    currency: row.currency || 'USD',
+    status: row.status || 'pending',
+    mission_category: row.mission_category || 'Approved Gifts',
+  };
+}
+
+async function createStripeCheckoutSession({ req, store, input, mode }) {
+  const secretKey = process.env.STRIPE_SECRET_KEY || '';
+  if (!secretKey) {
+    return {
+      configured: false,
+      message: 'Stripe test checkout is not configured yet. Set STRIPE_SECRET_KEY on the backend to enable mission support intake.',
+    };
+  }
+  if (!secretKey.startsWith('sk_test_')) {
+    const error = new Error('Mission checkout only accepts Stripe test keys until payment processor approval and legal review are complete.');
+    error.status = 403;
+    throw error;
+  }
+
+  const nowIso = new Date().toISOString();
+  const publicLabel = sanitizePublicLabel(input.public_label || input.contributor_display_name);
+  const contribution = await store.create('mission_contributions', {
+    amount_cents: input.amount_cents,
+    currency: input.currency || 'USD',
+    contribution_type: input.contribution_type,
+    public_label: publicLabel,
+    contributor_display_name: publicLabel,
+    email: input.email || null,
+    status: 'checkout_pending',
+    mission_category: input.mission_category,
+    payment_provider: 'stripe',
+    provider_session_id: null,
+    provider_payment_intent_id: null,
+    checkout_mode: mode,
+    package_id: input.package_id || null,
+    package_label: input.package_label || null,
+    created_at: nowIso,
+  });
+
+  const origin = publicOrigin(req);
+  const params = new URLSearchParams();
+  params.set('mode', 'payment');
+  params.set('success_url', `${origin}/MissionLedger?mission_checkout=success`);
+  params.set('cancel_url', `${origin}/ThePolesFund?mission_checkout=cancelled`);
+  params.set('client_reference_id', contribution.id);
+  params.set('line_items[0][quantity]', '1');
+  params.set('line_items[0][price_data][currency]', String(input.currency || 'USD').toLowerCase());
+  params.set('line_items[0][price_data][unit_amount]', String(input.amount_cents));
+  params.set('line_items[0][price_data][product_data][name]', input.package_label || 'The Poles Fund Mission Support');
+  params.set('line_items[0][price_data][product_data][description]', 'Mission support for approved gift and growth categories. Prize-room entry payments remain sandboxed.');
+  params.set('metadata[mission_contribution_id]', contribution.id);
+  params.set('metadata[contribution_type]', input.contribution_type);
+  params.set('metadata[mission_category]', input.mission_category);
+
+  if (input.email) params.set('customer_email', input.email);
+
+  const stripeResponse = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: params,
+  });
+  const session = await stripeResponse.json();
+  if (!stripeResponse.ok) {
+    const error = new Error(session?.error?.message || 'Stripe checkout session could not be created.');
+    error.status = stripeResponse.status;
+    throw error;
+  }
+
+  await store.update('mission_contributions', contribution.id, {
+    provider_session_id: session.id,
+    status: 'checkout_created',
+  });
+
+  return { configured: true, contribution_id: contribution.id, session_id: session.id, url: session.url };
+}
+
+async function recordMissionCheckoutCompleted({ store, session }) {
+  const contributionId = session?.metadata?.mission_contribution_id || session?.client_reference_id;
+  if (!contributionId) return null;
+
+  const existing = await store.findOne('mission_contributions', { id: contributionId });
+  if (!existing) return null;
+
+  const updated = await store.update('mission_contributions', contributionId, {
+    status: 'funded',
+    provider_session_id: session.id || existing.provider_session_id || null,
+    provider_payment_intent_id: session.payment_intent || existing.provider_payment_intent_id || null,
+  });
+
+  await store.create('mission_ledger_entries', {
+    mission_contribution_id: contributionId,
+    public_label: sanitizePublicLabel(existing.public_label || existing.contributor_display_name),
+    contribution_type: existing.contribution_type || 'mission_support',
+    amount_cents: existing.amount_cents,
+    currency: existing.currency || 'USD',
+    status: 'funded',
+    mission_category: existing.mission_category || 'Approved Gifts',
+  });
+
+  return updated;
+}
 
 function generateNorthPoleMatchId() {
   return `NP-${Date.now().toString(36).toUpperCase()}`;
@@ -577,6 +719,45 @@ export function createFunctionRouter({ store }) {
         },
       ],
     });
+  }));
+
+  router.post('/createMissionCheckoutSession', asyncHandler(async (req, res) => {
+    const input = missionCheckoutSchema.parse(req.body || {});
+    const result = await createStripeCheckoutSession({ req, store, input, mode: 'mission_support' });
+    ok(res, result);
+  }));
+
+  router.post('/createSponsorCheckoutSession', asyncHandler(async (req, res) => {
+    const input = missionCheckoutSchema.parse({
+      ...(req.body || {}),
+      contribution_type: req.body?.contribution_type || 'sponsor',
+    });
+    const result = await createStripeCheckoutSession({ req, store, input, mode: 'sponsor_package' });
+    ok(res, result);
+  }));
+
+  router.get('/listMissionLedger', asyncHandler(async (_req, res) => {
+    const ledgerEntries = await store.list('mission_ledger_entries', {}, { sort: '-created_at', limit: 100 }).catch(() => []);
+    const sourceRows = ledgerEntries.length
+      ? ledgerEntries
+      : await store.list('mission_contributions', { status: 'funded' }, { sort: '-created_at', limit: 100 }).catch(() => []);
+    ok(res, { entries: sourceRows.map(sanitizeMissionLedgerRow) });
+  }));
+
+  router.post('/stripeMissionWebhook', asyncHandler(async (req, res) => {
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || '';
+    if (!webhookSecret) {
+      return res.status(501).json({ success: false, error: 'STRIPE_WEBHOOK_SECRET is not configured. Webhook is placeholder-only.' });
+    }
+
+    const event = req.body || {};
+    if (event.type !== 'checkout.session.completed') {
+      ok(res, { received: true, ignored: true });
+      return;
+    }
+
+    const updated = await recordMissionCheckoutCompleted({ store, session: event.data?.object || {} });
+    ok(res, { received: true, updated });
   }));
 
   router.post('/listOpenNorthPoleMatches', asyncHandler(async (req, res) => {

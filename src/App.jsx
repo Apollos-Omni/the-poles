@@ -18,6 +18,8 @@ import { isSupabaseAuthMode } from '@/api/supabaseAuthClient';
 const TeamPrizePool = lazy(() => import('@/pages/TeamPrizePool'));
 const SouthPole = lazy(() => import('@/pages/SouthPole'));
 const ThePoles = lazy(() => import('@/pages/ThePoles'));
+const ThePolesFund = lazy(() => import('@/pages/ThePolesFund'));
+const MissionLedger = lazy(() => import('@/pages/MissionLedger'));
 const About = lazy(() => import('@/pages/About'));
 const Contact = lazy(() => import('@/pages/Contact'));
 const PrivacyPolicy = lazy(() => import('@/pages/PrivacyPolicy'));
@@ -56,6 +58,8 @@ const publicRoutePaths = new Set([
   '/TermsOfUse',
   '/OfficialSkillCompetitionRules',
   '/AffiliateDisclosure',
+  '/ThePolesFund',
+  '/MissionLedger',
   '/SignIn',
   '/CreateAccount',
   '/auth/callback',
@@ -104,6 +108,8 @@ const AuthenticatedApp = () => {
       <Route path="/TermsOfUse" element={<TermsOfUse />} />
       <Route path="/OfficialSkillCompetitionRules" element={<OfficialSkillCompetitionRules />} />
       <Route path="/AffiliateDisclosure" element={<AffiliateDisclosure />} />
+      <Route path="/ThePolesFund" element={<ThePolesFund />} />
+      <Route path="/MissionLedger" element={<MissionLedger />} />
       <Route path="/SignIn" element={<AuthPage mode="signin" />} />
       <Route path="/CreateAccount" element={<AuthPage mode="signup" />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
@@ -155,6 +161,8 @@ const AuthenticatedApp = () => {
         <Route path="/TeamPrizePool" element={<TeamPrizePool />} />
         <Route path="/SouthPole" element={<SouthPole />} />
         <Route path="/ThePoles" element={<ThePoles />} />
+        <Route path="/ThePolesFund" element={<ThePolesFund />} />
+        <Route path="/MissionLedger" element={<MissionLedger />} />
         <Route path="/About" element={<About />} />
         <Route path="/Contact" element={<Contact />} />
         <Route path="/PrivacyPolicy" element={<PrivacyPolicy />} />

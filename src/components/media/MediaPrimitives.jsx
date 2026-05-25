@@ -12,6 +12,34 @@ const approvedMediaAssets = import.meta.glob("../../assets/media/**/*.webp", {
 
 const mediaAsset = (path, fallback) => approvedMediaAssets[`../../assets/media/${path}`] || fallback;
 
+const toneStyles = {
+  cyan: {
+    heroGlow: "from-cyan-500/30 via-black/45 to-emerald-500/20",
+    cardGlow: "from-cyan-500/30 via-black/55 to-emerald-500/20",
+    label: "border-cyan-200/25 text-cyan-100",
+  },
+  purple: {
+    heroGlow: "from-fuchsia-500/25 via-black/45 to-cyan-500/25",
+    cardGlow: "from-fuchsia-500/25 via-black/55 to-cyan-500/20",
+    label: "border-purple-200/25 text-purple-100",
+  },
+  pink: {
+    heroGlow: "from-pink-500/25 via-black/45 to-rose-500/25",
+    cardGlow: "from-pink-500/25 via-black/55 to-rose-500/20",
+    label: "border-pink-200/25 text-pink-100",
+  },
+  rose: {
+    heroGlow: "from-rose-500/25 via-black/45 to-amber-500/25",
+    cardGlow: "from-rose-500/25 via-black/55 to-amber-500/20",
+    label: "border-rose-200/25 text-rose-100",
+  },
+  gold: {
+    heroGlow: "from-amber-500/30 via-black/45 to-yellow-500/20",
+    cardGlow: "from-amber-500/30 via-black/55 to-yellow-500/20",
+    label: "border-amber-200/25 text-amber-100",
+  },
+};
+
 // TODO: Replace any remaining remote fallback images with local optimized approved media assets before production launch.
 export const mediaImages = {
   northArena: mediaAsset("north-pole/north-gaming-arena.webp", publicBetaHero),
@@ -44,6 +72,7 @@ export function MediaHero({
   eyebrow,
   title,
   description,
+  subtitle,
   image,
   badges = [],
   primaryAction,
@@ -51,7 +80,8 @@ export function MediaHero({
   children,
   tone = "purple",
 }) {
-  const glow = tone === "cyan" ? "from-cyan-500/30 via-black/45 to-emerald-500/20" : tone === "rose" ? "from-rose-500/25 via-black/45 to-amber-500/25" : "from-fuchsia-500/25 via-black/45 to-cyan-500/25";
+  const copy = description || subtitle;
+  const glow = toneStyles[tone]?.heroGlow || toneStyles.purple.heroGlow;
 
   return (
     <section className="relative overflow-hidden border-b border-white/10">
@@ -69,7 +99,7 @@ export function MediaHero({
           <div className="max-w-3xl">
             {eyebrow && <p className="text-xs font-bold uppercase tracking-[0.22em] text-white/65">{eyebrow}</p>}
             <h1 className="mt-2 max-w-3xl text-4xl font-black tracking-tight text-white sm:text-5xl">{title}</h1>
-            {description && <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/78 sm:text-base">{description}</p>}
+            {copy && <p className="mt-3 max-w-2xl text-sm leading-relaxed text-white/78 sm:text-base">{copy}</p>}
             {badges.length > 0 && (
               <div className="mt-4 flex flex-wrap gap-2">
                 {badges.map((badge) => (
@@ -102,19 +132,23 @@ export function MediaHero({
   );
 }
 
-export function VideoBackgroundCard({ title, description, image, label, metric, className = "" }) {
+export function VideoBackgroundCard({ title, description, subtitle, image, label, metric, tone = "purple", className = "" }) {
+  const copy = description || subtitle;
+  const toneStyle = toneStyles[tone] || toneStyles.purple;
+
   return (
     <div className={`group relative min-h-[220px] overflow-hidden rounded-2xl border border-white/15 bg-black/30 shadow-2xl shadow-black/25 ${className}`}>
       <img src={image} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-transparent" />
-      <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full border border-white/20 bg-black/45 px-3 py-1.5 text-xs font-bold text-white backdrop-blur">
+      <div className={`absolute inset-0 bg-gradient-to-br ${toneStyle.cardGlow}`} />
+      <div className={`absolute left-4 top-4 flex items-center gap-2 rounded-full border bg-black/45 px-3 py-1.5 text-xs font-bold backdrop-blur ${toneStyle.label}`}>
         <Play className="h-3.5 w-3.5" />
         {label || "Highlight"}
       </div>
       <div className="relative flex min-h-[220px] flex-col justify-end p-5">
         {metric && <p className="mb-2 text-3xl font-black text-white">{metric}</p>}
         <h3 className="text-lg font-black text-white">{title}</h3>
-        <p className="mt-1 text-sm leading-relaxed text-white/72">{description}</p>
+        {copy && <p className="mt-1 text-sm leading-relaxed text-white/72">{copy}</p>}
       </div>
     </div>
   );

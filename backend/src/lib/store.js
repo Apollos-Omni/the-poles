@@ -31,6 +31,10 @@ const FLEXIBLE_ENTITY_TABLES = new Set([
   'campaign_players',
   'team_prize_pools',
   'team_prize_campaigns',
+  'mission_contributions',
+  'mission_ledger_entries',
+  'sponsor_packages',
+  'partner_inquiries',
 ]);
 
 function normalizeInsert(data) {
