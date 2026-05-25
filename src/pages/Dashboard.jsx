@@ -11,10 +11,12 @@ import {
   ChevronRight,
   DoorOpen,
   Gift,
+  Heart,
   LifeBuoy,
   Loader2,
   Mountain,
   Plus,
+  ReceiptText,
   ShieldCheck,
   Target,
   Trophy,
@@ -70,6 +72,16 @@ const actionCards = [
     mediaAccent: "cyan",
     accent: "from-indigo-500/25 via-purple-500/15 to-blue-500/15",
     border: "border-indigo-300/25",
+  },
+  {
+    title: "The Poles Fund",
+    description: "Support mission contributions, sponsor packages, and approved gift and growth categories.",
+    href: "/ThePolesFund",
+    icon: Heart,
+    image: mediaImages.fundGifts,
+    mediaAccent: "rose",
+    accent: "from-rose-500/25 via-purple-500/15 to-cyan-500/15",
+    border: "border-rose-300/25",
   },
   {
     title: "Profile",
@@ -223,6 +235,40 @@ export default function Dashboard() {
       </MediaHero>
 
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-5 sm:px-6 md:px-8 md:py-8">
+        <section className="overflow-hidden rounded-2xl border border-rose-200/20 bg-white/[0.055] shadow-2xl shadow-purple-950/25 backdrop-blur-xl">
+          <div className="grid md:grid-cols-[1fr_0.85fr]">
+            <div className="p-5 sm:p-6">
+              <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/20 text-rose-100 ring-1 ring-white/10">
+                <Heart className="h-6 w-6" />
+              </div>
+              <h2 className="text-2xl font-black text-white">The Poles Fund</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-purple-50/72">
+                Support mission contributions, sponsor packages, and approved gift and growth categories.
+              </p>
+              <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+                <Link
+                  to="/ThePolesFund"
+                  className="inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-5 py-3 text-sm font-black text-slate-950 shadow-xl shadow-black/30 transition-transform hover:-translate-y-0.5"
+                >
+                  Open The Poles Fund
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Link>
+                <Link
+                  to="/MissionLedger"
+                  className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/20 bg-black/35 px-5 py-3 text-sm font-bold text-white backdrop-blur transition-transform hover:-translate-y-0.5 hover:bg-white/10"
+                >
+                  <ReceiptText className="h-4 w-4" />
+                  View Mission Ledger
+                </Link>
+              </div>
+            </div>
+            <div className="relative min-h-[220px] overflow-hidden">
+              <img src={mediaImages.fundGifts} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-br from-black/50 via-purple-950/35 to-rose-500/20" />
+            </div>
+          </div>
+        </section>
+
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {actionCards.map(({ title, description, href, icon: Icon, image, mediaAccent }) => (
             <WorldFeatureCard

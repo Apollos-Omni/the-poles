@@ -6,7 +6,7 @@ import { CrashReporter } from './components/observability/CrashReporter';
 import { AnalyticsProvider } from './components/analytics/Analytics'; 
 import { PerformanceDebugger } from './components/performance/PerformanceMonitor';
 import { HealthIndicator } from './components/health/HealthCheck';
-import { Home, User as UserIcon, Menu as MenuIcon, Gift, LogIn, LogOut, Loader2, Mountain, ShieldCheck, Trophy, X } from 'lucide-react';
+import { Home, User as UserIcon, Menu as MenuIcon, Gift, LogIn, LogOut, Loader2, Mountain, ShieldCheck, Trophy, X, Heart, ReceiptText } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,8 @@ const mobileNavItems = [
   { title: "Home", href: createPageUrl("Dashboard"), icon: Home },
   { title: "North", href: "/NorthPole", icon: Gift },
   { title: "South", href: "/SouthPole", icon: Mountain },
+  { title: "Fund", href: "/ThePolesFund", icon: Heart },
+  { title: "Ledger", href: "/MissionLedger", icon: ReceiptText },
   { title: "Create", href: createPageUrl("CreateMatch"), icon: Trophy },
   { title: "Profile", href: createPageUrl("Profile"), icon: UserIcon },
 ];
