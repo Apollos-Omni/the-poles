@@ -27,7 +27,7 @@ export default function SPFundingBar({ challenge }) {
         </span>
         <span className="flex items-center gap-1 text-pink-400">
           <Heart className="w-3 h-3" />
-          {formatCents(donation)} to North Pole Fund
+          The Poles Fund
         </span>
       </div>
     </div>

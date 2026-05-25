@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DollarSign, Plus, CheckCircle, Clock } from "lucide-react";
+import { MissionMediaCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 function formatCents(c) { return "$" + (c / 100).toFixed(2); }
 
@@ -33,6 +34,14 @@ export default function ContributionLedger({ campaign, contributions, onAddContr
 
   return (
     <div className="space-y-4">
+      <MissionMediaCard
+        title="Creator contribution progress"
+        description="Track confirmed support and keep the campaign path tied to The Poles Fund with clear, public-safe labels."
+        image={mediaImages.fundGifts}
+        statLabel="Mission"
+        statValue="Funded"
+      />
+
       {/* Progress bar */}
       <div className="bg-black/30 border border-purple-700/30 rounded-xl p-4">
         <div className="flex justify-between text-sm mb-2">
@@ -70,9 +79,9 @@ export default function ContributionLedger({ campaign, contributions, onAddContr
         <div className="bg-black/30 border border-purple-600/40 rounded-xl p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2 space-y-1">
-              <Label className="text-purple-200 text-xs">Contributor Name *</Label>
+              <Label className="text-purple-200 text-xs">Contributor Display Name *</Label>
               <Input value={form.contributor_name} onChange={e => setForm(f => ({...f, contributor_name: e.target.value}))}
-                placeholder="Parent / Sponsor name" className="bg-black/40 border-purple-700/40 text-white text-sm" />
+                placeholder="Supporter or sponsor" className="bg-black/40 border-purple-700/40 text-white text-sm" />
             </div>
             <div className="space-y-1">
               <Label className="text-purple-200 text-xs">Type</Label>

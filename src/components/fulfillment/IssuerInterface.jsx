@@ -65,7 +65,7 @@ export default function IssuerInterface({ matchId, productData, onCardCreated, o
 
     try {
       const cardRequest = {
-        amountCents: productData.priceCents + Math.floor(productData.priceCents * 0.1), // 10% buffer
+        amountCents: productData.priceCents + Math.floor(productData.priceCents * 0.1), // issuer buffer
         memo: `Match: ${matchId}`,
         mcc: '5399', // Misc General Merchandise
         merchant: productData.retailer,
@@ -161,7 +161,7 @@ export default function IssuerInterface({ matchId, productData, onCardCreated, o
                   <span className="font-medium">${(productData.priceCents / 100).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-600">Buffer (10%):</span>
+                  <span className="text-slate-600">Buffer:</span>
                   <span className="font-medium">
                     ${(Math.floor(productData.priceCents * 0.1) / 100).toFixed(2)}
                   </span>

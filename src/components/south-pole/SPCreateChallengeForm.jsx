@@ -170,7 +170,7 @@ export default function SPCreateChallengeForm({ onSubmit, onCancel, isLoading })
             <p className="font-semibold text-cyan-300 mb-3">Funding Breakdown (auto-calculated)</p>
             <div className="flex justify-between text-purple-200/70"><span>Prize value</span><span>{formatCents(fin.prize)}</span></div>
             <div className="flex justify-between text-purple-200/70"><span>Platform fees (~5%)</span><span>{formatCents(fin.fees)}</span></div>
-            <div className="flex justify-between text-pink-300"><span className="flex items-center gap-1"><Heart className="w-3 h-3" /> North Pole Fund (10%)</span><span>{formatCents(fin.donation)}</span></div>
+            <div className="flex justify-between text-pink-300"><span className="flex items-center gap-1"><Heart className="w-3 h-3" /> The Poles Fund</span><span>Funded</span></div>
             <div className="flex justify-between font-bold text-white border-t border-cyan-700/30 pt-2"><span>Total goal</span><span>{formatCents(fin.total)}</span></div>
             <div className="flex justify-between font-bold text-cyan-300"><span>Per participant ({form.num_participants_needed} people)</span><span>{formatCents(fin.perParticipant)}</span></div>
           </div>
@@ -244,7 +244,7 @@ export default function SPCreateChallengeForm({ onSubmit, onCancel, isLoading })
 
           <div className="bg-gray-900/60 border border-gray-700/40 rounded-xl p-3 text-xs text-gray-400 space-y-1">
             <p className="font-semibold text-gray-300">Platform Disclaimer</p>
-            <p>This is a skill-based competitive challenge. Outcomes are based on verified performance. By creating this challenge you agree to comply with all local laws, venue rules, age restrictions, safety requirements, and charitable contribution rules. 10% of the prize value is donated to The North Pole Fund.</p>
+            <p>This is a skill-based competitive challenge. Outcomes are based on verified performance. By creating this challenge you agree to comply with all local laws, venue rules, age restrictions, safety requirements, and mission contribution rules. Creator contributions may support The Poles Fund.</p>
           </div>
         </div>
       )}

@@ -131,7 +131,7 @@ export default function SPRewardLinkChips() {
                   </div>
 
                   <div className="border-t border-cyan-700/30 bg-cyan-950/20 px-4 py-2 text-[11px] leading-relaxed text-cyan-300/55">
-                    External websites open in a new tab. Future partner or affiliate links may support The North Pole Fund.
+                    External websites open in a new tab. Future partner or affiliate links may support The Poles Fund.
                   </div>
                 </div>
               </>

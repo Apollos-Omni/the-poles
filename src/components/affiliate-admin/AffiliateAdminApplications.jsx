@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit2, Check, X, ExternalLink } from "lucide-react";
+import { VideoBackgroundCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 const STATUS_COLORS = {
   not_applied: "bg-gray-700 text-gray-300",
@@ -58,6 +59,13 @@ export default function AffiliateAdminApplications() {
 
   return (
     <div className="space-y-4 mt-4">
+      <VideoBackgroundCard
+        title="Application pipeline"
+        subtitle="Track sponsor applications as a promotion workflow, not a spreadsheet."
+        image={mediaImages.catalogShelf}
+        tone="purple"
+      />
+
       <div className="flex justify-between items-center">
         <p className="text-purple-300/60 text-sm">{apps.length} applications tracked</p>
         <Button size="sm" className="bg-purple-700 hover:bg-purple-600" onClick={() => { setAdding(true); setEditingId(null); setForm(BLANK); }}>
@@ -72,7 +80,7 @@ export default function AffiliateAdminApplications() {
             {field("program_name", "Program name (e.g. Amazon Associates)")}
             {field("website_url", "Website URL submitted")}
             {field("network", "Affiliate network (e.g. CJ, ShareASale)")}
-            {field("commission_estimate", "Est. commission (e.g. 3-8%)")}
+            {field("commission_estimate", "Estimated commission notes")}
             {field("application_date", "Application date (YYYY-MM-DD)")}
             <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="bg-black/60 border border-purple-700/30 rounded-md px-3 py-2 text-white text-sm">
               {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}

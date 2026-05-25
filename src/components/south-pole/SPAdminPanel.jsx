@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Shield, Check, X, Trophy, Heart, Package, Loader2, AlertTriangle } from "lucide-react";
 import SPStatusBadge from "./SPStatusBadge";
 import { formatCents } from "./SPConstants";
+import { VideoBackgroundCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 const ADMIN_ACTIONS = {
   draft:                 [{ label: "Approve & Open", action: "approve_open", color: "bg-green-700 hover:bg-green-600" }],
@@ -49,7 +50,7 @@ function AdminChallengeRow({ challenge, onAction }) {
             <span>ID: {challenge.challenge_id}</span>
             <span>Participants: {challenge.num_participants_needed}</span>
             <span>Funded: {formatCents(challenge.total_funded_cents)} / {formatCents(challenge.total_goal_cents)}</span>
-            <span>Donation: {formatCents(challenge.north_pole_donation_cents)}</span>
+            <span>The Poles Fund: {formatCents(challenge.north_pole_donation_cents)}</span>
             {challenge.winner_name && <span className="col-span-2 text-emerald-300">Winner: {challenge.winner_name}</span>}
           </div>
           {challenge.winner_notes && (
@@ -137,6 +138,13 @@ export default function SPAdminPanel() {
 
   return (
     <div className="space-y-6">
+      <VideoBackgroundCard
+        title="Challenge review room"
+        subtitle="Verify sports outcomes with the same championship energy players see."
+        image={mediaImages.southCourt}
+        tone="cyan"
+      />
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-black/30 border border-cyan-700/20 rounded-xl p-3 text-center">
@@ -149,7 +157,7 @@ export default function SPAdminPanel() {
         </div>
         <div className="bg-black/30 border border-pink-700/20 rounded-xl p-3 text-center">
           <p className="text-2xl font-bold text-pink-300">{formatCents(totalDonation)}</p>
-          <p className="text-xs text-pink-400/60 flex items-center justify-center gap-1"><Heart className="w-3 h-3" />North Pole Fund</p>
+          <p className="text-xs text-pink-400/60 flex items-center justify-center gap-1"><Heart className="w-3 h-3" />The Poles Fund</p>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle } from "lucide-react";
+import { VideoBackgroundCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 const WINNING_CONDITIONS = [
   { value: "championship_winner",    label: "Championship Winner" },
@@ -32,11 +33,18 @@ export default function CreateCampaignForm({ onSubmit, onCancel, isLoading }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      <VideoBackgroundCard
+        title="Create a season people believe in"
+        subtitle="Set the team, outcome, and prize path with a clear verified finish."
+        image={mediaImages.leagueField}
+        tone="cyan"
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1">
           <Label className="text-purple-200">Team / Group Name *</Label>
           <Input required value={form.team_name} onChange={e => set("team_name", e.target.value)}
-            placeholder="e.g. Thunder Hawks U12" className="bg-black/40 border-purple-700/40 text-white placeholder:text-purple-400/50" />
+            placeholder="e.g. Thunder Hawks" className="bg-black/40 border-purple-700/40 text-white placeholder:text-purple-400/50" />
         </div>
         <div className="space-y-1">
           <Label className="text-purple-200">League or Sport *</Label>
@@ -76,7 +84,7 @@ export default function CreateCampaignForm({ onSubmit, onCancel, isLoading }) {
       <div className="space-y-1">
         <Label className="text-purple-200">Description (optional)</Label>
         <Textarea value={form.description} onChange={e => set("description", e.target.value)}
-          placeholder="Tell players and parents about this campaign..." rows={3}
+          placeholder="Tell players and supporters about this campaign..." rows={3}
           className="bg-black/40 border-purple-700/40 text-white placeholder:text-purple-400/50" />
       </div>
 
@@ -87,7 +95,7 @@ export default function CreateCampaignForm({ onSubmit, onCancel, isLoading }) {
           <p className="font-semibold text-yellow-300">Important Disclaimers</p>
           <p>This campaign is <strong>skill &amp; performance-based only</strong>. Prize fulfillment is contingent upon verified season outcomes. No random selection occurs.</p>
           <p>Campaigns are subject to local laws, league rules, parental consent requirements, and applicable charitable compliance regulations. Organizers are solely responsible for obtaining required permissions and consents.</p>
-          <p>The 10% North Pole Fund donation is a charitable contribution and is non-refundable upon campaign activation.</p>
+          <p>The Poles Fund contribution is a mission contribution and is non-refundable upon campaign activation.</p>
         </div>
       </div>
 

@@ -24,6 +24,7 @@ import {
   LeagueTeamsTab,
 } from '@/components/league-hub/LeagueTabs';
 import { ArrowLeft, CalendarDays, MapPin, ShieldCheck, Trophy, Users } from 'lucide-react';
+import { VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 export default function LeagueOrganizationDetailPage() {
   const { slug } = useParams();
@@ -94,14 +95,14 @@ export default function LeagueOrganizationDetailPage() {
             style={{
               backgroundImage: league.coverImageUrl
                 ? `linear-gradient(90deg, rgba(0,0,0,0.78), rgba(22,8,45,0.35)), url(${league.coverImageUrl})`
-                : 'linear-gradient(90deg, rgba(76,29,149,0.85), rgba(15,23,42,0.95), rgba(8,145,178,0.45))',
+                : `linear-gradient(90deg, rgba(0,0,0,0.78), rgba(22,8,45,0.35)), url(${mediaImages.leagueField})`,
             }}
           >
             <div className="flex min-h-56 flex-col justify-end p-5 md:p-8">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/15 bg-black shadow-lg sm:h-20 sm:w-20">
-                    {league.logoUrl ? <img src={league.logoUrl} alt="" className="h-full w-full object-cover" /> : <Trophy className="h-10 w-10 text-cyan-100" />}
+                    {league.logoUrl ? <img src={league.logoUrl} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <Trophy className="h-10 w-10 text-cyan-100" />}
                   </div>
                   <div>
                     <div className="mb-2 flex flex-wrap gap-2">
@@ -124,6 +125,12 @@ export default function LeagueOrganizationDetailPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <VideoBackgroundCard title="Season media" description="Highlights, game-day posts, and team clips make the league feel active." image={mediaImages.southTeam} label="Media" metric="Reel" />
+          <VideoBackgroundCard title="Training path" description="Prep, rules, and verified stats give competitors confidence before they join." image={mediaImages.southCourt} label="Prep" metric="Ready" />
+          <VideoBackgroundCard title="Rewards room" description="Prize and sponsor cards make the season easier to promote." image={mediaImages.catalogShelf} label="Rewards" metric="Prize" />
         </div>
 
         <Tabs defaultValue="overview" className="space-y-4">

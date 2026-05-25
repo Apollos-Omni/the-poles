@@ -70,7 +70,7 @@ export default function ProofUploader({
         const hash = await generateFileHash(selectedFile);
         setFileHash(hash);
         // In real app, check against existing hashes
-        setDuplicateWarning(Math.random() < 0.1); // 10% chance for demo
+        setDuplicateWarning(Math.random() < 0.1); // demo duplicate warning chance
       } catch (error) {
         console.error('Error generating file hash:', error);
       }

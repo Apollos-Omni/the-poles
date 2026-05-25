@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Gamepad2, Clock, Trophy, Lock, Users, Heart, DollarSign, ShieldCheck } from 'lucide-react';
 import { GAME_ADAPTERS } from '@/lib/northpole/gameAdapter';
 import SkillConfidenceAgreement from '@/components/poles/SkillConfidenceAgreement';
+import { VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 const DEFAULT_PLAYER_OPTIONS = [2, 4, 6, 8, 10, 12];
 const DONATION_PERCENT = 0.10;
@@ -73,7 +74,7 @@ function PrizeBreakdown({ selectedPrize, selectedPlayers, onPlayersChange }) {
         <div className="mb-3 flex items-center gap-2">
           <DollarSign className="h-4 w-4 text-green-300" />
           <h3 className="text-sm font-bold text-white">Cost Breakdown by Player Count</h3>
-          <Badge className="border border-pink-500/30 bg-pink-600/15 text-pink-200">10% supports children</Badge>
+          <Badge className="border border-pink-500/30 bg-pink-600/15 text-pink-200">The Poles Fund</Badge>
         </div>
         <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
           {plans.map((plan) => {
@@ -104,7 +105,7 @@ function PrizeBreakdown({ selectedPrize, selectedPlayers, onPlayersChange }) {
           })}
         </div>
         <p className="mt-3 text-xs leading-relaxed text-purple-300/70">
-          Demo math: prize cost + 10% North Pole gift fund + 3% sandbox buffer, divided by selected players. Later this should use live tax, shipping, payment processing, and partner pricing.
+          Demo math: prize cost + creator contribution + sandbox buffer, divided by selected players. Later this should use live tax, shipping, payment processing, and partner pricing.
         </p>
       </div>
     </div>
@@ -145,6 +146,10 @@ export default function GameLobby({ selectedPrize, onStartMatch }) {
         onCancel={() => { setAgreementOpen(false); setPendingAdapter(null); }}
       />
       <div>
+      <div className="mb-6 grid gap-4 lg:grid-cols-2">
+        <VideoBackgroundCard title="Skill game stage" description="Players should feel the room opening before they press play." image={mediaImages.northArena} label="Game lobby" metric="Play" />
+        <VideoBackgroundCard title="Prize path locked" description="Clear player slots and creator contribution copy build trust before gameplay." image={selectedPrize.image_url || mediaImages.northPrize} label="Prize" metric="Locked" />
+      </div>
       <PrizeBreakdown
         selectedPrize={selectedPrize}
         selectedPlayers={selectedPlayers}

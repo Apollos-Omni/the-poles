@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Search, Star, ShoppingCart, Loader2 } from 'lucide-react';
 import { debounce } from 'lodash';
 import { searchProducts } from '@/functions/searchProducts';
+import { VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 const buyInForPlayers = (P_cents, N) => {
     const uplift = { marginPct: 0.05, feesPct: 0.03, bufferPct: 0.02 };
@@ -69,13 +70,17 @@ export default function ProductBrowser({ onProductSelect }) {
 
     return (
         <div>
+            <div className="mb-6 grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+                <VideoBackgroundCard title="Prize discovery" description="Let players see the reward before they commit to the room." image={mediaImages.catalogShelf} label="Prize browser" metric="Pick" />
+                <VideoBackgroundCard title="Sponsor-ready cards" description="Product images, stock state, and retailer context make the prize path feel trustworthy." image={mediaImages.sponsorMarket} label="Marketplace" metric="Gear" />
+            </div>
             <div className="relative mb-8">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-200/60" />
                 <Input
                     placeholder="Search products by name or brand..."
                     value={searchTerm}
                     onChange={handleInputChange}
-                    className="pl-10 text-lg bg-white border-slate-300 focus:border-blue-500"
+                    className="pl-10 text-lg bg-black/40 border-purple-700/40 text-white placeholder:text-purple-200/40 focus:border-cyan-400"
                 />
             </div>
 
@@ -101,29 +106,31 @@ export default function ProductBrowser({ onProductSelect }) {
                 {results.map((product) => {
                     const bestOffer = getBestOffer(product.offers);
                     return (
-                        <Card key={product.id} className="bg-white/80 border-slate-200 hover:border-blue-300 transition-all duration-300 flex flex-col">
+                        <Card key={product.id} className="overflow-hidden border-purple-700/25 bg-black/40 text-white transition-all duration-300 hover:-translate-y-0.5 hover:border-cyan-300/50 flex flex-col">
                             <CardContent className="p-4 flex flex-col flex-grow">
                                 <div className="h-40 bg-slate-100 rounded-lg mb-4 overflow-hidden">
                                     <img 
                                         src={product.images[0] || 'https://via.placeholder.com/300'} 
-                                        alt={product.title}
+                                        alt=""
+                                        loading="lazy"
+                                        decoding="async"
                                         className="w-full h-full object-cover"
                                     />
                                 </div>
                                 
-                                <h3 className="font-semibold text-slate-800 mb-2 line-clamp-2 text-sm flex-grow">
+                                <h3 className="font-semibold text-white mb-2 line-clamp-2 text-sm flex-grow">
                                     {product.title}
                                 </h3>
 
                                 <div className="flex items-center justify-between mb-2">
-                                    <span className="text-slate-500 text-sm">{product.brand}</span>
+                                    <span className="text-purple-100/55 text-sm">{product.brand}</span>
                                     {product.offers.length > 1 && (
                                         <Badge variant="outline">{product.offers.length} offers</Badge>
                                     )}
                                 </div>
 
                                 <div className="flex items-center justify-between mb-4">
-                                    <span className="text-xl font-bold text-green-600">
+                                    <span className="text-xl font-bold text-green-300">
                                         ${(bestOffer.price_cents / 100).toFixed(2)}
                                     </span>
                                      <Badge className={`text-xs ${bestOffer.availability === 'in_stock' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>

@@ -8,9 +8,9 @@ export default function CampaignFinancials({ players, numPlayers }) {
 
   const rows = [
     { icon: DollarSign, label: "Total Prize Cost",         value: fin.totalPrizeCents, color: "text-white" },
-    { icon: Calculator,  label: "Estimated Tax (8%)",       value: fin.totalTax,         color: "text-yellow-300" },
-    { icon: Truck,       label: "Est. Shipping ($12/player)",value: fin.totalShipping,   color: "text-blue-300" },
-    { icon: Heart,       label: "North Pole Donation (10%)",value: fin.donation,         color: "text-pink-400" },
+    { icon: Calculator,  label: "Estimated Tax",            value: fin.totalTax,         color: "text-yellow-300" },
+    { icon: Truck,       label: "Estimated Shipping",       value: fin.totalShipping,    color: "text-blue-300" },
+    { icon: Heart,       label: "The Poles Fund",value: fin.donation,         color: "text-pink-400" },
   ];
 
   return (

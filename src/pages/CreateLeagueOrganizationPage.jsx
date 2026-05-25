@@ -11,6 +11,7 @@ import { getFormatTemplate } from '@/lib/south-pole/statTemplates';
 import { slugifyLeagueName } from '@/lib/league-hub/leagueHubData';
 import { ArrowLeft, Save } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { MediaHero, VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 export default function CreateLeagueOrganizationPage() {
   const navigate = useNavigate();
@@ -120,9 +121,17 @@ export default function CreateLeagueOrganizationPage() {
         <Link to="/Leagues" className="inline-flex items-center text-sm text-purple-300 hover:text-white">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to League Hub
         </Link>
-        <div>
-          <h1 className="text-3xl font-black md:text-4xl">Create League Organization</h1>
-          <p className="mt-2 text-sm text-purple-100/65">Create a digital home for a league, team, club, gym, school, gaming group, or sports organization.</p>
+        <div className="overflow-hidden rounded-3xl border border-purple-700/20">
+          <MediaHero
+            eyebrow="Create league"
+            title="Give your community a home court."
+            description="Set the sport, rules, season, media, and verification path so players feel like they are joining something real."
+            image={mediaImages.southCourt}
+            tone="cyan"
+            badges={["League profile", "Season media", "Verified stats", "Reward tracking"]}
+          >
+            <VideoBackgroundCard title="Organizer invitation" description="A strong cover image turns a form into a season announcement." image={mediaImages.leagueField} label="Create" metric="Host" />
+          </MediaHero>
         </div>
         {error && <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-100">{error}</div>}
 

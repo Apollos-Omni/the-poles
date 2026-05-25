@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import CampaignStatusBadge from "./CampaignStatusBadge";
 import { formatCents } from "./prizes";
 import { CheckCircle, XCircle, Package, Truck, Heart, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { VideoBackgroundCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 function Section({ title, children }) {
   const [open, setOpen] = useState(true);
@@ -81,7 +82,7 @@ export default function CampaignAdminPanel() {
     await base44.entities.TeamPrizeCampaign.update(selected.id, {
       status: "donation_recorded", donation_recorded_at: new Date().toISOString(), donation_amount_cents: donAmt
     });
-    await base44.entities.CampaignEvent.create({ campaign_id: selected.id, event_type: "donation_recorded", actor_user_id: "admin", note: `Donation ${formatCents(donAmt)} recorded to North Pole Fund` });
+    await base44.entities.CampaignEvent.create({ campaign_id: selected.id, event_type: "donation_recorded", actor_user_id: "admin", note: `Contribution ${formatCents(donAmt)} recorded to The Poles Fund` });
     await load();
     await loadDetail({ ...selected, status: "donation_recorded" });
     setActionLoading(false);
@@ -112,13 +113,20 @@ export default function CampaignAdminPanel() {
 
   return (
     <div className="space-y-6">
+      <VideoBackgroundCard
+        title="Campaign operations"
+        subtitle="Review funding, outcomes, fulfillment, and The Poles Fund records from one command view."
+        image={mediaImages.sponsorMarket}
+        tone="purple"
+      />
+
       {/* Summary metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: "Total Campaigns", value: metrics.total, color: "text-white" },
           { label: "Active Seasons", value: metrics.active, color: "text-yellow-300" },
           { label: "Pending Review", value: metrics.pending, color: "text-orange-300" },
-          { label: "Donations Recorded", value: formatCents(metrics.donations), color: "text-pink-400" },
+          { label: "Fund Contributions", value: formatCents(metrics.donations), color: "text-pink-400" },
         ].map(m => (
           <div key={m.label} className="bg-black/30 border border-purple-700/30 rounded-xl p-3 text-center">
             <p className={`text-xl font-bold ${m.color}`}>{m.value}</p>
@@ -183,7 +191,7 @@ export default function CampaignAdminPanel() {
                   <span>Players: {selected.num_players}</span>
                   <span>Funded: {formatCents(selected.total_funded_cents || 0)}</span>
                   <span>Required: {formatCents(selected.total_funding_required_cents || 0)}</span>
-                  <span>Donation: {formatCents(selected.north_pole_donation_cents || 0)}</span>
+                  <span>The Poles Fund: {formatCents(selected.north_pole_donation_cents || 0)}</span>
                 </div>
               </div>
 
@@ -237,7 +245,7 @@ export default function CampaignAdminPanel() {
                   {selected.status === "prize_shipped" && !selected.donation_recorded_at && (
                     <Button size="sm" onClick={recordDonation} disabled={actionLoading}
                       className="bg-pink-800 hover:bg-pink-700 text-white text-xs">
-                      <Heart className="w-3 h-3 mr-1" /> Record Donation to North Pole Fund
+                      <Heart className="w-3 h-3 mr-1" /> Record The Poles Fund contribution
                     </Button>
                   )}
                   {selected.status === "donation_recorded" && (

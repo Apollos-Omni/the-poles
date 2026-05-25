@@ -6,6 +6,7 @@ import AffiliateAdminMerchants from "@/components/affiliate-admin/AffiliateAdmin
 import AffiliateAdminOffers from "@/components/affiliate-admin/AffiliateAdminOffers";
 import AffiliateAdminClicks from "@/components/affiliate-admin/AffiliateAdminClicks";
 import AffiliateAdminApplications from "@/components/affiliate-admin/AffiliateAdminApplications";
+import { MediaHero, VideoBackgroundCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 export default function AffiliateAdmin() {
   return (
@@ -19,6 +20,18 @@ export default function AffiliateAdmin() {
             <h1 className="text-3xl font-black text-white">Affiliate Admin</h1>
             <p className="text-purple-300/60 text-sm">Manage merchants, offers, clicks, and applications</p>
           </div>
+        </div>
+
+        <div className="overflow-hidden rounded-3xl border border-purple-700/20">
+          <MediaHero
+            eyebrow="Affiliate admin"
+            title="Build a sponsor-ready prize marketplace."
+            description="Merchant relationships, offer images, catalog quality, and campaign tracking should feel like a premium product discovery system."
+            image={mediaImages.sponsorMarket}
+            badges={["Merchants", "Offers", "Clicks", "Applications"]}
+          >
+            <VideoBackgroundCard title="Product campaign room" description="Use polished media and clear disclosures so offers feel trustworthy before they go public." image={mediaImages.catalogShelf} label="Marketplace" metric="Admin" />
+          </MediaHero>
         </div>
 
         <Tabs defaultValue="merchants">

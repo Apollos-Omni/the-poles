@@ -8,6 +8,7 @@ import {
   Gamepad2, UserCircle, Search, Plus, AlertTriangle,
   ShoppingBag, Menu, ChevronDown, Settings
 } from "lucide-react";
+import { MediaHero, MissionMediaCard, PrizeMediaCard, VideoBackgroundCard, WorldFeatureCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 import GameRoomTab from "@/components/poles/GameRoomTab";
 import UserProfileTab from "@/components/poles/UserProfileTab";
@@ -96,46 +97,26 @@ function HomeScreen({ onCreateMatch, onNavigate }) {
 
   return (
     <div className="space-y-8">
-      {/* Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-black via-purple-900/30 to-indigo-900/20 border border-purple-700/20 rounded-3xl p-6 md:p-10">
-        <div className="absolute inset-0 opacity-10">
-          {[...Array(20)].map((_, i) => (
-            <div key={i} className="absolute w-1 h-1 bg-purple-400 rounded-full animate-pulse"
-              style={{ left: `${(i * 37) % 100}%`, top: `${(i * 53) % 100}%`, animationDelay: `${(i * 0.3) % 3}s` }} />
-          ))}
-        </div>
-        <div className="relative space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 via-cyan-500 to-teal-500 flex items-center justify-center shadow-lg">
-              <Globe className="w-7 h-7 text-white" />
+      <div className="overflow-hidden rounded-3xl border border-purple-700/20">
+        <MediaHero
+          eyebrow="The Poles"
+          title="Enter the world of skill."
+          description="Choose a prize, join a room, back a league, or promote a creator match. Every path should feel like a real stage for confidence, preparation, and verified performance."
+          image={mediaImages.winnerMoment}
+          badges={["Digital arenas", "Local leagues", "Prize rooms", "Mission progress"]}
+        >
+          <div className="space-y-3">
+            <VideoBackgroundCard title="Featured room energy" description="Poster-style media keeps every match, prize, and event feeling alive before a player commits." image={mediaImages.northArena} label="World reel" metric="Live" />
+            <div className="grid grid-cols-2 gap-3">
+              <Button className="min-h-12 bg-purple-700 text-white hover:bg-purple-600" onClick={() => onCreateMatch('north')}>
+                <Zap className="w-4 h-4 mr-1" /> North Match
+              </Button>
+              <Button className="min-h-12 bg-cyan-700 text-white hover:bg-cyan-600" onClick={() => onCreateMatch('south')}>
+                <Mountain className="w-4 h-4 mr-1" /> South Event
+              </Button>
             </div>
-            <div>
-              <h1 className="text-3xl md:text-4xl font-black text-white">The Poles</h1>
-              <p className="text-purple-300/70 text-sm">Skill-based competitions. Real prizes. Proven performance.</p>
-            </div>
           </div>
-          <div className="space-y-2 max-w-2xl text-sm leading-relaxed text-purple-200/70">
-            <p>
-              <strong className="text-white">We believe in skill.</strong> The time and effort you invest in mastering your abilities should be valued. We give skilled people a platform to compete.
-            </p>
-            <p>
-              <strong className="text-white">North Pole:</strong> Choose a prize. Play a digital skill match. The top performer wins it.
-              <br />
-              <strong className="text-white">South Pole:</strong> Real-world competitive events. Races, tournaments, battles. Compete for vacations, experiences, and more.
-            </p>
-            <p>
-              Every match contributes 10% to <strong className="text-white">The North Pole Fund</strong> — providing gifts for children in need.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button className="bg-purple-700 hover:bg-purple-600 text-white" onClick={() => onCreateMatch('north')}>
-              <Zap className="w-4 h-4 mr-1" /> Create North Pole Match
-            </Button>
-            <Button className="bg-cyan-700 hover:bg-cyan-600 text-white" onClick={() => onCreateMatch('south')}>
-              <Mountain className="w-4 h-4 mr-1" /> Create South Pole Event
-            </Button>
-          </div>
-        </div>
+        </MediaHero>
       </div>
 
       {/* Stats */}
@@ -144,7 +125,7 @@ function HomeScreen({ onCreateMatch, onNavigate }) {
           { label: "Active Matches", value: DEMO_MATCHES.filter(m => m.status === 'open').length, icon: "🎮" },
           { label: "Active Events", value: DEMO_EVENTS.filter(e => e.status === 'open').length, icon: "⚡" },
           { label: "Total Prize Value", value: "$280K+", icon: "🏆" },
-          { label: "NP Fund Impact", value: "$28K+", icon: "❤️" },
+          { label: "The Poles Fund", value: "Mission", icon: "❤️" },
         ].map(s => (
           <div key={s.label} className="bg-black/40 border border-purple-700/20 rounded-2xl p-4 text-center">
             <p className="text-2xl mb-1">{s.icon}</p>
@@ -166,6 +147,12 @@ function HomeScreen({ onCreateMatch, onNavigate }) {
       </div>
 
       {/* Pole cards */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <WorldFeatureCard icon={Gift} title="North Pole prize rooms" description="Gaming setup, creator match nights, digital arena energy, and prize vaults for players ready to prove skill." image={mediaImages.northPrize} accent="gold" />
+        <WorldFeatureCard icon={Mountain} title="South Pole leagues" description="Sports teams, courts, fields, local pride, brackets, training, and championship moments." image={mediaImages.southTeam} accent="cyan" />
+      </div>
+
+      {/* Legacy action cards */}
       <div className="grid md:grid-cols-2 gap-4">
         <div className="bg-gradient-to-br from-purple-900/20 to-indigo-900/20 border border-purple-700/20 rounded-2xl p-5 space-y-3">
          <div className="flex items-center gap-2 mb-2">
@@ -192,11 +179,19 @@ function HomeScreen({ onCreateMatch, onNavigate }) {
       </div>
 
       {/* Fund impact */}
+      <MissionMediaCard
+        title="The Poles Fund"
+        description="Creator contributions across matches, events, and campaigns can support approved gift and growth categories without exposing private child information."
+        image={mediaImages.fundGifts}
+        points={["Approved gifts", "Books and tools", "Sports and art supplies", "Community service"]}
+      />
+
+      {/* Fund impact */}
       <div className="bg-gradient-to-r from-pink-900/20 to-rose-900/20 border border-pink-700/30 rounded-2xl p-5 flex items-start gap-4">
         <Heart className="w-8 h-8 text-pink-400 flex-shrink-0 mt-1" />
         <div>
-          <h3 className="font-bold text-white text-sm mb-1">The North Pole Fund</h3>
-          <p className="text-pink-200/60 text-xs">10% of every prize value across all matches, events, and campaigns is donated to The North Pole Fund — providing gifts for children in need.</p>
+          <h3 className="font-bold text-white text-sm mb-1">The Poles Fund</h3>
+          <p className="text-pink-200/60 text-xs">Creator contributions across matches, events, and campaigns can support approved gift and growth categories.</p>
         </div>
       </div>
 
@@ -227,6 +222,11 @@ function PrizeShopScreen({ onCompete }) {
         <h2 className="text-2xl font-black text-white mb-1">🛍️ Prize Shop</h2>
         <p className="text-purple-400/60 text-sm">All prizes available to compete for across North Pole and South Pole events.</p>
       </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <PrizeMediaCard title="Prize vault" description="Gaming, tech, collectibles, and creator-ready rewards." image={mediaImages.northPrize} meta="North" />
+        <PrizeMediaCard title="Team gear" description="Sports gear and event prizes for leagues and local competition." image={mediaImages.southTeam} meta="South" />
+        <PrizeMediaCard title="Mission categories" description="Approved gift and growth categories for public-safe fund storytelling." image={mediaImages.fundTools} meta="Fund" />
+      </div>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/60" />
         <Input
@@ -252,7 +252,7 @@ function PrizeShopScreen({ onCompete }) {
         {filtered.map(prize => (
           <div key={prize.id} className="bg-black/40 border border-purple-700/20 hover:border-purple-500/40 rounded-2xl overflow-hidden transition-all">
             <div className="h-40 overflow-hidden">
-              <img src={prize.image} alt={prize.title} className="w-full h-full object-cover" onError={e => { e.target.src = 'https://images.unsplash.com/photo-1549396535-c11d5c55b9df?w=400'; }} />
+              <img src={prize.image} alt={prize.title} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={e => { e.target.src = 'https://images.unsplash.com/photo-1549396535-c11d5c55b9df?w=400'; }} />
             </div>
             <div className="p-4 space-y-2">
               <Badge className="bg-purple-900/40 text-purple-300 border-purple-700/30 text-xs">{prize.category}</Badge>

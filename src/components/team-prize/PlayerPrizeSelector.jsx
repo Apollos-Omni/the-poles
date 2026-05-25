@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check, Gift } from "lucide-react";
+import { VideoBackgroundCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 function formatCents(c) { return "$" + (c / 100).toFixed(2); }
 
@@ -26,6 +27,13 @@ export default function PlayerPrizeSelector({ campaign, players, onAddPlayer, on
 
   return (
     <div className="space-y-6">
+      <VideoBackgroundCard
+        title="Build the player prize board"
+        subtitle="Add safe display names, player slots, and prizes that make the season feel real."
+        image={mediaImages.southCourt}
+        tone="cyan"
+      />
+
       {/* Existing players */}
       {players.length > 0 && (
         <div className="space-y-2">
@@ -41,7 +49,7 @@ export default function PlayerPrizeSelector({ campaign, players, onAddPlayer, on
               <div className="text-right">
                 {p.selected_prize_snapshot ? (
                   <div className="flex items-center gap-2">
-                    <img src={p.selected_prize_snapshot.image_url} alt="" className="w-8 h-8 rounded object-cover" />
+                    <img src={p.selected_prize_snapshot.image_url} alt="" className="w-8 h-8 rounded object-cover" loading="lazy" decoding="async" />
                     <div className="text-right">
                       <p className="text-xs text-white leading-tight">{p.selected_prize_snapshot.title}</p>
                       <p className="text-xs text-green-400">{formatCents(p.selected_prize_snapshot.price_cents)}</p>
@@ -62,9 +70,9 @@ export default function PlayerPrizeSelector({ campaign, players, onAddPlayer, on
           <div className="bg-black/30 border border-purple-600/40 rounded-xl p-4 space-y-4">
             <div className="grid grid-cols-3 gap-3">
               <div className="col-span-3 md:col-span-1 space-y-1">
-                <Label className="text-purple-200 text-xs">Player Name *</Label>
+                <Label className="text-purple-200 text-xs">Player Display Name *</Label>
                 <Input value={form.player_name} onChange={e => setForm(f => ({...f, player_name: e.target.value}))}
-                  placeholder="Full name" className="bg-black/40 border-purple-700/40 text-white text-sm" />
+                  placeholder="Player display name" className="bg-black/40 border-purple-700/40 text-white text-sm" />
               </div>
               <div className="space-y-1">
                 <Label className="text-purple-200 text-xs">Jersey #</Label>
@@ -88,7 +96,7 @@ export default function PlayerPrizeSelector({ campaign, players, onAddPlayer, on
                         ? "border-purple-500 bg-purple-900/40 ring-1 ring-purple-500"
                         : "border-purple-700/30 bg-black/30 hover:border-purple-600/50"
                     }`}>
-                    <img src={prize.image_url} alt={prize.title} className="w-full h-14 object-cover rounded mb-1" />
+                    <img src={prize.image_url} alt="" className="w-full h-14 object-cover rounded mb-1" loading="lazy" decoding="async" />
                     <p className="text-white font-medium leading-tight truncate">{prize.title}</p>
                     <p className="text-green-400">{formatCents(prize.price_cents)}</p>
                     {selectedPrize?.id === prize.id && <Check className="w-3 h-3 text-purple-400 mt-1" />}

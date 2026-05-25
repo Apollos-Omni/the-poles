@@ -14,6 +14,7 @@ import { Gamepad2, ShoppingCart, Trophy, Calculator, Heart, AlertTriangle } from
 import GameBrowser from '../components/match-creator/GameBrowser';
 import MatchPreview from '../components/match-creator/MatchPreview';
 import SportSelector from '@/components/sports/SportSelector';
+import { MediaHero, VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 export default function CreateMatch() {
     const navigate = useNavigate();
@@ -70,10 +71,10 @@ export default function CreateMatch() {
         if (!selectedProduct) return;
         
         const P = selectedProduct.price_cents; // Product price
-        const M = Math.round(P * 0.10); // 10% margin
+        const M = Math.round(P * 0.10); // platform margin
         const F = Math.round(P * 0.03); // 3% fees
         const B = Math.round(P * 0.02); // 2% buffer
-        const C = Math.round((M * matchSettings.charityPercentage) / 100); // North Pole fund portion
+        const C = Math.round((M * matchSettings.charityPercentage) / 100); // The Poles Fund portion
         
         const totalPot = P + M + F + B;
         const buyInPerPlayer = Math.ceil(totalPot / matchSettings.maxPlayers);
@@ -184,7 +185,7 @@ export default function CreateMatch() {
                 <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-purple-400">Selected Prize Path</p>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                     {selectedPrize.image && (
-                        <img src={selectedPrize.image} alt={selectedPrize.title} className="w-20 h-20 object-cover rounded-xl flex-shrink-0" onError={e => { e.target.style.display = 'none'; }} />
+                        <img src={selectedPrize.image} alt={selectedPrize.title} loading="lazy" decoding="async" className="w-20 h-20 object-cover rounded-xl flex-shrink-0" onError={e => { e.target.style.display = 'none'; }} />
                     )}
                     <div className="flex-1 min-w-0">
                         <h3 className="font-bold text-white text-lg leading-tight">{selectedPrize.title}</h3>
@@ -199,7 +200,7 @@ export default function CreateMatch() {
                                 <p className="text-green-300 font-bold">${entryPerPlayer}</p>
                             </div>
                             <div className="bg-black/30 rounded-lg p-2 text-center">
-                                <p className="text-pink-400 text-xs flex items-center justify-center gap-1"><Heart className="w-3 h-3" /> North Pole Fund</p>
+                                <p className="text-pink-400 text-xs flex items-center justify-center gap-1"><Heart className="w-3 h-3" /> The Poles Fund</p>
                                 <p className="text-pink-300 font-bold">${donation}</p>
                             </div>
                         </div>
@@ -213,11 +214,16 @@ export default function CreateMatch() {
     return (
         <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-gray-900 via-black to-purple-900 p-4 text-white md:p-8">
             <div className="max-w-6xl mx-auto">
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-300 via-white to-indigo-300 bg-clip-text text-transparent mb-4">
-                        Create Skill-Based Match
-                    </h1>
-                    <p className="text-purple-200/80">Select a game and set your rules. The winner is determined by verified skill.</p>
+                <div className="mb-8 overflow-hidden rounded-3xl border border-purple-700/20">
+                    <MediaHero
+                        eyebrow="Create match"
+                        title="Build a room players want to join."
+                        description="Choose a game, lock the prize path, set clear rules, and make the invitation feel like a real challenge night."
+                        image={mediaImages.creatorDesk}
+                        badges={["Game selection", "Prize lock", "Player slots", "Verified skill"]}
+                    >
+                        <VideoBackgroundCard title="Room poster" description="Every match should have a visual stake: game energy, prize value, and proof of performance." image={mediaImages.northArena} label="Match room" metric="Create" />
+                    </MediaHero>
                 </div>
 
                 {/* Prize Banner — always visible */}
@@ -342,7 +348,7 @@ export default function CreateMatch() {
                                                 <p className="text-white font-semibold">${((selectedProduct?.price_cents || 0) * 0.10 / 100).toFixed(2)}</p>
                                             </div>
                                             <div>
-                                                <p className="text-green-400">North Pole Fund</p>
+                                                <p className="text-green-400">The Poles Fund</p>
                                                 <p className="text-white font-semibold">${((selectedProduct?.price_cents || 0) * 0.10 * matchSettings.charityPercentage / 10000).toFixed(2)}</p>
                                             </div>
                                             <div>

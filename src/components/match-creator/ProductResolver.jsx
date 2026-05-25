@@ -61,7 +61,7 @@ const roomGrid = (P_cents, uplift, playerCounts = [2, 4, 6, 8, 10]) => {
   }));
 };
 
-const defaultUplift = { marginPct: 0.05, feesPct: 0.03, bufferPct: 0.02 }; // 10% total
+const defaultUplift = { marginPct: 0.05, feesPct: 0.03, bufferPct: 0.02 }; // default uplift total
 
 export default function ProductResolver({ onProductResolved }) {
   const [url, setUrl] = useState('');

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Search, Star, ExternalLink, Smartphone, Monitor, Gamepad2, Zap } from 'lucide-react';
+import { VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 export default function GameBrowser({ onGameSelect }) {
     const [games, setGames] = useState([]);
@@ -420,22 +421,38 @@ export default function GameBrowser({ onGameSelect }) {
 
     return (
         <div>
+            <div className="mb-6 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+                <VideoBackgroundCard
+                    title="Choose the arena"
+                    description="Pick a game that feels skill-verifiable, streamable, and worth inviting people into."
+                    image={mediaImages.northArena}
+                    label="Game browser"
+                    metric="Play"
+                />
+                <VideoBackgroundCard
+                    title="Creator confidence"
+                    description="Good game selection makes the room easier to promote and easier to trust."
+                    image={mediaImages.creatorDesk}
+                    label="Promote"
+                    metric="Skill"
+                />
+            </div>
             {/* Search and Filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 <div className="relative">
-                    <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                    <Search className="absolute left-3 top-3 w-4 h-4 text-purple-200/60" />
                     <Input
                         placeholder="Search games..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 bg-white border-slate-300 text-slate-800 focus:border-blue-500"
+                        className="pl-10 bg-black/40 border-purple-700/40 text-white placeholder:text-purple-200/40 focus:border-cyan-400"
                     />
                 </div>
                 
                 <select 
                     value={selectedPlatform}
                     onChange={(e) => setSelectedPlatform(e.target.value)}
-                    className="px-4 py-2 bg-white border border-slate-300 rounded-md text-slate-800 focus:border-blue-500"
+                    className="px-4 py-2 bg-black/40 border border-purple-700/40 rounded-md text-white focus:border-cyan-400"
                 >
                     <option value="all">All Platforms</option>
                     <option value="mobile">Mobile</option>
@@ -448,7 +465,7 @@ export default function GameBrowser({ onGameSelect }) {
                 <select 
                     value={selectedStore}
                     onChange={(e) => setSelectedStore(e.target.value)}
-                    className="px-4 py-2 bg-white border border-slate-300 rounded-md text-slate-800 focus:border-blue-500"
+                    className="px-4 py-2 bg-black/40 border border-purple-700/40 rounded-md text-white focus:border-cyan-400"
                 >
                     <option value="all">All Stores</option>
                     <optgroup label="Mobile">
@@ -483,7 +500,7 @@ export default function GameBrowser({ onGameSelect }) {
                 <select 
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-4 py-2 bg-white border border-slate-300 rounded-md text-slate-800 focus:border-blue-500"
+                    className="px-4 py-2 bg-black/40 border border-purple-700/40 rounded-md text-white focus:border-cyan-400"
                 >
                     <option value="all">All Categories</option>
                     <option value="action">Action</option>
@@ -507,24 +524,30 @@ export default function GameBrowser({ onGameSelect }) {
             {/* Games Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredGames.map((game) => (
-                    <Card key={game.id} className="bg-white/80 border-slate-200 hover:border-blue-300 transition-all duration-300">
-                        <CardContent className="p-6">
+                    <Card key={game.id} className="overflow-hidden border-purple-700/25 bg-black/40 text-white transition-all duration-300 hover:-translate-y-0.5 hover:border-cyan-300/50">
+                        <div className="relative h-28 overflow-hidden">
+                            <img src={game.icon_url || mediaImages.northArena} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover opacity-70 transition-transform duration-700 hover:scale-105" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent" />
+                        </div>
+                        <CardContent className="p-5">
                             <div className="flex items-start gap-4 mb-4">
                                 <img 
                                     src={game.icon_url} 
-                                    alt={game.title}
+                                    alt=""
+                                    loading="lazy"
+                                    decoding="async"
                                     className="w-16 h-16 rounded-xl object-cover"
                                 />
                                 <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <h3 className="font-semibold text-slate-800 text-sm">{game.title}</h3>
+                                        <h3 className="font-semibold text-white text-sm">{game.title}</h3>
                                         <span className="text-lg">{getStoreIcon(game.store_id)}</span>
                                     </div>
-                                    <p className="text-slate-500 text-xs">{game.developer}</p>
+                                    <p className="text-purple-100/55 text-xs">{game.developer}</p>
                                     <div className="flex items-center gap-2 mt-2 flex-wrap">
                                         <div className="flex items-center gap-1">
                                             <Star className="w-3 h-3 text-yellow-400 fill-current" />
-                                            <span className="text-xs text-slate-700">{game.rating}</span>
+                                            <span className="text-xs text-purple-100/80">{game.rating}</span>
                                         </div>
                                         <Badge className="bg-slate-100 text-slate-700 text-xs flex items-center gap-1">
                                             {getPlatformIcon(game.platform)}
@@ -537,12 +560,12 @@ export default function GameBrowser({ onGameSelect }) {
                                 </div>
                             </div>
                             
-                            <p className="text-slate-600 text-sm mb-4 line-clamp-2">
+                            <p className="text-purple-100/65 text-sm mb-4 line-clamp-2">
                                 {game.description}
                             </p>
 
                             <div className="flex items-center justify-between mb-4">
-                                <span className="text-green-600 font-semibold text-sm">{game.price}</span>
+                                <span className="text-green-300 font-semibold text-sm">{game.price}</span>
                                 <div className="flex items-center gap-1 flex-wrap">
                                     {game.skill_verifiable && (
                                         <Badge className="bg-green-100 text-green-800 text-xs">
@@ -563,7 +586,7 @@ export default function GameBrowser({ onGameSelect }) {
                                     }}
                                     variant="outline"
                                     size="sm"
-                                    className="flex-1 border-slate-300 text-slate-600 hover:text-slate-800 hover:bg-slate-100"
+                                    className="flex-1 border-purple-700/40 text-purple-100 hover:bg-purple-900/40"
                                 >
                                     <ExternalLink className="w-3 h-3 mr-1" />
                                     Store

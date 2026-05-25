@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Gift, Lock } from 'lucide-react';
+import { VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 const DEMO_PRIZES = [
   {
@@ -48,6 +49,15 @@ export { DEMO_PRIZES };
 export default function PrizeSelector({ onSelect }) {
   return (
     <div>
+      <div className="mb-6">
+        <VideoBackgroundCard
+          title="Choose the prize worth playing for"
+          description="The prize card is the emotional hook for the room. Make it clear, visual, and locked before gameplay."
+          image={mediaImages.northPrize}
+          label="Prize vault"
+          metric="Lock"
+        />
+      </div>
       <div className="flex items-center gap-3 mb-6">
         <Gift className="w-6 h-6 text-yellow-400" />
         <h2 className="text-2xl font-bold text-white">Choose Your Prize</h2>
@@ -69,7 +79,9 @@ export default function PrizeSelector({ onSelect }) {
               <div className="h-36 bg-black/30 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
                 <img
                   src={prize.image_url}
-                  alt={prize.title}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
                   className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
                 />
               </div>

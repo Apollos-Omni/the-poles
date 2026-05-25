@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { base44 } from '@/api/base44Client';
 import { mergeDemoAndSavedLeagues } from '@/lib/league-hub/leagueHubData';
 import { CalendarDays, Loader2, MapPin, Plus, Search, ShieldCheck, Trophy, Users } from 'lucide-react';
+import { MediaHero, VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 export default function LeagueHubPage() {
   const [leagues, setLeagues] = useState([]);
@@ -31,6 +32,20 @@ export default function LeagueHubPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-purple-950/80 to-black px-3 py-4 text-white sm:px-4 md:p-8">
       <div className="mx-auto max-w-6xl space-y-6">
+        <div className="overflow-hidden rounded-3xl border border-purple-700/20">
+          <MediaHero
+            eyebrow="South Pole League Hub"
+            title="Build the home field."
+            description="Leagues need a place that feels like a season: teams, schedules, standings, media, rewards, and local pride."
+            image={mediaImages.leagueField}
+            tone="cyan"
+            badges={["Teams", "Schedules", "Standings", "Media"]}
+            primaryAction={{ href: "/Leagues/Create", label: "Create league" }}
+          >
+            <VideoBackgroundCard title="Championship hub" description="Give every league a poster, a field, a scoreboard, and a reason to return." image={mediaImages.southTeam} label="Season preview" metric="League" />
+          </MediaHero>
+        </div>
+
         <div className="overflow-hidden rounded-2xl border border-purple-700/25 bg-black/35">
           <div className="bg-gradient-to-r from-purple-900/80 via-slate-900 to-cyan-900/60 p-6 md:p-8">
             <div className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -77,7 +92,10 @@ export default function LeagueHubPage() {
           <div className="grid gap-4 md:grid-cols-2">
             {filtered.map((league) => (
               <Link key={league.id || league.slug} to={`/Leagues/${league.slug}`} className="group overflow-hidden rounded-2xl border border-purple-700/25 bg-black/35 transition hover:border-cyan-400/50">
-                <div className="h-28 bg-gradient-to-r from-purple-900/70 via-slate-900 to-cyan-900/50" />
+                <div className="relative h-32 overflow-hidden">
+                  <img src={league.coverImageUrl || mediaImages.leagueField} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                </div>
                 <div className="p-4">
                   <div className="-mt-12 mb-3 flex items-end justify-between gap-3">
                     <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/15 bg-black text-white shadow-lg">

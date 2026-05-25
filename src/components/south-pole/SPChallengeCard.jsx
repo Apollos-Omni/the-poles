@@ -3,6 +3,7 @@ import { Users, MapPin, Calendar, ChevronRight, Globe, Lock } from "lucide-react
 import { CATEGORIES, PRIZE_TYPES, formatCents } from "./SPConstants";
 import SPStatusBadge from "./SPStatusBadge";
 import SPFundingBar from "./SPFundingBar";
+import { mediaImages } from "@/components/media/MediaPrimitives";
 
 export default function SPChallengeCard({ challenge, onClick }) {
   const cat = CATEGORIES.find(c => c.value === challenge.category);
@@ -18,10 +19,14 @@ export default function SPChallengeCard({ challenge, onClick }) {
       className="w-full text-left bg-black/30 border border-cyan-700/30 rounded-2xl overflow-hidden hover:border-cyan-500/50 hover:bg-cyan-900/10 transition-all group"
     >
       {challenge.cover_image_url ? (
-        <img src={challenge.cover_image_url} alt={challenge.title} className="w-full h-32 object-cover" />
+        <img src={challenge.cover_image_url} alt="" loading="lazy" decoding="async" className="w-full h-32 object-cover" />
       ) : (
-        <div className="w-full h-20 bg-gradient-to-br from-cyan-900/40 to-teal-900/40 flex items-center justify-center text-4xl">
-          {cat?.label.split(" ")[0] || "🏆"}
+        <div className="relative h-32 overflow-hidden">
+          <img src={mediaImages.southCourt} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover opacity-70 transition-transform duration-700 group-hover:scale-105" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-cyan-950/20 to-transparent" />
+          <div className="absolute bottom-3 left-3 rounded-full border border-cyan-200/20 bg-black/45 px-3 py-1 text-xs font-bold text-cyan-100">
+            {cat?.label || "Competition"}
+          </div>
         </div>
       )}
       <div className="p-4 space-y-3">

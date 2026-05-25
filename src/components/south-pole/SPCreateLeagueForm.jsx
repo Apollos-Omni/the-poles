@@ -326,7 +326,7 @@ export default function SPCreateLeagueForm({ onSubmit, onCancel, isLoading }) {
             <div className="flex justify-between text-purple-200/70"><span>Prize value</span><span>{formatCents(prizeVal)}</span></div>
             <div className="flex justify-between text-purple-200/70"><span>Platform fees (~5%)</span><span>{formatCents(fees)}</span></div>
             <div className="flex justify-between text-pink-300">
-              <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> North Pole Fund (10%)</span>
+              <span className="flex items-center gap-1"><Heart className="w-3 h-3" /> The Poles Fund</span>
               <span>{formatCents(donation)}</span>
             </div>
             <div className="flex justify-between font-bold text-white border-t border-purple-700/30 pt-2"><span>Total goal</span><span>{formatCents(total)}</span></div>
@@ -415,7 +415,7 @@ export default function SPCreateLeagueForm({ onSubmit, onCancel, isLoading }) {
           </div>
           <div className="bg-gray-900/60 border border-gray-700/40 rounded-xl p-3 text-xs text-gray-400 space-y-1">
             <p className="font-semibold text-gray-300">Platform Disclaimer</p>
-            <p>This is a skill-based competitive event. Outcomes are based on verified performance. Organizer agrees to comply with all local laws, venue rules, age restrictions, safety requirements, and charitable contribution rules. 10% of the prize value is donated to The North Pole Fund.</p>
+            <p>This is a skill-based competitive event. Outcomes are based on verified performance. Organizer agrees to comply with all local laws, venue rules, age restrictions, safety requirements, and mission contribution rules. Creator contributions may support The Poles Fund.</p>
           </div>
         </div>
       )}

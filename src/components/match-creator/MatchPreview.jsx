@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, Loader2 } from 'lucide-react';
+import { VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 export default function MatchPreview({ game, product, settings, onConfirm, onBack }) {
   const [isCreating, setIsCreating] = useState(false);
@@ -52,6 +53,15 @@ export default function MatchPreview({ game, product, settings, onConfirm, onBac
 
   return (
     <div className="mx-auto max-w-4xl">
+      <div className="mb-6">
+        <VideoBackgroundCard
+          title="Ready to open the room"
+          description="This preview is the invitation players see: the game, the prize path, the player slots, and the rules."
+          image={product?.images?.[0] || product?.image_url || mediaImages.northPrize}
+          label="Match poster"
+          metric="Review"
+        />
+      </div>
       <Card className="mb-8 border-purple-400/25 bg-white/[0.07] text-white shadow-2xl shadow-purple-950/30 backdrop-blur-xl">
         <CardHeader>
           <CardTitle className="text-center text-2xl text-white">Verified Challenge Preview</CardTitle>
@@ -63,7 +73,7 @@ export default function MatchPreview({ game, product, settings, onConfirm, onBac
                 <h3 className="mb-4 text-xl font-semibold text-cyan-100">Game Details</h3>
                 <div className="rounded-lg border border-cyan-300/15 bg-black/30 p-4">
                   <div className="mb-3 flex items-center gap-4">
-                    {game?.icon_url && <img src={game.icon_url} alt={game.title} className="h-16 w-16 rounded-xl" />}
+                    {game?.icon_url && <img src={game.icon_url} alt="" loading="lazy" decoding="async" className="h-16 w-16 rounded-xl object-cover" />}
                     <div>
                       <h4 className="font-semibold text-white">{game?.title}</h4>
                       <p className="text-sm text-purple-100/60">{game?.developer}</p>
@@ -76,7 +86,7 @@ export default function MatchPreview({ game, product, settings, onConfirm, onBac
                 <h3 className="mb-4 text-xl font-semibold text-cyan-100">Prize Path</h3>
                 <div className="rounded-lg border border-purple-300/15 bg-black/30 p-4">
                   <div className="mb-3 flex items-center gap-4">
-                    <img src={product?.images?.[0] || product?.image_url || ''} alt={product?.title} className="h-16 w-16 rounded-xl object-cover" />
+                    <img src={product?.images?.[0] || product?.image_url || mediaImages.northPrize} alt="" loading="lazy" decoding="async" className="h-16 w-16 rounded-xl object-cover" />
                     <div>
                       <h4 className="font-semibold text-white">{product?.title}</h4>
                       <p className="text-sm text-purple-100/60">{product?.brand}</p>
@@ -121,7 +131,7 @@ export default function MatchPreview({ game, product, settings, onConfirm, onBac
                   <div className="flex items-center justify-between text-sm"><span className="text-purple-100/60">Prize cost</span><span>${productPrice}</span></div>
                   <div className="flex items-center justify-between text-sm"><span className="text-purple-100/60">Fees & buffer</span><span>~${((fees + buffer) / 100).toFixed(2)}</span></div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="flex items-center gap-1 text-pink-300"><Heart className="h-3 w-3" />North Pole fund</span>
+                    <span className="flex items-center gap-1 text-pink-300"><Heart className="h-3 w-3" />The Poles Fund</span>
                     <span>${(northPoleFundAmount / 100).toFixed(2)}</span>
                   </div>
                 </div>

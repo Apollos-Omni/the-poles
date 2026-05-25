@@ -38,11 +38,12 @@ import MatchPreview from '../components/match-creator/MatchPreview';
 import NorthPoleAffiliateDirectory from '../components/northpole/NorthPoleAffiliateDirectory';
 import ShopTab from '../components/northpole/ShopTab';
 import EbayShopTab from '../components/northpole/EbayShopTab';
+import { MediaHero, PrizeMediaCard, VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 const santaClauseConfig = {
   "disclosure": {
     "affiliate": "We may earn from qualifying purchases via retailer links.",
-    "charity": "10% of every prize value is donated to The North Pole Fund for children's gifts.",
+    "charity": "Creator contributions may support The Poles Fund for approved gift and growth categories.",
     "fairness": "All competitions are skill-based. Winners are determined by verified performance, score, completion time, or confirmed match result — never by random selection."
   },
   "featuredGames": [
@@ -176,25 +177,25 @@ export default function SantaClause() {
 
 
   const FeaturedGameCard = ({ game }) => (
-    <Card className="bg-purple-900/40 backdrop-blur-sm border border-purple-700/30 hover:border-purple-500 transition-all duration-300">
-      <CardHeader>
-        <CardTitle className="text-white text-lg">{game.title}</CardTitle>
-        <Badge className="w-fit bg-purple-600/20 text-purple-300">{game.genre}</Badge>
-      </CardHeader>
-      <CardContent>
-        <p className="text-purple-300 text-sm mb-4">{game.description}</p>
-        <Button className="w-full bg-gradient-to-r from-purple-600 to-purple-800 hover:from-purple-500 hover:to-purple-700 text-white">
-          Play Now
-        </Button>
-      </CardContent>
-    </Card>
+    <div className="space-y-3">
+      <VideoBackgroundCard
+        title={game.title}
+        description={game.description}
+        image={game.genre?.toLowerCase().includes('racing') ? mediaImages.winnerMoment : mediaImages.northArena}
+        label={game.genre}
+        metric={`${game.avgMatchMinutes}m`}
+      />
+      <Button className="min-h-11 w-full bg-gradient-to-r from-purple-600 to-purple-800 text-white hover:from-purple-500 hover:to-purple-700">
+        Play Now
+      </Button>
+    </div>
   );
 
   const FeaturedPrizeCard = ({ prize }) => (
      <Card className="bg-purple-900/40 backdrop-blur-sm border border-purple-700/30 hover:border-purple-500 transition-all duration-300 flex flex-col">
       <CardContent className="p-4 flex-grow flex flex-col">
-        <div className="h-40 bg-black/30 rounded-lg mb-4 flex items-center justify-center">
-            <img src={prize.image_url} alt={prize.title} className="max-h-full max-w-full object-contain rounded-lg"/>
+        <div className="h-40 bg-black/30 rounded-lg mb-4 flex items-center justify-center overflow-hidden">
+            <img src={prize.image_url} alt={prize.title} loading="lazy" decoding="async" className="h-full w-full object-cover rounded-lg transition-transform duration-700 hover:scale-105"/>
         </div>
         <h3 className="font-semibold text-white truncate flex-grow">{prize.title}</h3>
         <p className="text-sm text-purple-300">{prize.category}</p>
@@ -285,7 +286,25 @@ export default function SantaClause() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-purple-950 to-black text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-8">
+        <div className="mb-8 overflow-hidden rounded-3xl border border-purple-700/20">
+          <MediaHero
+            eyebrow="The North Pole"
+            title="Creator match nights and prize vaults."
+            description="Pick the game, lock the prize, and invite players into a skill-based room that feels like a real digital arena instead of paperwork."
+            image={mediaImages.northArena}
+            badges={["Prize arcade", "Creator portal", "Skill verification", "Sponsor-ready catalog"]}
+          >
+            <div className="grid gap-3">
+              <VideoBackgroundCard title="Prize room preview" description="Use poster media for the game, the reward, and the moment players are competing toward." image={mediaImages.creatorDesk} label="Creator room" metric="Ready" />
+              <div className="grid grid-cols-2 gap-3">
+                <PrizeMediaCard title="Prize vault" description="Gear and rewards." image={mediaImages.northPrize} meta="Vault" />
+                <PrizeMediaCard title="Winner moment" description="Confidence and proof." image={mediaImages.winnerMoment} meta="Result" />
+              </div>
+            </div>
+          </MediaHero>
+        </div>
+
+        <div className="sr-only">
           <div className="flex items-center justify-center gap-4 mb-4">
             <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl flex items-center justify-center shadow-lg">
               <Gift className="w-8 h-8 text-white" />

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit2, Check, X, ToggleLeft, ToggleRight } from "lucide-react";
+import { VideoBackgroundCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 const CATEGORIES = [
   "Electronics & Gaming", "Sports & Outdoor", "Vacations & Travel",
@@ -56,6 +57,13 @@ export default function AffiliateAdminOffers() {
 
   return (
     <div className="space-y-4 mt-4">
+      <VideoBackgroundCard
+        title="Offer media matters"
+        description="Every offer is a prize-room asset. Use clear product imagery, sponsor copy, and disclosure text before publishing."
+        image={mediaImages.catalogShelf}
+        label="Offers"
+        metric="Promote"
+      />
       <div className="flex justify-between items-center flex-wrap gap-2">
         <div className="flex gap-2 flex-wrap">
           {["All", ...CATEGORIES].map(c => (
@@ -102,7 +110,7 @@ export default function AffiliateAdminOffers() {
           {displayed.map(o => (
             <div key={o.id} className={`bg-black/40 border rounded-xl p-3 flex items-center justify-between gap-3 ${o.active ? "border-purple-700/20" : "border-gray-700/20 opacity-50"}`}>
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                {o.image_url && <img src={o.image_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />}
+                {o.image_url && <img src={o.image_url} alt="" loading="lazy" decoding="async" className="w-10 h-10 rounded-lg object-cover shrink-0" />}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-white text-sm truncate">{o.title}</span>

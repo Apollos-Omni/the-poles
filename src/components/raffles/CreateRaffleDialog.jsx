@@ -39,7 +39,7 @@ export default function CreateRaffleDialog({ user, onClose, onSuccess }) {
 
   const calculateMaxEntries = () => {
     if (formData.priceSnapshotCents && formData.entryPriceCents) {
-      const buffer = 1.1; // 10% buffer
+      const buffer = 1.1; // prize buffer
       const totalNeeded = formData.priceSnapshotCents * buffer;
       return Math.ceil(totalNeeded / formData.entryPriceCents);
     }

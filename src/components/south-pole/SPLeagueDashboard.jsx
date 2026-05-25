@@ -247,7 +247,7 @@ function ResultsPanel({ league, participants, isOrganizer, onVerifyWinner }) {
           <p className="text-sm text-teal-300">🏆 Winner Confirmed</p>
           {league.winner_notes && <p className="text-sm text-purple-200/60">{league.winner_notes}</p>}
           <div className="bg-pink-900/20 border border-pink-700/20 rounded-xl p-3 mt-4 inline-block">
-            <p className="text-xs text-pink-300">❤️ North Pole Fund donation: {formatCents(league.north_pole_donation_cents)}</p>
+            <p className="text-xs text-pink-300">The Poles Fund contribution: Funded</p>
           </div>
         </div>
       ) : isOrganizer ? (
@@ -279,7 +279,7 @@ function ResultsPanel({ league, participants, isOrganizer, onVerifyWinner }) {
           </Button>
           <div className="bg-yellow-900/20 border border-yellow-700/20 rounded-xl p-3 text-xs text-yellow-300/70">
             <AlertTriangle className="w-3 h-3 inline mr-1" />
-            Winner submission triggers prize fulfillment review and North Pole Fund donation recording.
+            Winner submission triggers prize fulfillment review and The Poles Fund contribution recording.
           </div>
         </div>
       ) : (
@@ -431,16 +431,16 @@ export default function SPLeagueDashboard({ league, participants = [], onBack, i
               <div className="bg-pink-900/20 border border-pink-700/20 rounded-xl p-4 space-y-2 text-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Heart className="w-4 h-4 text-pink-400" />
-                  <h4 className="font-bold text-white">North Pole Fund</h4>
+                  <h4 className="font-bold text-white">The Poles Fund</h4>
                 </div>
-                <p className="text-pink-200/70">10% of the prize value is donated to The North Pole Fund — helping provide gifts for children.</p>
+                <p className="text-pink-200/70">Creator contributions may support The Poles Fund and approved gift or growth categories.</p>
                 <p className="text-pink-300 font-bold text-lg">{formatCents(league.north_pole_donation_cents)}</p>
                 <p className="text-xs text-pink-400/50">Recorded upon prize fulfillment.</p>
               </div>
               <div className="space-y-2 text-xs text-purple-400/60">
                 <div className="flex justify-between"><span>Prize value</span><span>{formatCents(league.prize_value_cents)}</span></div>
                 <div className="flex justify-between"><span>Platform fees (~5%)</span><span>{formatCents(Math.ceil((league.prize_value_cents || 0) * 0.05))}</span></div>
-                <div className="flex justify-between text-pink-300"><span>NP Fund donation (10%)</span><span>{formatCents(league.north_pole_donation_cents)}</span></div>
+                <div className="flex justify-between text-pink-300"><span>The Poles Fund</span><span>Funded</span></div>
                 <div className="flex justify-between font-bold text-white border-t border-purple-700/20 pt-2"><span>Total goal</span><span>{formatCents(league.total_goal_cents)}</span></div>
                 <div className="flex justify-between"><span>Per participant entry</span><span>{formatCents(league.entry_amount_cents)}</span></div>
               </div>

@@ -289,8 +289,8 @@ function MatchConfirm({ prizeSnapshot, gameSnapshot, poleType, onConfirm, onEdit
           <p className="text-white font-bold text-lg">{entryContrib}</p>
         </div>
         <div className="bg-black/30 border border-purple-700/20 rounded-xl p-3">
-          <p className="text-purple-400/60 text-xs">North Pole Fund</p>
-          <p className="text-pink-300 font-bold text-lg">10%</p>
+          <p className="text-purple-400/60 text-xs">The Poles Fund</p>
+          <p className="text-pink-300 font-bold text-lg">Mission</p>
         </div>
       </div>
 
@@ -298,7 +298,7 @@ function MatchConfirm({ prizeSnapshot, gameSnapshot, poleType, onConfirm, onEdit
         ⚠️ <strong>Sandbox Mode:</strong> No real payments processed. Demo event only.
       </div>
       <div className="bg-pink-900/20 border border-pink-700/20 rounded-xl p-3 text-xs text-pink-300/70">
-        ❤️ 10% of prize value goes to <strong>The North Pole Fund</strong> for children's gifts.
+        Mission support goes to <strong>The Poles Fund</strong> for approved gift and growth categories.
       </div>
 
       <Button

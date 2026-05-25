@@ -214,7 +214,7 @@ export default function PurchasingAgentSimulator({ match, product, winner, onCom
       },
       payments_data: {
         issuer: 'stripe_issuing',
-        budgetCents: Math.ceil(product.price_cents * 1.1), // 10% buffer
+        budgetCents: Math.ceil(product.price_cents * 1.1), // fulfillment buffer
         memo: `matchId:${match.id} / userId:${winner.id}`
       },
       status: 'PROCESSING',

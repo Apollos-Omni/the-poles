@@ -178,7 +178,7 @@ export default function NorthPoleAffiliateDirectory({ onUsePrize }) {
       {/* Affiliate Disclosure */}
       <div className="bg-yellow-900/20 border border-yellow-700/30 rounded-xl p-4 text-xs text-yellow-200/70 space-y-1">
         <p className="font-semibold text-yellow-300">📢 Affiliate & Sponsorship Disclosure</p>
-        <p>Some links may be affiliate or sponsored links. The Poles may earn a commission from qualifying purchases or bookings. Affiliate income may help support The North Pole Fund and platform mission.</p>
+        <p>Some links may be affiliate or sponsored links. The Poles may earn a commission from qualifying purchases or bookings. Affiliate income may help support The Poles Fund and platform mission.</p>
         {showAmazonDisclosure && (
           <p className="text-yellow-300/80 font-medium">As an Amazon Associate I earn from qualifying purchases.</p>
         )}

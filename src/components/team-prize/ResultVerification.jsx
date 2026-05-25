@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ShieldCheck, AlertTriangle } from "lucide-react";
+import { VideoBackgroundCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 const CONDITION_LABELS = {
   championship_winner: "Championship Winner",
@@ -37,6 +38,13 @@ export default function ResultVerification({ campaign, players, onSubmitResult, 
 
   return (
     <div className="space-y-5">
+      <VideoBackgroundCard
+        title="Verify the moment"
+        subtitle="Confirm the result before prizes move into fulfillment."
+        image={mediaImages.winnerMoment}
+        tone="cyan"
+      />
+
       <div className="bg-yellow-900/20 border border-yellow-700/40 rounded-lg p-3 flex gap-2">
         <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-yellow-200/80">

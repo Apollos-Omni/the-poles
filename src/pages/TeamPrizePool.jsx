@@ -11,6 +11,7 @@ import ResultVerification from "@/components/team-prize/ResultVerification";
 import CampaignAdminPanel from "@/components/team-prize/CampaignAdminPanel";
 import CampaignStatusBadge from "@/components/team-prize/CampaignStatusBadge";
 import { calcCampaignFinancials, formatCents } from "@/components/team-prize/prizes";
+import { MediaHero, VideoBackgroundCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 const WINNING_CONDITION_LABELS = {
   championship_winner: "Championship Winner",
@@ -24,7 +25,22 @@ const WINNING_CONDITION_LABELS = {
 function CampaignCard({ campaign, onSelect }) {
   return (
     <button onClick={() => onSelect(campaign)}
-      className="w-full text-left bg-black/30 border border-purple-700/30 rounded-xl p-4 hover:border-purple-500/50 hover:bg-purple-900/20 transition-all space-y-2">
+      className="w-full overflow-hidden text-left bg-black/30 border border-purple-700/30 rounded-xl hover:border-purple-500/50 hover:bg-purple-900/20 transition-all">
+      <div className="relative h-32 overflow-hidden">
+        <img
+          src={campaign.cover_image_url || mediaImages.southTeam}
+          alt=""
+          className="h-full w-full object-cover transition-transform duration-500 hover:scale-105"
+          loading="lazy"
+          decoding="async"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/35 to-transparent" />
+        <div className="absolute bottom-3 left-3 flex items-center gap-2 text-xs text-white/85">
+          <Trophy className="h-3.5 w-3.5 text-yellow-300" />
+          <span>{WINNING_CONDITION_LABELS[campaign.winning_condition] || campaign.winning_condition}</span>
+        </div>
+      </div>
+      <div className="space-y-2 p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <h3 className="font-bold text-white truncate">{campaign.team_name}</h3>
@@ -34,11 +50,12 @@ function CampaignCard({ campaign, onSelect }) {
       </div>
       <div className="flex items-center gap-4 text-xs text-purple-400/60">
         <span className="flex items-center gap-1"><Users className="w-3 h-3" />{campaign.num_players} players</span>
-        <span>{WINNING_CONDITION_LABELS[campaign.winning_condition] || campaign.winning_condition}</span>
+        <span>Verified outcome</span>
       </div>
       <div className="flex items-center justify-between text-xs">
         <span className="text-purple-400/50">{campaign.season_start_date} → {campaign.season_end_date}</span>
         <ChevronRight className="w-4 h-4 text-purple-500" />
+      </div>
       </div>
     </button>
   );
@@ -130,6 +147,21 @@ function CampaignDetail({ campaign, onBack, onRefresh }) {
 
   return (
     <div className="space-y-4">
+      <div className="relative overflow-hidden rounded-2xl border border-purple-500/30 bg-black/50">
+        <img
+          src={campaign.cover_image_url || mediaImages.southTeam}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover opacity-55"
+          loading="lazy"
+          decoding="async"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-purple-950/80 to-black/35" />
+        <div className="relative p-4 sm:p-6">
+          <p className="text-xs uppercase tracking-[0.2em] text-cyan-200/80">Season prize room</p>
+          <h2 className="mt-2 text-2xl font-black text-white truncate">{campaign.team_name}</h2>
+          <p className="text-sm text-purple-100/80">{campaign.league_or_sport} · {campaign.campaign_id}</p>
+        </div>
+      </div>
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={onBack} className="text-purple-400">← Back</Button>
         <div className="flex-1 min-w-0">
@@ -137,6 +169,12 @@ function CampaignDetail({ campaign, onBack, onRefresh }) {
           <p className="text-sm text-purple-400/70">{campaign.league_or_sport} · {campaign.campaign_id}</p>
         </div>
         <CampaignStatusBadge status={campaign.status} />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <VideoBackgroundCard title="Player slots" subtitle={`${players.length}/${campaign.num_players || 0} added`} image={mediaImages.southCourt} tone="cyan" />
+        <VideoBackgroundCard title="Prize path" subtitle="Selections, funding, and verified outcomes" image={mediaImages.northPrize} tone="purple" />
+        <VideoBackgroundCard title="Mission layer" subtitle="The Poles Fund contribution tracked with care" image={mediaImages.fundTools} tone="pink" />
       </div>
 
       {/* Financials summary */}
@@ -246,6 +284,26 @@ export default function TeamPrizePool() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-black via-purple-950 to-black text-white">
       <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className="mb-8 overflow-hidden rounded-[2rem] border border-purple-500/30 shadow-2xl shadow-purple-950/40">
+          <MediaHero
+            eyebrow="South Pole teams"
+            title="Build a season prize room that feels worth earning"
+            subtitle="Create team campaigns with media, player slots, verified results, and a clear mission layer through The Poles Fund."
+            image={mediaImages.southTeam}
+            tone="cyan"
+            badges={["Team prizes", "Player slots", "Verified outcomes", "The Poles Fund"]}
+            primaryAction={{ label: "Create campaign", href: "#team-prize-campaigns" }}
+            secondaryAction={{ label: "Review admin", href: "#team-prize-admin" }}
+          >
+            <VideoBackgroundCard
+              title="Championship energy"
+              subtitle="Use prize rooms to turn a season into a shared goal."
+              image={mediaImages.winnerMoment}
+              tone="purple"
+            />
+          </MediaHero>
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
@@ -259,11 +317,11 @@ export default function TeamPrizePool() {
           </div>
           <div className="flex items-center gap-2 text-xs text-pink-400 bg-pink-900/20 border border-pink-700/30 rounded-lg px-3 py-2">
             <Heart className="w-3 h-3" />
-            <span>10% goes to North Pole Fund</span>
+            <span>The Poles Fund</span>
           </div>
         </div>
 
-        <Tabs value={tab} onValueChange={setTab}>
+        <Tabs value={tab} onValueChange={setTab} id="team-prize-campaigns">
           <TabsList className="bg-black/40 border border-purple-700/30 mb-6">
             <TabsTrigger value="campaigns" className="data-[state=active]:bg-purple-700 text-purple-200">
               <Trophy className="w-4 h-4 mr-2" />My Campaigns
@@ -282,6 +340,13 @@ export default function TeamPrizePool() {
               />
             ) : creating ? (
               <div className="bg-black/30 border border-purple-700/30 rounded-2xl p-6">
+                <VideoBackgroundCard
+                  title="Campaign setup"
+                  subtitle="Give organizers a visual path before the forms begin."
+                  image={mediaImages.leagueField}
+                  tone="cyan"
+                  className="mb-5"
+                />
                 <h2 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
                   <Plus className="w-5 h-5 text-purple-400" /> New Team Prize Campaign
                 </h2>
@@ -325,7 +390,7 @@ export default function TeamPrizePool() {
                     <div className="text-xs text-gray-400 space-y-1">
                       <p className="font-semibold text-gray-300">Platform Disclaimer</p>
                       <p>Team Prize Pool campaigns are <strong>skill and performance-based only</strong>. Outcomes must be verified by league officials, verified standings, or admin review before prizes are released.</p>
-                      <p>Campaigns are subject to all applicable local laws, league regulations, parental consent requirements, and charitable compliance rules. The 10% North Pole Fund donation supports child gifting programs. Organizers are solely responsible for obtaining all required permissions, consents, and regulatory approvals before launching a campaign.</p>
+                      <p>Campaigns are subject to all applicable local laws, league regulations, parental consent requirements, and mission contribution rules. The Poles Fund supports approved gift and growth categories. Organizers are solely responsible for obtaining all required permissions, consents, and regulatory approvals before launching a campaign.</p>
                     </div>
                   </div>
                 </div>
@@ -333,7 +398,7 @@ export default function TeamPrizePool() {
             )}
           </TabsContent>
 
-          <TabsContent value="admin">
+          <TabsContent value="admin" id="team-prize-admin">
             <CampaignAdminPanel />
           </TabsContent>
         </Tabs>

@@ -63,9 +63,9 @@ export default function About() {
           <div className="flex items-start gap-3">
             <Heart className="mt-1 h-5 w-5 text-pink-200" />
             <div>
-              <h2 className="text-xl font-bold">The North Pole Fund</h2>
+              <h2 className="text-xl font-bold">The Poles Fund</h2>
               <p className="mt-2 text-sm leading-relaxed text-pink-100/75">
-                The public beta displays the intended North Pole Fund model, but actual fund collection and prize
+                The public beta displays the intended The Poles Fund model, but actual fund collection and prize
                 fulfillment remain simulated until live operations are explicitly enabled after review.
               </p>
             </div>

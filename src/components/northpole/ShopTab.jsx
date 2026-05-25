@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { debounce } from 'lodash';
 import { searchProducts } from '@/functions/searchProducts';
 import NorthPoleAffiliateDirectory from './NorthPoleAffiliateDirectory';
+import { VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 const CATEGORIES = [
   { label: "Electronics", icon: "📱" },
@@ -107,7 +108,7 @@ function PrizeCard({ product, onSelect }) {
   return (
     <div className="bg-black/40 border border-purple-700/20 hover:border-purple-500/50 rounded-2xl overflow-hidden transition-all flex flex-col">
       <div className="h-40 bg-black/30 flex items-center justify-center overflow-hidden">
-        <img src={product.image} alt={product.title} className="w-full h-full object-cover" onError={e => { e.target.src = 'https://images.unsplash.com/photo-1549396535-c11d5c55b9df?w=400'; }} />
+        <img src={product.image} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" onError={e => { e.target.src = 'https://images.unsplash.com/photo-1549396535-c11d5c55b9df?w=400'; }} />
       </div>
       <div className="p-4 flex flex-col flex-1 gap-2">
         <Badge className="bg-purple-900/40 text-purple-300 border-purple-700/30 text-xs w-fit">{product.category}</Badge>
@@ -134,7 +135,9 @@ function SearchResultCard({ product, onCreateMatch }) {
       <div className="h-40 bg-black/30 flex items-center justify-center overflow-hidden">
         <img
           src={product.images?.[0] || 'https://images.unsplash.com/photo-1549396535-c11d5c55b9df?w=400'}
-          alt={product.title}
+          alt=""
+          loading="lazy"
+          decoding="async"
           className="w-full h-full object-cover"
           onError={e => { e.target.src = 'https://images.unsplash.com/photo-1549396535-c11d5c55b9df?w=400'; }}
         />
@@ -179,7 +182,7 @@ function PrizeSetupPreview({ prize, onCreateMatch, buyInForPlayers }) {
     <div className="bg-gradient-to-br from-purple-900/40 to-indigo-900/40 border border-purple-500/30 rounded-2xl p-5 space-y-3">
       <h4 className="font-bold text-white text-sm">🏆 Prize Setup Preview</h4>
       <div className="flex gap-3 items-start">
-        <img src={prize.image} alt={prize.title} className="w-14 h-14 object-cover rounded-xl flex-shrink-0" onError={e => { e.target.src = 'https://images.unsplash.com/photo-1549396535-c11d5c55b9df?w=60'; }} />
+        <img src={prize.image} alt="" loading="lazy" decoding="async" className="w-14 h-14 object-cover rounded-xl flex-shrink-0" onError={e => { e.target.src = 'https://images.unsplash.com/photo-1549396535-c11d5c55b9df?w=60'; }} />
         <div className="flex-1 min-w-0">
           <p className="text-white font-semibold text-sm leading-tight truncate">{prize.title}</p>
           <p className="text-purple-300 text-xs">via {prize.retailer}</p>
@@ -189,7 +192,7 @@ function PrizeSetupPreview({ prize, onCreateMatch, buyInForPlayers }) {
         <div className="flex justify-between"><span>Prize Price</span><span className="text-white font-semibold">${(prize.price / 100).toFixed(2)}</span></div>
         <div className="flex justify-between"><span>Players</span><span className="text-white font-semibold">{players}</span></div>
         <div className="flex justify-between"><span>Est. Entry/Player</span><span className="text-green-300 font-semibold">${entryPerPlayer.toFixed(2)}</span></div>
-        <div className="flex justify-between items-center"><span className="flex items-center gap-1"><Heart className="w-3 h-3 text-pink-400" /> North Pole Fund</span><span className="text-pink-300 font-semibold">${donation}</span></div>
+        <div className="flex justify-between items-center"><span className="flex items-center gap-1"><Heart className="w-3 h-3 text-pink-400" /> The Poles Fund</span><span className="text-pink-300 font-semibold">Funded</span></div>
       </div>
       <Button className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-sm" onClick={onCreateMatch}>
         🎮 Create Match With This Prize
@@ -318,6 +321,10 @@ export default function ShopTab({ onCreateMatch, buyInForPlayers }) {
         <p className="text-purple-300 max-w-2xl mx-auto text-sm">
           Search for any prize, pick it, and jump straight into Create Match. Browse categories below or search anything.
         </p>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <VideoBackgroundCard title="Prize vault browsing" description="Browse products like potential match posters, not static rows." image={mediaImages.catalogShelf} label="Shop" metric="Prize" />
+        <VideoBackgroundCard title="Creator campaign room" description="A strong prize image makes the invitation easier to promote." image={mediaImages.creatorDesk} label="Promote" metric="Room" />
       </div>
 
       {/* Search */}

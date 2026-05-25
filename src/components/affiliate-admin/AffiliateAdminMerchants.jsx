@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit2, Check, X } from "lucide-react";
+import { VideoBackgroundCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 const STATUS_COLORS = {
   not_applied: "bg-gray-700 text-gray-300",
@@ -56,6 +57,13 @@ export default function AffiliateAdminMerchants() {
 
   return (
     <div className="space-y-4 mt-4">
+      <VideoBackgroundCard
+        title="Merchant relationships"
+        subtitle="Keep sponsor-ready programs organized before offers enter prize rooms."
+        image={mediaImages.sponsorMarket}
+        tone="purple"
+      />
+
       <div className="flex justify-between items-center">
         <p className="text-purple-300/60 text-sm">{merchants.length} merchants</p>
         <Button size="sm" className="bg-purple-700 hover:bg-purple-600" onClick={() => { setAdding(true); setEditingId(null); setForm({ name: "", website_url: "", affiliate_network: "", commission_rate: "", program_status: "not_applied" }); }}>
@@ -70,7 +78,7 @@ export default function AffiliateAdminMerchants() {
             <Input placeholder="Merchant name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="bg-black/40 border-purple-700/30 text-white" />
             <Input placeholder="Website URL" value={form.website_url} onChange={e => setForm({ ...form, website_url: e.target.value })} className="bg-black/40 border-purple-700/30 text-white" />
             <Input placeholder="Affiliate Network (e.g. CJ)" value={form.affiliate_network} onChange={e => setForm({ ...form, affiliate_network: e.target.value })} className="bg-black/40 border-purple-700/30 text-white" />
-            <Input placeholder="Commission rate (e.g. 4%)" value={form.commission_rate} onChange={e => setForm({ ...form, commission_rate: e.target.value })} className="bg-black/40 border-purple-700/30 text-white" />
+            <Input placeholder="Commission notes" value={form.commission_rate} onChange={e => setForm({ ...form, commission_rate: e.target.value })} className="bg-black/40 border-purple-700/30 text-white" />
             <select value={form.program_status} onChange={e => setForm({ ...form, program_status: e.target.value })} className="bg-black/60 border border-purple-700/30 rounded-md px-3 py-2 text-white text-sm col-span-2">
               {STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>

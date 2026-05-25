@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { VideoBackgroundCard, mediaImages } from "@/components/media/MediaPrimitives";
 
 export default function AffiliateAdminClicks() {
   const [clicks, setClicks] = useState([]);
@@ -38,6 +39,13 @@ export default function AffiliateAdminClicks() {
 
   return (
     <div className="space-y-6 mt-4">
+      <VideoBackgroundCard
+        title="Promotion analytics"
+        subtitle="See which shelves, prize cards, and sponsor offers are earning attention."
+        image={mediaImages.creatorDesk}
+        tone="purple"
+      />
+
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-black/40 border border-purple-700/20 rounded-xl p-4 text-center">
           <p className="text-3xl font-black text-white">{clicks.length}</p>
