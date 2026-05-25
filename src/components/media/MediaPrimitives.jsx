@@ -1,21 +1,43 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Play, ShieldCheck } from "lucide-react";
+import publicBetaHero from "@/assets/public-beta-hero.png";
+import santasWorkshopFund from "@/assets/santas-workshop-fund.png";
 
-// TODO: Replace remote placeholder images with local optimized approved media assets before production launch.
+const approvedMediaAssets = import.meta.glob("../../assets/media/**/*.webp", {
+  eager: true,
+  query: "?url",
+  import: "default",
+});
+
+const mediaAsset = (path, fallback) => approvedMediaAssets[`../../assets/media/${path}`] || fallback;
+
+// TODO: Replace any remaining remote fallback images with local optimized approved media assets before production launch.
 export const mediaImages = {
-  northArena: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1400&q=70",
-  northPrize: "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?auto=format&fit=crop&w=900&q=70",
-  southCourt: "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=1400&q=70",
-  southTeam: "https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=900&q=70",
-  fundGifts: "https://images.unsplash.com/photo-1513201099705-a9746e1e201f?auto=format&fit=crop&w=1400&q=70",
-  fundTools: "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=900&q=70",
-  profileStudio: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1400&q=70",
+  northArena: mediaAsset("north-pole/north-gaming-arena.webp", publicBetaHero),
+  northPrize: mediaAsset("north-pole/prize-vault.webp", publicBetaHero),
+  creatorMatchNight: mediaAsset("north-pole/creator-match-night.webp", publicBetaHero),
+  winnerMoment: mediaAsset("north-pole/winner-moment.webp", publicBetaHero),
+  controllerCloseup: mediaAsset("north-pole/controller-closeup.webp", publicBetaHero),
+  southCourt: mediaAsset("south-pole/basketball-court.webp", "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=1400&q=70"),
+  southTeam: mediaAsset("south-pole/team-huddle.webp", "https://images.unsplash.com/photo-1526232761682-d26e03ac148e?auto=format&fit=crop&w=900&q=70"),
+  leagueField: mediaAsset("south-pole/league-field.webp", "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=1400&q=70"),
+  scoreboard: mediaAsset("south-pole/scoreboard.webp", "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1200&q=70"),
+  championshipMoment: mediaAsset("south-pole/championship-moment.webp", "https://images.unsplash.com/photo-1519861531473-9200262188bf?auto=format&fit=crop&w=1200&q=70"),
+  fundGifts: mediaAsset("poles-fund/gift-workshop.webp", santasWorkshopFund),
+  fundTools: mediaAsset("poles-fund/books-and-tools.webp", santasWorkshopFund),
+  fundSupplies: mediaAsset("poles-fund/sports-art-music-supplies.webp", santasWorkshopFund),
+  volunteerHands: mediaAsset("poles-fund/volunteer-hands.webp", santasWorkshopFund),
+  missionLedger: mediaAsset("poles-fund/mission-ledger.webp", santasWorkshopFund),
+  profileStudio: mediaAsset("profile/creator-studio.webp", "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=1400&q=70"),
+  highlightReel: mediaAsset("profile/highlight-reel.webp", publicBetaHero),
+  socialPromotionHub: mediaAsset("profile/social-promotion-hub.webp", publicBetaHero),
+  northMatchPoster: mediaAsset("video-posters/north-pole-match-poster.webp", publicBetaHero),
+  southSeasonPoster: mediaAsset("video-posters/south-pole-season-poster.webp", "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=1200&q=70"),
+  fundMissionPoster: mediaAsset("video-posters/poles-fund-mission-poster.webp", santasWorkshopFund),
   catalogShelf: "https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=1400&q=70",
-  creatorDesk: "https://images.unsplash.com/photo-1598550476439-6847785fcea6?auto=format&fit=crop&w=1200&q=70",
-  leagueField: "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?auto=format&fit=crop&w=1400&q=70",
+  creatorDesk: mediaAsset("profile/creator-studio.webp", "https://images.unsplash.com/photo-1598550476439-6847785fcea6?auto=format&fit=crop&w=1200&q=70"),
   sponsorMarket: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1400&q=70",
-  winnerMoment: "https://images.unsplash.com/photo-1567427017947-545c5f8d16ad?auto=format&fit=crop&w=1200&q=70",
 };
 
 export function MediaHero({
