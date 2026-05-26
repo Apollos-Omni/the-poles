@@ -25,12 +25,12 @@ import heroImage from '@/assets/public-beta-hero.png';
 import santasWorkshopImage from '@/assets/santas-workshop-fund.png';
 
 const navItems = [
-  ['Platform', '#platform'],
   ['North Pole', '/NorthPole'],
   ['South Pole', '/SouthPole'],
-  ['The Poles Fund', '#mission'],
-  ['Mission Ledger', '#mission-ledger'],
-  ['Partners', '/Contact'],
+  ['League Hub', '/Leagues'],
+  ['Championships', '#championships'],
+  ['About', '/About'],
+  ['Partners', '#partners'],
 ];
 
 const worlds = [
@@ -386,25 +386,25 @@ function PoleHeroPanel({ side, title, body, button, to, icon: Icon }) {
         alt=""
         className={`absolute inset-0 h-full w-full object-cover opacity-80 transition duration-700 group-hover:scale-[1.03] ${isSouth ? 'object-right' : 'object-left'}`}
       />
-      <div className={`absolute inset-0 ${isSouth ? 'bg-gradient-to-br from-red-950/88 via-black/67 to-black/95' : 'bg-gradient-to-bl from-blue-950/88 via-purple-950/70 to-black/95'}`} />
-      <div className={`absolute ${isSouth ? '-right-20 top-12 bg-red-500/30' : '-left-20 top-12 bg-blue-400/30'} h-80 w-80 rounded-full blur-3xl`} />
-      <div className={`absolute bottom-0 h-64 w-full ${isSouth ? 'bg-gradient-to-t from-red-950/35' : 'bg-gradient-to-t from-purple-950/35'} to-transparent`} />
+      <div className={`absolute inset-0 ${isSouth ? 'bg-gradient-to-br from-fuchsia-950/88 via-black/67 to-black/95' : 'bg-gradient-to-bl from-blue-950/88 via-purple-950/70 to-black/95'}`} />
+      <div className={`absolute ${isSouth ? '-right-20 top-12 bg-fuchsia-500/30' : '-left-20 top-12 bg-cyan-400/30'} h-80 w-80 rounded-full blur-3xl`} />
+      <div className={`absolute bottom-0 h-64 w-full ${isSouth ? 'bg-gradient-to-t from-fuchsia-950/35' : 'bg-gradient-to-t from-purple-950/35'} to-transparent`} />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1),transparent_30%)]" />
 
       <div className={`relative z-10 flex w-full flex-col justify-end p-6 sm:p-8 md:p-12 ${isSouth ? 'md:items-start md:text-left' : 'md:items-end md:text-right'}`}>
         <div className="max-w-sm space-y-5 md:mb-16">
-          <Badge className={`border-white/15 bg-black/40 text-white shadow-2xl ${isSouth ? 'shadow-red-500/25' : 'shadow-blue-500/25'}`}>
-            {isSouth ? 'Sports & Physical Competition' : 'Gaming & Digital Competition'}
+          <Badge className={`border-white/15 bg-black/40 text-white shadow-2xl ${isSouth ? 'shadow-fuchsia-500/25' : 'shadow-cyan-500/25'}`}>
+            {isSouth ? 'Sports & Real Leagues' : 'Gaming & Digital Skill'}
           </Badge>
           <div className={`flex items-center gap-3 ${isSouth ? '' : 'md:justify-end'}`}>
-            <div className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 ${isSouth ? 'bg-red-500/20' : 'bg-purple-500/25'}`}>
+            <div className={`flex h-14 w-14 items-center justify-center rounded-full border border-white/15 ${isSouth ? 'bg-fuchsia-500/20' : 'bg-cyan-500/20'}`}>
               <Icon className="h-6 w-6 text-white" />
             </div>
             <h2 className="text-4xl font-black uppercase tracking-tight text-white sm:text-5xl">{title}</h2>
           </div>
           <p className="text-xl font-black leading-snug text-white sm:text-2xl">{body}</p>
           <Link to={to} className="block w-full sm:w-fit">
-            <Button className={`w-full text-white sm:w-auto ${isSouth ? 'bg-red-600 hover:bg-red-500' : 'bg-purple-700 hover:bg-purple-600'}`}>
+            <Button className={`min-h-11 w-full text-white sm:w-auto ${isSouth ? 'bg-fuchsia-700 hover:bg-fuchsia-600' : 'bg-cyan-700 hover:bg-cyan-600'}`}>
               {button}
               <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
@@ -419,7 +419,7 @@ export default function LandingPage() {
   const [activeDemo, setActiveDemo] = useState(null);
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen overflow-x-hidden bg-black text-white">
       <header className="sticky top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between gap-4">
@@ -480,7 +480,7 @@ export default function LandingPage() {
             <PoleHeroPanel
               side="south"
               title="South Pole"
-              body="Real sports. Real leagues. Real competition."
+              body="Real sports. Local leagues. Verified results."
               button="Explore South Pole"
               to="/SouthPole"
               icon={Trophy}
@@ -488,8 +488,8 @@ export default function LandingPage() {
             <PoleHeroPanel
               side="gaming"
               title="North Pole"
-              body="Compete in gaming. Climb rankings. Follow the prize path."
-              button="Explore North Pole"
+              body="Gaming skill paths. Prize paths. Mission impact."
+              button="Enter North Pole"
               to="/NorthPole"
               icon={Gamepad2}
             />
@@ -497,7 +497,7 @@ export default function LandingPage() {
 
           <div className="pointer-events-none absolute inset-x-0 top-[52%] z-20 hidden -translate-y-1/2 px-6 md:block">
             <div className="pointer-events-auto mx-auto max-w-[620px] rounded-[2rem] border border-white/20 bg-black/72 px-8 py-9 text-center shadow-[0_0_90px_rgba(88,28,135,0.55)] backdrop-blur-2xl lg:px-12">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-white/10 shadow-2xl shadow-blue-500/25">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/20 bg-white/10 shadow-2xl shadow-cyan-500/25">
                 <Star className="h-8 w-8 text-white" />
               </div>
               <h1 className="text-7xl font-black leading-[0.86] tracking-tight text-white drop-shadow-2xl lg:text-8xl">
@@ -505,23 +505,32 @@ export default function LandingPage() {
               </h1>
               <div className="mx-auto my-5 flex max-w-sm items-center gap-4">
                 <div className="h-px flex-1 bg-white/40" />
-                <HeartHandshake className="h-6 w-6 text-red-400" />
+                <HeartHandshake className="h-6 w-6 text-fuchsia-300" />
                 <div className="h-px flex-1 bg-white/40" />
               </div>
               <p className="text-2xl font-black leading-tight text-white md:text-3xl">
-                Compete with skill.<br />Win with integrity.<br />Make a difference.
+                Skill-based competition.<br />Prize paths.<br />Leagues with purpose.
               </p>
               <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-white/78">
                 A national competition platform for sports, gaming, leagues, and communities.
               </p>
-              <p className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-red-300">
-                Built around The Poles Fund global gift-giving mission.
+              <p className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-cyan-200">
+                Built around The North Pole children&apos;s gift mission.
               </p>
-              <a href="#mission" className="mt-6 block">
-                <Button className="w-full bg-blue-700 text-white hover:bg-blue-600">
-                  Explore The Poles Fund
-                  <ArrowRight className="ml-1 h-4 w-4" />
-                </Button>
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                <Link to="/NorthPole">
+                  <Button className="w-full bg-cyan-700 text-white hover:bg-cyan-600">
+                    Enter The North Pole
+                  </Button>
+                </Link>
+                <Link to="/SouthPole">
+                  <Button className="w-full bg-fuchsia-700 text-white hover:bg-fuchsia-600">
+                    Explore The South Pole
+                  </Button>
+                </Link>
+              </div>
+              <a href={partnerMailto({ subject: 'Partnership inquiry for The Poles' })} className="mt-3 block text-sm font-semibold text-purple-100/80 hover:text-white">
+                Partner With Us
               </a>
             </div>
           </div>
@@ -532,19 +541,31 @@ export default function LandingPage() {
             </div>
             <h1 className="text-6xl font-black leading-[0.88] text-white">THE<br />POLES</h1>
             <p className="mt-4 text-2xl font-black leading-tight text-white">
-              Compete with skill. Win with integrity. Make a difference.
+              Skill-based competition. Prize paths. Leagues with purpose.
             </p>
             <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-white/75">
-              A national competition platform for sports, gaming, leagues, and communities.
+              Sports, gaming, leagues, and communities connected by verified challenge records and mission impact.
             </p>
             <p className="mt-3 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200">
-              Built around The Poles Fund global gift-giving mission.
+              Built around The North Pole children&apos;s gift mission.
             </p>
-            <a href="#mission" className="mt-5 block">
-              <Button className="w-full bg-blue-700 text-white hover:bg-blue-600">
-                Explore The Poles Fund
-              </Button>
-            </a>
+            <div className="mt-5 grid gap-3">
+              <Link to="/NorthPole">
+                <Button className="min-h-11 w-full bg-cyan-700 text-white hover:bg-cyan-600">
+                  Enter The North Pole
+                </Button>
+              </Link>
+              <Link to="/SouthPole">
+                <Button className="min-h-11 w-full bg-fuchsia-700 text-white hover:bg-fuchsia-600">
+                  Explore The South Pole
+                </Button>
+              </Link>
+              <a href={partnerMailto({ subject: 'Partnership inquiry for The Poles' })}>
+                <Button variant="outline" className="min-h-11 w-full border-white/15 bg-white/10 text-white hover:bg-white/15">
+                  Partner With Us
+                </Button>
+              </a>
+            </div>
           </div>
         </section>
 

@@ -40,12 +40,21 @@ async function requestHeaders(body, headers = {}) {
 }
 
 export async function apiRequest(path, { method = 'GET', body, headers = {} } = {}) {
-  const response = await fetch(apiUrl(path), {
-    method,
-    headers: await requestHeaders(body, headers),
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-    credentials: 'include',
-  });
+  if (!apiBase && path.startsWith('/api/')) {
+    throw new Error('VITE_API_BASE_URL is missing. The frontend does not know which backend to call.');
+  }
+
+  let response;
+  try {
+    response = await fetch(apiUrl(path), {
+      method,
+      headers: await requestHeaders(body, headers),
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      credentials: 'include',
+    });
+  } catch (error) {
+    throw new Error(`Backend unavailable: ${error.message || 'network request failed'}`);
+  }
   return parseJsonResponse(response);
 }
 
@@ -59,10 +68,21 @@ export async function apiRaw(path, { method = 'GET', body, headers = {} } = {}) 
 }
 
 export async function invokeBackendFunction(name, data = {}) {
-  const payload = await apiRequest(`/api/functions/${name}`, {
-    method: 'POST',
-    body: data,
-  });
+  let payload;
+  try {
+    payload = await apiRequest(`/api/functions/${name}`, {
+      method: 'POST',
+      body: data,
+    });
+  } catch (error) {
+    if (error.status === 404) {
+      throw new Error(`Function endpoint "${name}" was not found (HTTP 404).`);
+    }
+    if (error.status >= 500) {
+      throw new Error(`Function endpoint "${name}" failed on the backend (HTTP ${error.status}).`);
+    }
+    throw error;
+  }
   return { data: payload };
 }
 

@@ -38,6 +38,7 @@ export default function CreateMatch() {
     const [createAgreementAccepted, setCreateAgreementAccepted] = useState(false);
     const [userError, setUserError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
+    const [isLoadingUser, setIsLoadingUser] = useState(true);
 
     useEffect(() => {
         const loadUser = async () => {
@@ -46,6 +47,9 @@ export default function CreateMatch() {
                 setUser(userData);
             } catch (error) {
                 console.error('Error loading user:', error);
+                setUserError('You must be signed in to create a match. Product and game search are available, but match creation requires an account.');
+            } finally {
+                setIsLoadingUser(false);
             }
         };
         loadUser();
@@ -122,6 +126,10 @@ export default function CreateMatch() {
     const createMatch = async () => {
         setUserError('');
         setSuccessMessage('');
+        if (!user?.id) {
+            setUserError('You must be signed in before creating a match.');
+            return;
+        }
         if (!selectedProduct?.id) {
             setUserError('Search for and select a prize before creating a match.');
             setStep(1);
@@ -203,7 +211,7 @@ export default function CreateMatch() {
         </div>
     );
 
-    if (!user) {
+    if (isLoadingUser) {
         return (
             <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-gray-900 via-black to-purple-900 p-4 text-white sm:p-8">
                 <div className="text-center">Loading...</div>

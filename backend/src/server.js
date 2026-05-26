@@ -9,10 +9,17 @@ import { createStore } from './lib/store.js';
 const app = express();
 const port = Number(process.env.PORT || 8787);
 const frontendOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:5173';
+const allowedOrigins = new Set([
+  frontendOrigin,
+  'https://the-poles.com',
+  'https://www.the-poles.com',
+].filter(Boolean).map((origin) => origin.replace(/\/$/, '')));
 
 const corsOptions = {
   origin(origin, callback) {
-    if (!origin || origin === frontendOrigin || process.env.NODE_ENV !== 'production') {
+    const normalizedOrigin = origin ? origin.replace(/\/$/, '') : '';
+    const isVercelPreview = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(normalizedOrigin);
+    if (!origin || allowedOrigins.has(normalizedOrigin) || isVercelPreview || process.env.NODE_ENV !== 'production') {
       callback(null, true);
       return;
     }
