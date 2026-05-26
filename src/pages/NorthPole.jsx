@@ -227,10 +227,12 @@ function RealNorthPoleFlow({ user }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchProvider, setSearchProvider] = useState('');
+  const [searchProviderMessage, setSearchProviderMessage] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [gameSearchTerm, setGameSearchTerm] = useState('');
   const [gameResults, setGameResults] = useState([]);
   const [gameProvider, setGameProvider] = useState('');
+  const [gameProviderMessage, setGameProviderMessage] = useState('');
   const [isGameSearching, setIsGameSearching] = useState(false);
   const [selectedPrize, setSelectedPrize] = useState(null);
   const [selectedGame, setSelectedGame] = useState(null);
@@ -389,6 +391,7 @@ function RealNorthPoleFlow({ user }) {
       const { data } = await searchProducts({ q: searchTerm.trim(), limit: 12 });
       setSearchResults((data.products || []).map((product) => normalizePrize(product, data.provider || 'search_placeholder')));
       setSearchProvider(data.sourceLabel || data.provider || 'sample_catalog');
+      setSearchProviderMessage(data.providerMessage || '');
     } catch (err) {
       setError(err.message || 'Prize search failed.');
     } finally {
@@ -409,6 +412,7 @@ function RealNorthPoleFlow({ user }) {
       const { data } = await searchGames({ q: query, limit: 18 });
       setGameResults((data.games || []).map((game) => normalizeGame(game, data.provider || 'sample_game_catalog')));
       setGameProvider(data.sourceLabel || data.provider || 'sample_game_catalog');
+      setGameProviderMessage(data.providerMessage || '');
     } catch (err) {
       setError(err.message || 'Game search failed.');
     } finally {
@@ -666,6 +670,12 @@ function RealNorthPoleFlow({ user }) {
                 </div>
               </div>
 
+              {searchProviderMessage && (
+                <div className="rounded-xl border border-yellow-700/30 bg-yellow-950/25 p-3 text-sm text-yellow-100">
+                  {searchProviderMessage}
+                </div>
+              )}
+
               <div>
                 <div className="mb-3 flex items-center justify-between">
                   <h4 className="text-sm font-bold text-purple-100">
@@ -765,6 +775,12 @@ function RealNorthPoleFlow({ user }) {
                   </Button>
                 </div>
               </div>
+
+              {gameProviderMessage && (
+                <div className="rounded-xl border border-yellow-700/30 bg-yellow-950/25 p-3 text-sm text-yellow-100">
+                  {gameProviderMessage}
+                </div>
+              )}
 
               {isGameSearching && (
                 <div className="rounded-xl border border-cyan-700/20 bg-cyan-950/20 p-6 text-center text-sm text-cyan-200">

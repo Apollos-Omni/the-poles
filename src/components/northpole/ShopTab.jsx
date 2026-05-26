@@ -208,6 +208,7 @@ export default function ShopTab({ onCreateMatch, buyInForPlayers }) {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [searchProviderMessage, setSearchProviderMessage] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const navigate = useNavigate();
 
@@ -217,6 +218,7 @@ export default function ShopTab({ onCreateMatch, buyInForPlayers }) {
       setSearchResults([]);
       setHasSearched(false);
       setSearchError('');
+      setSearchProviderMessage('');
       return;
     }
     setIsSearching(true);
@@ -226,12 +228,14 @@ export default function ShopTab({ onCreateMatch, buyInForPlayers }) {
       const { data } = await searchProducts({ q: cleanQuery, category: category || null, filters: {} });
       if (data?.success) {
         setSearchResults(data.products || []);
+        setSearchProviderMessage(data.providerMessage || '');
       } else {
         throw new Error(data?.error || "Product search failed.");
       }
     } catch (error) {
       console.error("North Pole Shop search error:", error);
       setSearchError(error.message || "Unable to search products right now.");
+      setSearchProviderMessage('');
       setSearchResults([]);
     } finally {
       setIsSearching(false);
@@ -257,6 +261,7 @@ export default function ShopTab({ onCreateMatch, buyInForPlayers }) {
     setSearchResults([]);
     setHasSearched(false);
     setSearchError('');
+    setSearchProviderMessage('');
   };
 
   const handleCreateMatchFromSearch = (product) => {
@@ -376,6 +381,12 @@ export default function ShopTab({ onCreateMatch, buyInForPlayers }) {
           {searchError && (
             <div className="bg-red-900/30 border border-red-700/40 text-red-300 rounded-xl p-4 text-sm">
               {searchError}
+            </div>
+          )}
+
+          {searchProviderMessage && !searchError && (
+            <div className="bg-yellow-950/25 border border-yellow-700/40 text-yellow-100 rounded-xl p-4 text-sm">
+              {searchProviderMessage}
             </div>
           )}
 

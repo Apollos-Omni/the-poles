@@ -10,23 +10,23 @@ const PRODUCT_PROVIDER_SLOTS = [
   {
     id: 'ebay_browse',
     label: 'eBay Browse API',
-    configured: (env) => Boolean(env.EBAY_CLIENT_ID && env.EBAY_CLIENT_SECRET),
+    configured: (env) => Boolean((env.EBAY_CLIENT_ID || env.EBAY_APP_ID) && env.EBAY_CLIENT_SECRET),
     status: 'live',
   },
   {
     id: 'amazon_paapi',
     label: 'Amazon Product Advertising API',
     configured: (env) => Boolean(
-      env.AMAZON_PAAPI_ACCESS_KEY &&
-      env.AMAZON_PAAPI_SECRET_KEY &&
-      env.AMAZON_ASSOCIATE_TAG
+      (env.AMAZON_PAAPI_ACCESS_KEY || env.AMAZON_ACCESS_KEY) &&
+      (env.AMAZON_PAAPI_SECRET_KEY || env.AMAZON_SECRET_KEY) &&
+      (env.AMAZON_ASSOCIATE_TAG || env.AMAZON_PARTNER_TAG)
     ),
     status: 'placeholder',
   },
   {
     id: 'walmart',
     label: 'Walmart catalog API',
-    configured: () => false,
+    configured: (env) => Boolean(env.WALMART_API_KEY),
     status: 'placeholder',
   },
   {
@@ -87,7 +87,7 @@ async function getEbayAccessToken(env) {
     return ebayTokenCache.token;
   }
 
-  const auth = Buffer.from(`${env.EBAY_CLIENT_ID}:${env.EBAY_CLIENT_SECRET}`).toString('base64');
+  const auth = Buffer.from(`${env.EBAY_CLIENT_ID || env.EBAY_APP_ID}:${env.EBAY_CLIENT_SECRET}`).toString('base64');
   const body = new URLSearchParams({
     grant_type: 'client_credentials',
     scope: 'https://api.ebay.com/oauth/api_scope',
@@ -173,9 +173,20 @@ function withProductSource(product, provider = DEMO_PROVIDER) {
   const source = product.source || provider.id;
   const sourceLabel = product.source_label || product.sourceLabel || provider.label;
   const offers = Array.isArray(product.offers) ? product.offers : [];
+  const firstOffer = offers[0] || {};
+  const images = product.images || product.image_urls || [product.image_url || product.imageUrl].filter(Boolean);
 
   return {
     ...product,
+    images,
+    image_url: product.image_url || product.imageUrl || images[0] || '',
+    merchant: product.merchant || product.retailer || firstOffer.retailer || sourceLabel,
+    product_url: product.product_url || product.productUrl || firstOffer.product_url || null,
+    affiliate_url: product.affiliate_url || firstOffer.affiliate_url || null,
+    price_cents: product.price_cents || firstOffer.price_cents || 0,
+    currency: product.currency || firstOffer.currency || 'USD',
+    shipping_estimate_cents: product.shipping_estimate_cents || firstOffer.shipping_estimate_cents || null,
+    tax_estimate_cents: product.tax_estimate_cents || firstOffer.tax_estimate_cents || null,
     provider: source,
     source,
     source_label: sourceLabel,
@@ -303,7 +314,7 @@ export async function searchProductsAcrossProviders(input = {}, env = process.en
     ...demo,
     activeProviders: configured.activeProviders || [],
     externalProviderStatus: configured.providerStatus,
-    providerMessage: configured.providerMessage || null,
+    providerMessage: configured.providerMessage || 'Live product search is not configured yet. Showing demo results.',
     fallbackProvider: DEMO_PROVIDER.id,
     futureProviders: PRODUCT_PROVIDER_SLOTS.map((provider) => provider.id),
   };

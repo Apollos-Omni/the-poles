@@ -89,14 +89,26 @@ export async function finalizeAndVerify({ matchDbId, matchId, resultPayload }) {
   return response.data?.match || response.data?.data;
 }
 
+export async function approveWinnerVerification({ verificationId, winnerUserId, approve = true, reviewNote = '' }) {
+  const response = await invokeBackendFunction('approveWinnerVerification', {
+    verification_id: verificationId,
+    winner_user_id: winnerUserId,
+    approve,
+    review_note: reviewNote,
+  });
+
+  return response.data;
+}
+
 export async function createFulfillmentRecord({ matchId, winnerUserId, prizeId, prizeSnapshot }) {
   return {
     match_id: matchId,
     winner_user_id: winnerUserId,
     prize_id: prizeId,
     prize_snapshot: prizeSnapshot,
-    admin_status: 'pending_review',
-    order_status: 'sandbox_created',
-    sandbox_mode: true,
+    shipping_status: 'pending_admin_review',
+    fulfillment_status: 'pending',
+    purchase_mode: 'sandbox',
+    admin_approval_required: true,
   };
 }

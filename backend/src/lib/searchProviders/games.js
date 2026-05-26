@@ -208,6 +208,8 @@ function normalizeRawgGame(game) {
     developer: 'RAWG catalog',
     description: `${released}${rating}${category} challenge from RAWG search.`.trim(),
     category,
+    rating: Number.isFinite(Number(game.rating)) ? Number(game.rating) : null,
+    price: 'Catalog listing',
     platform,
     store,
     skillStyle: `${category.toLowerCase()} performance challenge`,
@@ -237,6 +239,9 @@ function withGameSource(game, provider = SAMPLE_PROVIDER) {
   const sourceLabel = game.source_label || game.sourceLabel || provider.label;
   return {
     ...game,
+    store: game.store || game.store_id || sourceLabel,
+    image_url: game.image_url || game.icon_url || '',
+    verification_type: game.verification_type || (game.skill_verifiable ? 'score_evidence' : 'manual_review'),
     provider: source,
     source,
     source_label: sourceLabel,
@@ -244,10 +249,11 @@ function withGameSource(game, provider = SAMPLE_PROVIDER) {
   };
 }
 
-function searchSampleCatalog({ q = '', category = null, platform = null, limit = 24, offset = 0 } = {}) {
-  const query = String(q || '').trim().toLowerCase();
-  const normalizedCategory = category ? String(category).toLowerCase() : null;
-  const normalizedPlatform = platform ? String(platform).toLowerCase() : null;
+function searchSampleCatalog({ q = '', query: queryAlias = '', category = null, platform = null, store = null, limit = 24, offset = 0 } = {}) {
+  const query = String(q || queryAlias || '').trim().toLowerCase();
+  const normalizedCategory = category && category !== 'all' ? String(category).toLowerCase() : null;
+  const normalizedPlatform = platform && platform !== 'all' ? String(platform).toLowerCase() : null;
+  const normalizedStore = store && store !== 'all' ? String(store).toLowerCase().replace(/_/g, ' ') : null;
   const boundedLimit = Math.min(Math.max(Number(limit) || 24, 1), 50);
   const boundedOffset = Math.max(Number(offset) || 0, 0);
 
@@ -263,7 +269,8 @@ function searchSampleCatalog({ q = '', category = null, platform = null, limit =
     ].some((value) => String(value || '').toLowerCase().includes(query));
     const matchesCategory = !normalizedCategory || String(game.category || '').toLowerCase() === normalizedCategory;
     const matchesPlatform = !normalizedPlatform || String(game.platform || '').toLowerCase().includes(normalizedPlatform);
-    return matchesQuery && matchesCategory && matchesPlatform;
+    const matchesStore = !normalizedStore || String(game.store || '').toLowerCase().replace(/_/g, ' ').includes(normalizedStore);
+    return matchesQuery && matchesCategory && matchesPlatform && matchesStore;
   });
 
   return {
@@ -379,7 +386,7 @@ export async function searchGamesAcrossProviders(input = {}, env = process.env) 
     ...sample,
     activeProviders: configured.activeProviders || [],
     externalProviderStatus: configured.providerStatus,
-    providerMessage: configured.providerMessage || null,
+    providerMessage: configured.providerMessage || 'Live game search is not configured yet. Showing demo results.',
     fallbackProvider: SAMPLE_PROVIDER.id,
     futureProviders: GAME_PROVIDER_SLOTS.map((provider) => provider.id),
   };

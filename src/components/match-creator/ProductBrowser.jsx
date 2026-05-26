@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Star, ShoppingCart, Loader2 } from 'lucide-react';
+import { AlertTriangle, Search, ShoppingCart, Loader2 } from 'lucide-react';
 import { debounce } from 'lodash';
 import { searchProducts } from '@/functions/searchProducts';
 import { VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
@@ -19,6 +19,7 @@ export default function ProductBrowser({ onProductSelect }) {
     const [results, setResults] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [providerMessage, setProviderMessage] = useState('');
 
     const performSearch = useCallback(async (query) => {
         if (query.length < 2) {
@@ -26,16 +27,18 @@ export default function ProductBrowser({ onProductSelect }) {
             return;
         }
         setIsLoading(true);
-        setError('');
-        try {
-            const { data } = await searchProducts({ q: query });
+            setError('');
+            setProviderMessage('');
+            try {
+            const { data } = await searchProducts({ query, limit: 24 });
             if (data.success) {
                 setResults(data.products || []);
+                setProviderMessage(data.providerMessage || '');
             } else {
                 throw new Error(data.error || 'Search failed');
             }
         } catch (err) {
-            setError(err.message);
+            setError(err.message || 'Product search failed. Please try again.');
             console.error('Search error:', err);
         } finally {
             setIsLoading(false);
@@ -59,13 +62,33 @@ export default function ProductBrowser({ onProductSelect }) {
         debouncedSearch(e.target.value);
     };
     
-    const getBestOffer = (offers) => {
+    const getBestOffer = (offers = []) => {
         const inStock = offers.filter(o => o.availability === 'in_stock');
         if (inStock.length > 0) {
             return inStock.sort((a, b) => a.price_cents - b.price_cents)[0];
         }
         // If no items are in stock, return the cheapest overall
         return offers.sort((a, b) => a.price_cents - b.price_cents)[0];
+    };
+
+    const normalizeProduct = (product) => {
+        const offers = Array.isArray(product.offers) ? product.offers : [];
+        const bestOffer = getBestOffer(offers);
+        const images = product.images || product.image_urls || [product.image_url || product.imageUrl].filter(Boolean);
+        return {
+            ...product,
+            id: product.id || product.product_id,
+            title: product.title || 'Selected Prize',
+            brand: product.brand || product.category || product.merchant || '',
+            images,
+            image_url: product.image_url || images[0] || '',
+            price_cents: bestOffer?.price_cents || product.price_cents || 0,
+            currency: product.currency || bestOffer?.currency || 'USD',
+            merchant: product.merchant || bestOffer?.retailer || product.source_label || product.source || '',
+            product_url: product.product_url || bestOffer?.product_url || null,
+            affiliate_url: product.affiliate_url || bestOffer?.affiliate_url || null,
+            offers,
+        };
     };
 
     return (
@@ -92,7 +115,14 @@ export default function ProductBrowser({ onProductSelect }) {
             )}
             
             {!isLoading && error && (
-                <div className="text-center py-12 text-red-500">{error}</div>
+                <div className="rounded-xl border border-red-700/40 bg-red-950/30 p-4 text-red-200">{error}</div>
+            )}
+
+            {!isLoading && !error && providerMessage && (
+                <div className="mb-6 flex items-start gap-3 rounded-xl border border-yellow-600/40 bg-yellow-950/25 p-4 text-sm text-yellow-100">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                    <span>{providerMessage}</span>
+                </div>
             )}
 
             {!isLoading && !error && searchTerm.length > 1 && results.length === 0 && (
@@ -103,14 +133,15 @@ export default function ProductBrowser({ onProductSelect }) {
             )}
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {results.map((product) => {
-                    const bestOffer = getBestOffer(product.offers);
+                {results.map((rawProduct) => {
+                    const product = normalizeProduct(rawProduct);
+                    const bestOffer = getBestOffer(product.offers) || { price_cents: product.price_cents, availability: 'in_stock', retailer: product.merchant };
                     return (
                         <Card key={product.id} className="overflow-hidden border-purple-700/25 bg-black/40 text-white transition-all duration-300 hover:-translate-y-0.5 hover:border-cyan-300/50 flex flex-col">
                             <CardContent className="p-4 flex flex-col flex-grow">
                                 <div className="h-40 bg-slate-100 rounded-lg mb-4 overflow-hidden">
                                     <img 
-                                        src={product.images[0] || 'https://via.placeholder.com/300'} 
+                                        src={product.images[0] || product.image_url || 'https://via.placeholder.com/300'} 
                                         alt=""
                                         loading="lazy"
                                         decoding="async"

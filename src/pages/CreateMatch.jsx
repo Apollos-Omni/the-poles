@@ -1,25 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserMatch } from '@/entities/UserMatch';
 import { User } from '@/entities/User';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Gamepad2, ShoppingCart, Trophy, Calculator, Heart, AlertTriangle } from 'lucide-react';
+import { Gamepad2, ShoppingCart, Trophy, Calculator, Heart, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
+import ProductBrowser from '../components/match-creator/ProductBrowser';
 import GameBrowser from '../components/match-creator/GameBrowser';
 import MatchPreview from '../components/match-creator/MatchPreview';
 import SportSelector from '@/components/sports/SportSelector';
+import SkillCompetitionAgreement from '@/components/northpole/SkillCompetitionAgreement';
+import { createNorthPoleMatch, SKILL_COMPETITION_AGREEMENT_VERSION } from '@/lib/northpole/matchEngine';
 import { MediaHero, VideoBackgroundCard, mediaImages } from '@/components/media/MediaPrimitives';
 
 export default function CreateMatch() {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
-    const [step, setStep] = useState(1); // 1: Game, 2: Settings, 3: Review
+    const [step, setStep] = useState(1); // 1: Product, 2: Game, 3: Settings, 4: Review
     const [selectedGame, setSelectedGame] = useState(null);
     const [selectedPrize, setSelectedPrize] = useState(null); // from localStorage / shop
     const [selectedProduct, setSelectedProduct] = useState(null);
@@ -34,6 +35,9 @@ export default function CreateMatch() {
     });
     const [selectedSport, setSelectedSport] = useState(null);
     const [calculatedBuyIn, setCalculatedBuyIn] = useState(0);
+    const [createAgreementAccepted, setCreateAgreementAccepted] = useState(false);
+    const [userError, setUserError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
     useEffect(() => {
         const loadUser = async () => {
@@ -51,15 +55,20 @@ export default function CreateMatch() {
         if (stored) {
             try {
                 const prize = JSON.parse(stored);
-                setSelectedPrize(prize);
+                const prizePrice = prize.price_cents ?? prize.price ?? 0;
+                setSelectedPrize({ ...prize, price: prizePrice });
                 // Map to selectedProduct shape for downstream compatibility
                 setSelectedProduct({
                     id: prize.id,
                     title: prize.title,
-                    price_cents: prize.price,
-                    image_urls: [prize.image],
-                    offers: [{ retailer: prize.retailer, price_cents: prize.price, availability: 'in_stock' }],
-                    brand: prize.category,
+                    price_cents: prizePrice,
+                    images: prize.images || [prize.image || prize.image_url].filter(Boolean),
+                    image_url: prize.image || prize.image_url,
+                    offers: [{ retailer: prize.retailer || prize.merchant, price_cents: prizePrice, availability: 'in_stock' }],
+                    brand: prize.brand || prize.category,
+                    merchant: prize.retailer || prize.merchant,
+                    product_url: prize.url || prize.product_url,
+                    source: prize.source || 'shop_selection',
                 });
             } catch (e) {
                 console.error('Failed to parse stored prize', e);
@@ -88,44 +97,88 @@ export default function CreateMatch() {
         }
     }, [selectedProduct, matchSettings.maxPlayers, matchSettings.charityPercentage, calculateBuyIn]);
 
+    const normalizePrizeSnapshot = () => {
+        const offers = Array.isArray(selectedProduct?.offers) ? selectedProduct.offers : [];
+        const bestOffer = offers.find((offer) => offer.availability === 'in_stock') || offers[0] || {};
+        const images = selectedProduct?.images || selectedProduct?.image_urls || [selectedProduct?.image_url].filter(Boolean);
+        return {
+            id: selectedProduct?.id || selectedPrize?.id,
+            title: selectedProduct?.title || selectedPrize?.title,
+            brand: selectedProduct?.brand || selectedPrize?.brand || selectedPrize?.category,
+            description: selectedProduct?.description || '',
+            price_cents: bestOffer.price_cents || selectedProduct?.price_cents || selectedPrize?.price_cents || selectedPrize?.price || 0,
+            currency: bestOffer.currency || selectedProduct?.currency || 'USD',
+            image_url: selectedProduct?.image_url || images[0] || selectedPrize?.image,
+            images,
+            merchant: selectedProduct?.merchant || bestOffer.retailer || selectedPrize?.retailer,
+            product_url: selectedProduct?.product_url || bestOffer.product_url || selectedPrize?.url,
+            affiliate_url: selectedProduct?.affiliate_url || bestOffer.affiliate_url || null,
+            shipping_estimate_cents: selectedProduct?.shipping_estimate_cents || null,
+            tax_estimate_cents: selectedProduct?.tax_estimate_cents || null,
+            source: selectedProduct?.source || selectedPrize?.source || 'product_search',
+        };
+    };
+
     const createMatch = async () => {
-        if (!selectedPrize?.id) {
-            alert('Please select a prize from the North Pole Shop before creating a match.');
+        setUserError('');
+        setSuccessMessage('');
+        if (!selectedProduct?.id) {
+            setUserError('Search for and select a prize before creating a match.');
+            setStep(1);
+            return;
+        }
+        if (!selectedGame?.id) {
+            setUserError('Search for and select a game before creating a match.');
+            setStep(2);
+            return;
+        }
+        if (!createAgreementAccepted) {
+            setUserError('Confirm the skill-based competition agreement before creating this match.');
             return;
         }
         try {
-            const matchData = {
-                created_by: user?.id,
-                mobile_game_id: selectedGame?.id,
-                match_type: matchSettings.matchType,
-                min_players: matchSettings.minPlayers,
-                max_players: matchSettings.maxPlayers,
-                buy_in_cents: calculatedBuyIn,
-                deadline: matchSettings.deadline,
+            const prizeSnapshot = normalizePrizeSnapshot();
+            const playerSlots = matchSettings.maxPlayers;
+            const totalPrizePathCents = prizeSnapshot.price_cents
+                + (prizeSnapshot.shipping_estimate_cents || 0)
+                + (prizeSnapshot.tax_estimate_cents || 0);
+            const matchPlan = {
+                players: playerSlots,
+                priceCents: prizeSnapshot.price_cents,
+                taxCents: prizeSnapshot.tax_estimate_cents || 0,
+                shippingCents: prizeSnapshot.shipping_estimate_cents || 0,
+                totalPrizeCostCents: totalPrizePathCents,
+                perPlayerCents: calculatedBuyIn,
+                creatorContribution: true,
+                missionPlayerNumber: playerSlots + 1,
+                fundRate: matchSettings.charityPercentage / 100,
                 rules: matchSettings.rules,
-                verification_method: matchSettings.verificationMethod,
-                charity_percentage: matchSettings.charityPercentage,
-                sport_id: selectedSport?.id || selectedGame?.id,
-                sport_name: selectedSport?.name || selectedGame?.title,
-                sport_category: selectedSport?.category || selectedGame?.category,
-                selected_prize_id: selectedPrize.id,
-                selected_prize_title: selectedPrize.title,
-                selected_prize_image: selectedPrize.image,
-                selected_prize_price: selectedPrize.price,
-                selected_prize_retailer: selectedPrize.retailer,
-                selected_prize_url: selectedPrize.url,
-                selected_prize_category: selectedPrize.category,
-                prize_locked: false,
-                status: 'pending_players',
             };
 
-            await UserMatch.create(matchData);
+            await createNorthPoleMatch({
+                gameId: selectedGame.id,
+                prizeId: prizeSnapshot.id,
+                prizeSnapshot,
+                maxPlayers: playerSlots,
+                buyInCents: calculatedBuyIn,
+                sandboxMode: false,
+                matchPlan,
+                gameSnapshot: {
+                    ...selectedGame,
+                    sport_id: selectedSport?.id || selectedGame?.id,
+                    sport_name: selectedSport?.name || selectedGame?.title,
+                    sport_category: selectedSport?.category || selectedGame?.category,
+                    verification_method: matchSettings.verificationMethod,
+                },
+                skillAgreementAccepted: true,
+                skillAgreementVersion: SKILL_COMPETITION_AGREEMENT_VERSION,
+            });
             localStorage.removeItem('northPoleSelectedPrize');
-            alert('Match created successfully!');
-            navigate('/SantaClause');
+            setSuccessMessage('Match created successfully. Redirecting to open North Pole matches.');
+            navigate('/NorthPole');
         } catch (error) {
             console.error('Error creating match:', error);
-            alert('Failed to create match');
+            setUserError(error.message || 'Failed to create match. Please try again.');
         }
     };
 
@@ -229,17 +282,38 @@ export default function CreateMatch() {
                 {/* Prize Banner — always visible */}
                 <PrizeBanner />
 
-                <StepIndicator currentStep={step} totalSteps={3} />
+                {userError && (
+                    <div className="mb-6 rounded-xl border border-red-700/40 bg-red-950/30 p-4 text-sm text-red-200">
+                        {userError}
+                    </div>
+                )}
+                {successMessage && (
+                    <div className="mb-6 flex items-center gap-2 rounded-xl border border-green-700/40 bg-green-950/30 p-4 text-sm text-green-200">
+                        <CheckCircle2 className="h-4 w-4" /> {successMessage}
+                    </div>
+                )}
+
+                <StepIndicator currentStep={step} totalSteps={4} />
 
                 {step === 1 && (
                     <div>
                         <h2 className="text-2xl font-bold text-purple-200 mb-6 flex items-center gap-2">
-                            <Gamepad2 className="w-6 h-6" />
-                            Step 1: Choose a Game
+                            <ShoppingCart className="w-6 h-6" />
+                            Step 1: Search and Select a Prize
                         </h2>
-                        <GameBrowser 
-                            onGameSelect={(game) => {
-                                setSelectedGame(game);
+                        <ProductBrowser
+                            onProductSelect={(product) => {
+                                setSelectedProduct(product);
+                                setSelectedPrize({
+                                    id: product.id,
+                                    title: product.title,
+                                    image: product.image_url || product.images?.[0],
+                                    price: product.price_cents,
+                                    retailer: product.merchant,
+                                    category: product.category || product.brand,
+                                    url: product.product_url,
+                                });
+                                setUserError('');
                                 setStep(2);
                             }}
                         />
@@ -249,8 +323,29 @@ export default function CreateMatch() {
                 {step === 2 && (
                     <div>
                         <h2 className="text-2xl font-bold text-purple-200 mb-6 flex items-center gap-2">
+                            <Gamepad2 className="w-6 h-6" />
+                            Step 2: Search and Select a Game
+                        </h2>
+                        <GameBrowser 
+                            onGameSelect={(game) => {
+                                setSelectedGame(game);
+                                setUserError('');
+                                setStep(3);
+                            }}
+                        />
+                        <div className="mt-8">
+                            <Button variant="outline" onClick={() => setStep(1)} className="border-purple-700/50 text-purple-300">
+                                Back
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {step === 3 && (
+                    <div>
+                        <h2 className="text-2xl font-bold text-purple-200 mb-6 flex items-center gap-2">
                             <Trophy className="w-6 h-6" />
-                            Step 2: Match Settings
+                            Step 3: Player Slots and Match Settings
                         </h2>
 
                         {selectedGame && (
@@ -260,7 +355,7 @@ export default function CreateMatch() {
                                     <p className="text-xs text-purple-400">Selected Game</p>
                                     <p className="text-white font-semibold">{selectedGame.title}</p>
                                 </div>
-                                <button onClick={() => { setSelectedGame(null); setStep(1); }} className="ml-auto text-xs text-purple-400/60 hover:text-purple-300">Change</button>
+                                <button onClick={() => { setSelectedGame(null); setStep(2); }} className="ml-auto text-xs text-purple-400/60 hover:text-purple-300">Change</button>
                             </div>
                         )}
 
@@ -362,12 +457,12 @@ export default function CreateMatch() {
                         </Card>
 
                         <div className="flex justify-between mt-8">
-                            <Button variant="outline" onClick={() => setStep(1)} className="border-purple-700/50 text-purple-300">
+                            <Button variant="outline" onClick={() => setStep(2)} className="border-purple-700/50 text-purple-300">
                                 Back
                             </Button>
                             <Button 
-                                onClick={() => setStep(3)} 
-                                disabled={!selectedPrize?.id}
+                                onClick={() => setStep(4)} 
+                                disabled={!selectedProduct?.id || !selectedGame?.id}
                                 className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Review & Create
@@ -376,9 +471,16 @@ export default function CreateMatch() {
                     </div>
                 )}
 
-                {step === 3 && (
+                {step === 4 && (
                     <div>
-                        <h2 className="text-2xl font-bold text-purple-200 mb-6">Step 3: Review & Create</h2>
+                        <h2 className="text-2xl font-bold text-purple-200 mb-6">Step 4: Review & Create</h2>
+                        <div className="mb-6">
+                            <SkillCompetitionAgreement
+                                id="create-match-skill-agreement"
+                                accepted={createAgreementAccepted}
+                                onAcceptedChange={setCreateAgreementAccepted}
+                            />
+                        </div>
                         
                         <MatchPreview 
                             game={selectedGame}
@@ -386,7 +488,7 @@ export default function CreateMatch() {
                             settings={matchSettings}
                             buyIn={calculatedBuyIn}
                             onConfirm={createMatch}
-                            onBack={() => setStep(2)}
+                            onBack={() => setStep(3)}
                         />
                     </div>
                 )}

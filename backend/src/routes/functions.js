@@ -16,6 +16,12 @@ const T = {
   auditEvents: 'audit_events',
   leaderboard: 'leaderboard',
   fulfillments: 'fulfillments',
+  scoreSubmissions: 'score_submissions',
+  matchEvidence: 'match_evidence',
+  winnerVerifications: 'winner_verifications',
+  matchDisputes: 'match_disputes',
+  fulfillmentIntents: 'fulfillment_intents',
+  purchaseIntents: 'purchase_intents',
   pushSubscriptions: 'push_subscriptions',
   affiliateOffers: 'affiliate_offers',
   hingeCommands: 'hinge_commands',
@@ -82,6 +88,12 @@ const entityRequestSchema = z.object({
 const ENTITY_TABLE_ALIASES = {
   NorthPoleMatch: 'north_pole_matches',
   NorthPoleFulfillment: 'north_pole_fulfillments',
+  ScoreSubmission: 'score_submissions',
+  MatchEvidence: 'match_evidence',
+  WinnerVerification: 'winner_verifications',
+  MatchDispute: 'match_disputes',
+  FulfillmentIntent: 'fulfillment_intents',
+  PurchaseIntent: 'purchase_intents',
   MatchEvent: 'match_events',
   UserMatch: 'user_match_entities',
   SouthPoleChallenge: 'south_pole_challenges',
@@ -257,6 +269,17 @@ const finalizeNorthPoleMatchSchema = z.object({
   resultPayload: z.record(z.unknown()).optional(),
   result_payload: z.record(z.unknown()).optional(),
 });
+
+const approveWinnerVerificationSchema = z.object({
+  id: z.string().min(1).optional(),
+  verificationId: z.string().min(1).optional(),
+  verification_id: z.string().min(1).optional(),
+  approve: z.boolean().optional(),
+  winnerUserId: z.string().min(1).optional(),
+  winner_user_id: z.string().min(1).optional(),
+  reviewNote: z.string().optional(),
+  review_note: z.string().optional(),
+}).passthrough();
 
 const missionCheckoutSchema = z.object({
   amount_cents: z.number().int().min(100).max(100000000),
@@ -440,6 +463,55 @@ function canFinalizeNorthPoleMatch(user, match) {
   return match.creator_user_id === user.id || match.created_by === user.id || playerIds.includes(user.id);
 }
 
+function analyzeWinnerSubmission({ match, resultPayload, scores, winnerUserId }) {
+  const issues = [];
+  const scoreEntries = Object.entries(scores || {})
+    .map(([userId, value]) => ({ userId, score: Number(value) }))
+    .filter((entry) => Number.isFinite(entry.score));
+  const sortedScores = [...scoreEntries].sort((a, b) => b.score - a.score);
+  const topScore = sortedScores[0];
+  const topTies = topScore ? sortedScores.filter((entry) => entry.score === topScore.score) : [];
+
+  if (!scoreEntries.length) issues.push('missing_scores');
+  if (!winnerUserId) issues.push('missing_claimed_winner');
+  if (winnerUserId && !Object.prototype.hasOwnProperty.call(scores || {}, winnerUserId)) issues.push('claimed_winner_missing_score');
+  if (topTies.length > 1) issues.push('conflicting_top_scores');
+  if (topScore && winnerUserId && topScore.userId !== winnerUserId) issues.push('claimed_winner_not_top_score');
+  if (scoreEntries.some((entry) => entry.score < 0 || entry.score > 1000000000)) issues.push('impossible_score');
+
+  const evidenceUrls = Array.isArray(resultPayload.evidence_urls)
+    ? resultPayload.evidence_urls.filter(Boolean)
+    : [resultPayload.proof_url, resultPayload.screenshot_url, resultPayload.video_url].filter(Boolean);
+  const verificationMethod = match.verification_method || match.game_snapshot?.verification_type || 'screenshot';
+  if (verificationMethod !== 'honor_system' && evidenceUrls.length === 0) issues.push('missing_evidence');
+
+  const submittedAt = new Date().toISOString();
+  const endsAt = match.ends_at || match.deadline;
+  if (endsAt && Date.parse(submittedAt) > Date.parse(endsAt)) issues.push('time_mismatch');
+
+  let aiRecommendation = 'recommended_winner';
+  if (issues.includes('conflicting_top_scores') || issues.includes('claimed_winner_not_top_score')) {
+    aiRecommendation = 'dispute_detected';
+  } else if (issues.includes('missing_evidence') || issues.includes('missing_scores') || issues.includes('claimed_winner_missing_score')) {
+    aiRecommendation = 'needs_more_evidence';
+  } else if (issues.length) {
+    aiRecommendation = 'manual_review_required';
+  }
+
+  const aiConfidence = aiRecommendation === 'recommended_winner' ? 0.82 : aiRecommendation === 'dispute_detected' ? 0.35 : 0.48;
+  const verificationStatus = aiRecommendation === 'recommended_winner' ? 'recommended' : 'manual_review';
+
+  return {
+    evidenceUrls,
+    scoreData: scoreEntries,
+    aiRecommendation,
+    aiConfidence,
+    verificationStatus,
+    issues,
+    topScore,
+  };
+}
+
 async function createNorthPoleMatchRecord({ store, user, input, sandboxMode = false, skillAgreementVersion = null }) {
   const gameId = input.gameId || input.game_id;
   const prizeId = input.prizeId || input.prize_id;
@@ -481,15 +553,24 @@ async function createNorthPoleMatchRecord({ store, user, input, sandboxMode = fa
     match_id: matchId,
     created_by: user.id,
     creator_user_id: user.id,
+    creator_display_name: user.full_name || user.name || user.email || 'Creator',
     game_id: gameId,
     game_snapshot: sanitizeSnapshot(input.gameSnapshot || input.game_snapshot),
     prize_id: prizeId,
     prize_snapshot: sanitizeSnapshot(input.prizeSnapshot || input.prize_snapshot),
     player_ids: [user.id],
     scores: {},
-    status: sandboxMode ? 'active' : 'open',
+    status: input.status || (sandboxMode ? 'active' : 'open'),
     sandbox_mode: sandboxMode,
     fulfillment_mode: sandboxMode ? 'sandbox' : 'simulated',
+    creator_is_mission_player: true,
+    mission_player_number: maxPlayers + 1,
+    player_slots: maxPlayers,
+    entry_amount_cents: buyInCents,
+    total_prize_path_cents: sanitizeSnapshot(input.matchPlan || input.match_plan)?.totalPrizeCostCents
+      || sanitizeSnapshot(input.prizeSnapshot || input.prize_snapshot)?.total_prize_cost_cents
+      || sanitizeSnapshot(input.prizeSnapshot || input.prize_snapshot)?.price_cents
+      || 0,
     prize_locked_at: nowIso,
     started_at: nowIso,
     buy_in_cents: buyInCents,
@@ -890,54 +971,151 @@ export function createFunctionRouter({ store }) {
     const winnerUserId = resultPayload.winner?.userId || resultPayload.winner_user_id;
     if (!scores || !winnerUserId) return res.status(400).json({ success: false, error: 'Invalid result payload' });
 
-    await store.update('north_pole_matches', match.id, {
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-      raw_result_payload: resultPayload,
-      scores,
-    });
-    await store.create('match_events', {
+    const analysis = analyzeWinnerSubmission({ match, resultPayload, scores, winnerUserId });
+    const nowIso = new Date().toISOString();
+
+    const scoreSubmission = await store.create(T.scoreSubmissions, {
       match_id: match.match_id,
-      event_type: 'match_completed',
-      actor_user_id: user.id,
-      data: { scores },
-      note: 'Match completed - scores finalized',
+      match_db_id: match.id,
+      submitted_by_user_id: user.id,
+      claimed_winner_user_id: winnerUserId,
+      score_data: scores,
+      evidence_urls: analysis.evidenceUrls,
+      submitted_at: nowIso,
     });
 
-    const verified = await store.update('north_pole_matches', match.id, {
-      status: 'verified',
-      winner_user_id: winnerUserId,
-      winner_locked_at: new Date().toISOString(),
-    });
-    await store.create('match_events', {
+    const evidence = await store.create(T.matchEvidence, {
       match_id: match.match_id,
-      event_type: 'winner_verified',
-      actor_user_id: 'system',
-      data: { winner_user_id: winnerUserId },
-      note: `Winner locked: ${winnerUserId}`,
+      score_submission_id: scoreSubmission.id,
+      submitted_by_user_id: user.id,
+      evidence_urls: analysis.evidenceUrls,
+      evidence_type: analysis.evidenceUrls.length ? 'media_url' : 'missing',
+      status: analysis.evidenceUrls.length ? 'received' : 'missing',
     });
 
-    let fulfillment = null;
-    if (match.sandbox_mode) {
-      fulfillment = await store.create('north_pole_fulfillments', {
+    const verification = await store.create(T.winnerVerifications, {
+      match_id: match.match_id,
+      match_db_id: match.id,
+      score_submission_id: scoreSubmission.id,
+      match_evidence_id: evidence.id,
+      submitted_by_user_id: user.id,
+      claimed_winner_user_id: winnerUserId,
+      evidence_urls: analysis.evidenceUrls,
+      score_data: scores,
+      game_rules_snapshot: {
+        rules: match.rules || match.match_plan?.rules || '',
+        game_snapshot: match.game_snapshot || {},
+        verification_method: match.verification_method || match.game_snapshot?.verification_type || 'screenshot',
+      },
+      ai_recommendation: analysis.aiRecommendation,
+      ai_confidence: analysis.aiConfidence,
+      ai_findings: analysis.issues,
+      verification_status: analysis.verificationStatus,
+      admin_review_required: true,
+      reviewed_by: null,
+      reviewed_at: null,
+    });
+
+    let dispute = null;
+    if (analysis.aiRecommendation === 'dispute_detected') {
+      dispute = await store.create(T.matchDisputes, {
         match_id: match.match_id,
-        winner_user_id: winnerUserId,
-        prize_id: match.prize_id,
-        prize_snapshot: match.prize_snapshot,
-        admin_status: 'pending_review',
-        order_status: 'sandbox_created',
-        sandbox_mode: true,
-      });
-      await store.create('match_events', {
-        match_id: match.match_id,
-        event_type: 'fulfillment_created',
-        actor_user_id: 'system',
-        data: { fulfillment_id: fulfillment.id },
-        note: 'Fulfillment record created - pending admin review',
+        winner_verification_id: verification.id,
+        opened_by_user_id: user.id,
+        dispute_status: 'open',
+        reasons: analysis.issues,
       });
     }
 
-    ok(res, { match: verified, fulfillment, row: verified, data: verified });
+    const updated = await store.update('north_pole_matches', match.id, {
+      status: analysis.aiRecommendation === 'dispute_detected' ? 'disputed' : 'pending_verification',
+      completed_at: nowIso,
+      raw_result_payload: resultPayload,
+      scores,
+      claimed_winner_user_id: winnerUserId,
+      winner_verification_id: verification.id,
+    });
+
+    await store.create('match_events', {
+      match_id: match.match_id,
+      event_type: 'winner_verification_created',
+      actor_user_id: user.id,
+      data: {
+        score_submission_id: scoreSubmission.id,
+        winner_verification_id: verification.id,
+        ai_recommendation: analysis.aiRecommendation,
+        admin_review_required: true,
+      },
+      note: 'Winner verification recommendation created. Admin approval is required before fulfillment intent.',
+    });
+
+    ok(res, { match: updated, verification, scoreSubmission, evidence, dispute, row: updated, data: updated });
+  }));
+
+  router.post('/approveWinnerVerification', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    if (!isAdminUser(user)) return res.status(403).json({ success: false, error: 'Admin review is required to approve winner verification.' });
+
+    const input = approveWinnerVerificationSchema.parse(req.body || {});
+    const verificationId = input.id || input.verificationId || input.verification_id;
+    if (!verificationId) return res.status(400).json({ success: false, error: 'Winner verification ID is required' });
+
+    const verification = await store.findOne(T.winnerVerifications, { id: verificationId });
+    if (!verification) return res.status(404).json({ success: false, error: 'Winner verification not found' });
+
+    const approve = input.approve !== false;
+    const nowIso = new Date().toISOString();
+    const status = approve ? 'approved' : 'rejected';
+    const winnerUserId = input.winnerUserId || input.winner_user_id || verification.claimed_winner_user_id;
+    const reviewed = await store.update(T.winnerVerifications, verification.id, {
+      verification_status: status,
+      reviewed_by: user.id,
+      reviewed_at: nowIso,
+      review_note: input.reviewNote || input.review_note || '',
+    });
+
+    const match = await store.findOne('north_pole_matches', { match_id: verification.match_id });
+    let updatedMatch = match;
+    let fulfillmentIntent = null;
+    if (approve && match) {
+      updatedMatch = await store.update('north_pole_matches', match.id, {
+        status: 'fulfillment_pending',
+        winner_user_id: winnerUserId,
+        winner_locked_at: nowIso,
+      });
+      fulfillmentIntent = await store.create(T.fulfillmentIntents, {
+        match_id: match.match_id,
+        winner_user_id: winnerUserId,
+        prize_snapshot: match.prize_snapshot || {},
+        shipping_status: 'pending_admin_review',
+        fulfillment_status: 'pending',
+        purchase_mode: 'sandbox',
+        admin_approval_required: true,
+        winner_verification_id: verification.id,
+      });
+      await store.create(T.purchaseIntents, {
+        match_id: match.match_id,
+        winner_user_id: winnerUserId,
+        prize_snapshot: match.prize_snapshot || {},
+        purchase_mode: 'sandbox',
+        purchase_status: 'pending_admin_review',
+        admin_approval_required: true,
+        fulfillment_intent_id: fulfillmentIntent.id,
+      });
+    } else if (match) {
+      updatedMatch = await store.update('north_pole_matches', match.id, { status: 'pending_verification' });
+    }
+
+    await store.create('match_events', {
+      match_id: verification.match_id,
+      event_type: approve ? 'winner_verification_approved' : 'winner_verification_rejected',
+      actor_user_id: user.id,
+      data: { winner_verification_id: verification.id, fulfillment_intent_id: fulfillmentIntent?.id || null },
+      note: approve ? 'Admin approved winner verification and created sandbox fulfillment intent.' : 'Admin rejected winner verification.',
+    });
+
+    ok(res, { verification: reviewed, match: updatedMatch, fulfillmentIntent, row: reviewed, data: reviewed });
   }));
 
   router.post('/createMatch', asyncHandler(async (req, res) => {
