@@ -25,13 +25,15 @@ import {
   ShoppingCart,
   Pencil,
   CheckCircle2,
+  ClipboardList,
+  Trash2,
+  DoorOpen,
+  ArrowRight,
+  PlayCircle,
+  Target,
 } from 'lucide-react';
-import PrizeSelector, { DEMO_PRIZES } from '@/components/northpole/PrizeSelector';
-import GameLobby from '@/components/northpole/GameLobby';
-import MatchResultScreen from '@/components/northpole/MatchResultScreen';
 import AdminDashboard from '@/components/northpole/AdminDashboard';
 import SkillCompetitionAgreement from '@/components/northpole/SkillCompetitionAgreement';
-import { GAME_ADAPTERS, getAdapter } from '@/lib/northpole/gameAdapter';
 import { ADMIN_ROLES, userHasRole } from '@/lib/rbac';
 import { PublicBetaBadge } from '@/components/public/PublicBetaLayout';
 import { searchProducts } from '@/functions/searchProducts';
@@ -40,19 +42,14 @@ import {
   createNorthPoleMatch,
   listOpenNorthPoleMatches,
   joinNorthPoleMatch,
-  finalizeAndVerify,
-  createFulfillmentRecord,
+  leaveNorthPoleMatch,
+  cancelNorthPoleMatch,
+  submitScore as submitMatchScore,
+  verifyWinner,
+  lockWinner,
+  createFulfillmentOrder,
   SKILL_COMPETITION_AGREEMENT_VERSION,
 } from '@/lib/northpole/matchEngine';
-import { MediaHero, VideoBackgroundCard, PrizeMediaCard, mediaImages } from '@/components/media/MediaPrimitives';
-
-const STEPS = {
-  PRIZE_SELECT: 'prize_select',
-  GAME_LOBBY: 'game_lobby',
-  PLAYING: 'playing',
-  VERIFYING: 'verifying',
-  RESULT: 'result',
-};
 
 const PLAYER_OPTIONS = [2, 4, 6, 8, 10, 12];
 
@@ -101,10 +98,174 @@ function calculateNorthPoleOptions({ priceCents, taxCents, shippingCents, player
 
 function statusClass(status) {
   if (status === 'open') return 'bg-blue-600/20 text-blue-300 border-blue-600/30';
-  if (status === 'active') return 'bg-cyan-600/20 text-cyan-300 border-cyan-600/30';
-  if (['verified', 'fulfillment_pending', 'fulfilled'].includes(status)) return 'bg-green-600/20 text-green-300 border-green-600/30';
+  if (status === 'waiting_for_players') return 'bg-indigo-600/20 text-indigo-300 border-indigo-600/30';
+  if (status === 'in_progress') return 'bg-cyan-600/20 text-cyan-300 border-cyan-600/30';
+  if (status === 'pending_verification') return 'bg-yellow-600/20 text-yellow-300 border-yellow-600/30';
+  if (['winner_verified', 'fulfillment_pending', 'fulfilled'].includes(status)) return 'bg-green-600/20 text-green-300 border-green-600/30';
+  if (status === 'disputed') return 'bg-orange-600/20 text-orange-300 border-orange-600/30';
   if (status === 'cancelled') return 'bg-red-600/20 text-red-300 border-red-600/30';
   return 'bg-purple-600/20 text-purple-300 border-purple-600/30';
+}
+
+const MATCH_STATUS_STEPS = [
+  { id: 'open', label: 'Open', statuses: ['draft', 'open'] },
+  { id: 'waiting', label: 'Waiting for players', statuses: ['waiting_for_players'] },
+  { id: 'active', label: 'In progress', statuses: ['in_progress'] },
+  { id: 'verify', label: 'Pending verification', statuses: ['pending_verification', 'disputed'] },
+  { id: 'winner', label: 'Winner verified', statuses: ['winner_verified'] },
+  { id: 'fulfillment_pending', label: 'Fulfillment pending', statuses: ['fulfillment_pending'] },
+  { id: 'fulfilled', label: 'Fulfilled', statuses: ['fulfilled'] },
+  { id: 'cancelled', label: 'Cancelled', statuses: ['cancelled'] },
+];
+
+function stepIndexForStatus(status) {
+  const index = MATCH_STATUS_STEPS.findIndex((step) => step.statuses.includes(status));
+  return index >= 0 ? index : 0;
+}
+
+function MatchStatusSteps({ status }) {
+  const activeIndex = stepIndexForStatus(status);
+  return (
+    <div className="grid gap-2 text-[11px] sm:grid-cols-4 lg:grid-cols-8">
+      {MATCH_STATUS_STEPS.map((step, index) => {
+        const active = index === activeIndex;
+        const done = index < activeIndex;
+        return (
+          <div
+            key={step.id}
+            className={`rounded-lg border px-2 py-2 ${
+              active
+                ? 'border-cyan-400 bg-cyan-600/20 text-white'
+                : done
+                  ? 'border-green-700/35 bg-green-900/25 text-green-200'
+                  : 'border-purple-800/30 bg-black/20 text-purple-400'
+            }`}
+          >
+            {step.label}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const howItWorksCards = [
+  {
+    icon: Gift,
+    number: '1',
+    title: 'Choose a prize',
+    description: 'Pick something you want to play for.',
+  },
+  {
+    icon: Gamepad2,
+    number: '2',
+    title: 'Pick the game',
+    description: 'Choose the game players will compete in.',
+  },
+  {
+    icon: Target,
+    number: '3',
+    title: 'Compete by skill',
+    description: 'Players enter the room and play.',
+  },
+  {
+    icon: Trophy,
+    number: '4',
+    title: 'Win the prize',
+    description: 'The winner is reviewed and the prize moves forward.',
+  },
+];
+
+function NorthPoleLandingHero() {
+  return (
+    <section className="bg-white text-slate-950">
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-10 sm:px-6 md:py-14 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:px-8">
+        <div className="space-y-7">
+          <div className="space-y-5">
+            <h1 className="max-w-2xl text-4xl font-black leading-[1.08] tracking-normal text-black sm:text-5xl lg:text-6xl">
+              Choose a prize.<br />
+              Pick the game.<br />
+              (Win the game, win the prize.)<br />
+              Support <span className="text-purple-700">Santa Claus.</span>
+            </h1>
+            <p className="max-w-xl text-lg leading-8 text-slate-600">
+              Build a prize room around a real item, compete by skill, and help support The Poles Foundation mission for children.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <a
+              href="#north-pole-flow"
+              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg bg-purple-700 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-purple-900/20 transition hover:bg-purple-600"
+            >
+              Build a Prize Room
+              <ArrowRight className="h-4 w-4" />
+            </a>
+            <a
+              href="#north-pole-how-it-works"
+              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-7 py-3 text-sm font-bold text-slate-950 transition hover:border-purple-300 hover:bg-purple-50"
+            >
+              <PlayCircle className="h-5 w-5" />
+              See How It Works
+            </a>
+          </div>
+        </div>
+
+        <div className="relative">
+          <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 shadow-2xl shadow-purple-950/20">
+            <img
+              src="/images/north-pole-hero.png"
+              alt="A live prize room showing a player competing in a game for a gaming console prize"
+              loading="eager"
+              decoding="async"
+              className="w-full rounded-3xl object-cover"
+            />
+          </div>
+
+          <div className="mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-1 text-sm text-slate-700">
+            <div className="inline-flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-2 font-semibold text-purple-700">
+              <span className="h-2.5 w-2.5 rounded-full bg-purple-600" />
+              Live Prize Room
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+              <span className="font-semibold">8/8 players</span>
+            </div>
+            <div className="flex items-end gap-1 text-purple-700">
+              {[3, 5, 7, 10].map((height) => (
+                <span key={height} className="w-1.5 rounded-full bg-purple-700" style={{ height }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="north-pole-how-it-works" className="border-t border-purple-100 bg-gradient-to-b from-purple-50/70 to-white px-4 py-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <h2 className="mb-6 text-center text-3xl font-black text-black">How it works</h2>
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {howItWorksCards.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.number} className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-purple-950/5">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-purple-100 bg-purple-50 text-purple-700">
+                    <Icon className="h-9 w-9" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="mb-2 flex items-center gap-3">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-700 text-sm font-black text-white">{item.number}</span>
+                      <h3 className="text-base font-black text-black">{item.title}</h3>
+                    </div>
+                    <p className="text-sm leading-6 text-slate-600">{item.description}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function currentUserMatchIds(user) {
@@ -135,14 +296,27 @@ function NorthPoleMatchCard({
   onPrepareJoin,
   onCancelJoin,
   onJoinAgreementChange,
+  scoreDraft,
+  onScoreDraftChange,
+  onSubmitScore,
+  onVerifyWinner,
+  onLockWinner,
+  onCreateFulfillment,
+  onLeave,
+  onCancelMatch,
+  isAdmin,
+  verificationRecommendation,
+  actionLoading,
 }) {
   const playerIds = Array.isArray(match.player_ids) ? match.player_ids : [];
   const userIds = currentUserMatchIds(currentUser);
   const isParticipant = matchIncludesUserId(playerIds, userIds);
   const isCreator = matchIncludesUserId([match.creator_user_id, match.created_by], userIds);
   const isFull = playerIds.length >= Number(match.max_players || 0);
-  const canJoin = Boolean(userIds.length && !isParticipant && !isFull && ['open', 'pending'].includes(match.status));
+  const canJoin = Boolean(userIds.length && !isParticipant && !isFull && ['open', 'waiting_for_players'].includes(match.status));
   const isPendingJoin = pendingJoinId === match.id && canJoin;
+  const canLeave = Boolean(isParticipant && !isCreator && ['open', 'waiting_for_players'].includes(match.status));
+  const canCancel = Boolean((isCreator || isAdmin) && ['draft', 'open', 'waiting_for_players'].includes(match.status));
   const plan = match.match_plan || match.prize_snapshot?.match_plan || {};
 
   return (
@@ -153,11 +327,6 @@ function NorthPoleMatchCard({
             <div className="flex flex-wrap items-center gap-2">
               <span className="font-mono text-sm font-bold text-white">{match.match_id}</span>
               <Badge className={`border text-xs ${statusClass(match.status)}`}>{match.status}</Badge>
-              {match.sandbox_mode ? (
-                <Badge className="border border-blue-700/30 bg-blue-900/40 text-blue-300 text-xs">Demo</Badge>
-              ) : (
-                <Badge className="border border-green-700/30 bg-green-900/40 text-green-300 text-xs">Persisted</Badge>
-              )}
             </div>
             <h3 className="text-lg font-bold text-white">{match.prize_snapshot?.title || match.prize_id || 'North Pole Prize'}</h3>
             <div className="grid gap-2 text-xs text-purple-200/75 sm:grid-cols-2 lg:grid-cols-4">
@@ -186,7 +355,7 @@ function NorthPoleMatchCard({
                 className="bg-purple-700 text-white hover:bg-purple-600"
               >
                 {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-                {isCreator ? 'Your Match' : isParticipant ? 'Joined' : isFull ? 'Full' : 'Join Match'}
+                {isCreator ? 'Your Room' : isParticipant ? 'Joined' : isFull ? 'Full' : 'Join Room'}
               </Button>
             ) : (
               <Button
@@ -195,10 +364,35 @@ function NorthPoleMatchCard({
                 className="bg-green-700 text-white hover:bg-green-600"
               >
                 {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
-                Confirm Join Match
+                Confirm Join Room
+              </Button>
+            )}
+            {canLeave && (
+              <Button
+                variant="outline"
+                onClick={() => onLeave(match)}
+                disabled={actionLoading === `leave-${match.id}`}
+                className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40"
+              >
+                <DoorOpen className="mr-2 h-4 w-4" />
+                Leave Room
+              </Button>
+            )}
+            {canCancel && (
+              <Button
+                variant="outline"
+                onClick={() => onCancelMatch(match)}
+                disabled={actionLoading === `cancel-${match.id}`}
+                className="border-red-700/50 text-red-200 hover:bg-red-950/40"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete/Cancel
               </Button>
             )}
           </div>
+        </div>
+        <div className="mt-4">
+          <MatchStatusSteps status={match.status} />
         </div>
         {isPendingJoin && (
           <div className="mt-4 space-y-3">
@@ -217,12 +411,105 @@ function NorthPoleMatchCard({
             </Button>
           </div>
         )}
+        {(isParticipant || isCreator) && (
+          <div className="mt-4 rounded-xl border border-purple-800/30 bg-black/25 p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h4 className="flex items-center gap-2 text-sm font-bold text-white">
+                <ClipboardList className="h-4 w-4 text-cyan-300" />
+                Score and Verification
+              </h4>
+              <Badge className="border border-blue-700/30 bg-blue-900/35 text-blue-200">
+                Deterministic winner rules
+              </Badge>
+            </div>
+            <div className="grid gap-3 lg:grid-cols-[120px_150px_1fr]">
+              <Input
+                inputMode="decimal"
+                value={scoreDraft?.score || ''}
+                onChange={(event) => onScoreDraftChange(match, { score: event.target.value })}
+                placeholder="Score"
+                className="border-purple-700/40 bg-black/30 text-white placeholder:text-purple-400/60"
+              />
+              <select
+                value={scoreDraft?.scoreType || 'highest_score'}
+                onChange={(event) => onScoreDraftChange(match, { scoreType: event.target.value })}
+                className="rounded-md border border-purple-700/40 bg-black/30 px-3 py-2 text-sm text-white"
+              >
+                <option value="highest_score">Highest score</option>
+                <option value="lowest_time">Lowest time</option>
+                <option value="bracket_result">Bracket result</option>
+                <option value="manual">Manual</option>
+              </select>
+              <Input
+                value={scoreDraft?.evidenceUrl || ''}
+                onChange={(event) => onScoreDraftChange(match, { evidenceUrl: event.target.value })}
+                placeholder="Evidence URL"
+                className="border-purple-700/40 bg-black/30 text-white placeholder:text-purple-400/60"
+              />
+            </div>
+            <Input
+              value={scoreDraft?.evidenceNotes || ''}
+              onChange={(event) => onScoreDraftChange(match, { evidenceNotes: event.target.value })}
+              placeholder="Evidence notes"
+              className="mt-3 border-purple-700/40 bg-black/30 text-white placeholder:text-purple-400/60"
+            />
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                onClick={() => onSubmitScore(match)}
+                disabled={actionLoading === `score-${match.id}`}
+                className="bg-cyan-700 text-white hover:bg-cyan-600"
+              >
+                Submit Result
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onVerifyWinner(match)}
+                disabled={actionLoading === `verify-${match.id}`}
+                className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40"
+              >
+                Verify Winner
+              </Button>
+              {verificationRecommendation?.recommendedWinner && (
+                <Button
+                  size="sm"
+                  onClick={() => onLockWinner(match)}
+                  disabled={actionLoading === `lock-${match.id}`}
+                  className="bg-green-700 text-white hover:bg-green-600"
+                >
+                  Approve Winner
+                </Button>
+              )}
+              {match.winner_user_id && (
+                <Button
+                  size="sm"
+                  onClick={() => onCreateFulfillment(match)}
+                  disabled={actionLoading === `fulfillment-${match.id}`}
+                  className="bg-yellow-700 text-white hover:bg-yellow-600"
+                >
+                  Create Fulfillment
+                </Button>
+              )}
+            </div>
+            {verificationRecommendation && (
+              <div className="mt-3 rounded-lg border border-purple-800/30 bg-purple-950/25 p-3 text-xs text-purple-100">
+                <div>Recommended winner: <span className="font-mono text-yellow-200">{verificationRecommendation.recommendedWinner?.userId || 'None yet'}</span></div>
+                <div>Rule: {verificationRecommendation.deterministicRule}</div>
+                {verificationRecommendation.warnings?.length > 0 && (
+                  <div className="text-yellow-200">Warnings: {verificationRecommendation.warnings.join(', ')}</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 }
 
 function RealNorthPoleFlow({ user }) {
+  const isAdmin = userHasRole(user, ADMIN_ROLES);
   const [step, setStep] = useState('prize');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -242,12 +529,16 @@ function RealNorthPoleFlow({ user }) {
   const [estimatedTax, setEstimatedTax] = useState('');
   const [estimatedShipping, setEstimatedShipping] = useState('');
   const [matches, setMatches] = useState([]);
+  const [matchView, setMatchView] = useState('active');
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [joiningId, setJoiningId] = useState(null);
   const [createAgreementAccepted, setCreateAgreementAccepted] = useState(false);
   const [pendingJoinId, setPendingJoinId] = useState(null);
   const [joinAgreementAccepted, setJoinAgreementAccepted] = useState(false);
+  const [scoreDrafts, setScoreDrafts] = useState({});
+  const [verificationRecommendations, setVerificationRecommendations] = useState({});
+  const [flowActionLoading, setFlowActionLoading] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -259,32 +550,6 @@ function RealNorthPoleFlow({ user }) {
     [priceCents, taxCents, shippingCents]
   );
   const selectedPlan = costOptions.find((option) => option.players === selectedPlayers) || costOptions[0];
-
-  const samplePrizes = useMemo(() => DEMO_PRIZES.map((prize) => ({
-    ...prize,
-    source: 'sample_search_placeholder',
-    images: [prize.image_url],
-    brand: prize.category,
-    offers: [{
-      retailer: 'sample_catalog',
-      price_cents: prize.price_cents,
-      availability: 'in_stock',
-    }],
-  })), []);
-
-  const playableDemoGames = useMemo(() => GAME_ADAPTERS.map((adapter) => ({
-    id: adapter.id,
-    title: adapter.title,
-    description: adapter.description,
-    category: adapter.genre,
-    platform: 'web',
-    store: 'The Poles playable demo',
-    skillStyle: 'playable sandbox score',
-    skill_verifiable: true,
-    avgDurationSeconds: adapter.avgDurationSeconds,
-    icon: adapter.icon,
-    source: 'playable_demo_adapter',
-  })), []);
 
   const loadMatches = useCallback(async () => {
     setIsLoading(true);
@@ -306,6 +571,17 @@ function RealNorthPoleFlow({ user }) {
       return nextMatch.sandbox_mode ? nextRows : [nextMatch, ...nextRows];
     });
   }, []);
+
+  const visibleMatches = useMemo(() => {
+    const userIds = currentUserMatchIds(user);
+    const activeStatuses = new Set(['draft', 'open', 'waiting_for_players', 'in_progress', 'pending_verification', 'winner_verified', 'fulfillment_pending', 'disputed']);
+    return matches.filter((match) => {
+      if (matchView === 'mine') {
+        return matchIncludesUserId([match.creator_user_id, match.created_by, ...(Array.isArray(match.player_ids) ? match.player_ids : [])], userIds);
+      }
+      return activeStatuses.has(match.status);
+    });
+  }, [matches, matchView, user]);
 
   const markMatchAsJoined = useCallback((match) => {
     const userId = currentUserStoredMatchId(user);
@@ -353,7 +629,7 @@ function RealNorthPoleFlow({ user }) {
     };
   };
 
-  const normalizeGame = (game, source = 'sample_game_catalog') => ({
+  const normalizeGame = (game, source = 'game_provider') => ({
     id: game.id || game.app_id || `game-${Date.now().toString(36)}`,
     title: game.title || 'Selected Game',
     developer: game.developer || game.publisher || 'Unknown',
@@ -390,7 +666,7 @@ function RealNorthPoleFlow({ user }) {
     try {
       const { data } = await searchProducts({ q: searchTerm.trim(), limit: 12 });
       setSearchResults((data.products || []).map((product) => normalizePrize(product, data.provider || 'search_placeholder')));
-      setSearchProvider(data.sourceLabel || data.provider || 'sample_catalog');
+      setSearchProvider(data.sourceLabel || data.provider || 'product_provider');
       setSearchProviderMessage(data.providerMessage || '');
     } catch (err) {
       setError(err.message || 'Prize search failed.');
@@ -410,8 +686,8 @@ function RealNorthPoleFlow({ user }) {
     setMessage('');
     try {
       const { data } = await searchGames({ q: query, limit: 18 });
-      setGameResults((data.games || []).map((game) => normalizeGame(game, data.provider || 'sample_game_catalog')));
-      setGameProvider(data.sourceLabel || data.provider || 'sample_game_catalog');
+      setGameResults((data.games || []).map((game) => normalizeGame(game, data.provider || 'game_provider')));
+      setGameProvider(data.sourceLabel || data.provider || 'game_provider');
       setGameProviderMessage(data.providerMessage || '');
     } catch (err) {
       setError(err.message || 'Game search failed.');
@@ -550,7 +826,8 @@ function RealNorthPoleFlow({ user }) {
         skillAgreementAccepted: true,
         skillAgreementVersion: SKILL_COMPETITION_AGREEMENT_VERSION,
       });
-      upsertMatch(updated || match);
+      markMatchAsJoined(match);
+      await loadMatches();
       setMessage('You joined this match successfully.');
       setPendingJoinId(null);
       setJoinAgreementAccepted(false);
@@ -568,6 +845,38 @@ function RealNorthPoleFlow({ user }) {
     }
   };
 
+  const leaveMatch = async (match) => {
+    setFlowActionLoading(`leave-${match.id}`);
+    setError('');
+    setMessage('');
+    try {
+      await leaveNorthPoleMatch({ matchId: match.match_id || match.id });
+      setMessage('You left this prize room.');
+      await loadMatches();
+    } catch (err) {
+      setError(err.message || 'Could not leave this prize room.');
+    } finally {
+      setFlowActionLoading('');
+    }
+  };
+
+  const cancelMatch = async (match) => {
+    if (!window.confirm('Are you sure you want to cancel this prize room?')) return;
+
+    setFlowActionLoading(`cancel-${match.id}`);
+    setError('');
+    setMessage('');
+    try {
+      await cancelNorthPoleMatch({ matchId: match.match_id || match.id });
+      setMessage('Prize room cancelled.');
+      await loadMatches();
+    } catch (err) {
+      setError(err.message || 'Could not cancel this prize room.');
+    } finally {
+      setFlowActionLoading('');
+    }
+  };
+
   const prepareJoinMatch = (match) => {
     if (!user?.id) {
       setError('Sign in before joining a North Pole match.');
@@ -582,6 +891,107 @@ function RealNorthPoleFlow({ user }) {
   const cancelJoinMatch = () => {
     setPendingJoinId(null);
     setJoinAgreementAccepted(false);
+  };
+
+  const updateScoreDraft = (match, patch) => {
+    const matchKey = match.id;
+    setScoreDrafts((prev) => ({
+      ...prev,
+      [matchKey]: {
+        score: '',
+        scoreType: 'highest_score',
+        evidenceUrl: '',
+        evidenceNotes: '',
+        ...(prev[matchKey] || {}),
+        ...patch,
+      },
+    }));
+  };
+
+  const submitMatchScoreForMatch = async (match) => {
+    const draft = scoreDrafts[match.id] || {};
+    const numericScore = Number(draft.score);
+    if (!Number.isFinite(numericScore)) {
+      setError('Enter a numeric score before submitting.');
+      return;
+    }
+
+    setFlowActionLoading(`score-${match.id}`);
+    setError('');
+    setMessage('');
+    try {
+      await submitMatchScore({
+        matchId: match.match_id || match.id,
+        score: numericScore,
+        scoreType: draft.scoreType || 'highest_score',
+        evidenceUrl: draft.evidenceUrl || '',
+        evidenceNotes: draft.evidenceNotes || '',
+      });
+      setMessage('Score submitted for verification.');
+      await loadMatches();
+    } catch (err) {
+      setError(err.message || 'Could not submit score.');
+    } finally {
+      setFlowActionLoading('');
+    }
+  };
+
+  const verifyWinnerForMatch = async (match) => {
+    setFlowActionLoading(`verify-${match.id}`);
+    setError('');
+    setMessage('');
+    try {
+      const recommendation = await verifyWinner({ matchId: match.match_id || match.id });
+      setVerificationRecommendations((prev) => ({ ...prev, [match.id]: recommendation }));
+      setMessage('Winner recommendation created from stored scores.');
+      await loadMatches();
+    } catch (err) {
+      setError(err.message || 'Could not verify winner.');
+    } finally {
+      setFlowActionLoading('');
+    }
+  };
+
+  const lockWinnerForMatch = async (match) => {
+    const recommendation = verificationRecommendations[match.id];
+    if (!recommendation?.recommendedWinner) {
+      setError('Run winner verification before locking a winner.');
+      return;
+    }
+
+    setFlowActionLoading(`lock-${match.id}`);
+    setError('');
+    setMessage('');
+    try {
+      await lockWinner({
+        matchId: match.match_id || match.id,
+        winnerUserId: recommendation.recommendedWinner.userId,
+        winningScore: recommendation.recommendedWinner.score,
+        verificationMethod: recommendation.warnings?.length ? 'admin_review' : 'automatic',
+        auditNotes: recommendation.deterministicRule,
+      });
+      setMessage('Winner verified. Fulfillment is pending.');
+      await loadMatches();
+    } catch (err) {
+      setError(err.message || 'Could not lock winner.');
+    } finally {
+      setFlowActionLoading('');
+    }
+  };
+
+  const createFulfillmentForMatch = async (match) => {
+    setFlowActionLoading(`fulfillment-${match.id}`);
+    setError('');
+    setMessage('');
+    try {
+      await createFulfillmentOrder({ matchId: match.match_id || match.id });
+      setMessage('Fulfillment order created for admin tracking.');
+      await loadMatches();
+    } catch (err) {
+      setError(err.message || 'Could not create fulfillment order.');
+    } finally {
+      setFlowActionLoading('');
+    }
   };
 
   return (
@@ -611,7 +1021,7 @@ function RealNorthPoleFlow({ user }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <Plus className="h-5 w-5 text-green-300" />
-            Build a North Pole Match
+            Build a Prize Room
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -643,7 +1053,7 @@ function RealNorthPoleFlow({ user }) {
                       Search or Select a Prize
                     </h3>
                     <p className="text-xs text-purple-300/75">
-                      Search runs through backend providers. It falls back to the sample catalog until retailer API adapters are connected.
+                      Search runs through backend product providers.
                     </p>
                   </div>
                   {searchProvider && (
@@ -665,7 +1075,7 @@ function RealNorthPoleFlow({ user }) {
                   </div>
                   <Button onClick={handleSearch} disabled={isSearching} className="bg-purple-700 text-white hover:bg-purple-600">
                     {isSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                    Search
+                    Search Product
                   </Button>
                 </div>
               </div>
@@ -679,12 +1089,17 @@ function RealNorthPoleFlow({ user }) {
               <div>
                 <div className="mb-3 flex items-center justify-between">
                   <h4 className="text-sm font-bold text-purple-100">
-                    {searchResults.length ? 'Search Results' : 'Sample Prize Fallback'}
+                    {searchResults.length ? 'Search Results' : 'Search for a product to select a prize'}
                   </h4>
-                  <Badge className="border border-yellow-700/30 bg-yellow-900/40 text-yellow-300">Provider-backed fallback</Badge>
+                  {searchProvider && <Badge className="border border-yellow-700/30 bg-yellow-900/40 text-yellow-300">{searchProvider}</Badge>}
                 </div>
+                {searchTerm.length > 1 && !isSearching && searchResults.length === 0 && (
+                  <div className="mb-4 rounded-xl border border-purple-700/20 bg-black/25 p-6 text-center text-sm text-purple-300">
+                    No products found for "{searchTerm}". Try another product name or use manual prize entry.
+                  </div>
+                )}
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  {(searchResults.length ? searchResults : samplePrizes).map((prize) => (
+                  {searchResults.map((prize) => (
                     <Card key={prize.id} className="border border-purple-700/30 bg-purple-950/30 transition-all hover:border-yellow-400/60">
                       <CardContent className="p-4">
                         <div className="mb-3 flex h-36 items-center justify-center overflow-hidden rounded-lg bg-black/30">
@@ -697,14 +1112,14 @@ function RealNorthPoleFlow({ user }) {
                         <h5 className="mb-2 line-clamp-2 text-sm font-semibold text-white">{prize.title}</h5>
                         <div className="mb-3 flex flex-wrap items-center gap-2">
                           <Badge className="bg-purple-600/20 text-xs text-purple-300">{prize.category}</Badge>
-                          <Badge className="bg-blue-600/20 text-xs text-blue-300">{prize.offers?.[0]?.retailer || prize.source_label || prize.source || 'sample catalog'}</Badge>
+                          <Badge className="bg-blue-600/20 text-xs text-blue-300">{prize.offers?.[0]?.retailer || prize.source_label || prize.source || 'product provider'}</Badge>
                           <span className="text-sm font-bold text-green-300">{formatMoney(prize.price_cents)}</span>
                         </div>
                         <p className="mb-3 text-xs text-purple-300/70">
-                          Source: {prize.source_label || prize.source || 'sample catalog until retailer APIs are connected'}
+                          Source: {prize.source_label || prize.source || 'product provider'}
                         </p>
                         <Button onClick={() => selectPrize(prize, prize.source)} className="w-full bg-yellow-700 text-white hover:bg-yellow-600">
-                          Select Prize
+                          Select Product
                         </Button>
                       </CardContent>
                     </Card>
@@ -748,7 +1163,7 @@ function RealNorthPoleFlow({ user }) {
                     Search and Select a Game
                   </h3>
                   <p className="text-xs text-purple-300/75">
-                    Game search runs through backend providers. It falls back to the sample catalog until IGDB, RAWG, Steam, Epic, Xbox, PlayStation, and mobile store adapters are connected.
+                    Game search runs through backend game providers.
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -769,9 +1184,9 @@ function RealNorthPoleFlow({ user }) {
                       className="border-purple-700/40 bg-black/30 pl-9 text-white placeholder:text-purple-400/60"
                     />
                   </div>
-                  <Button onClick={() => handleGameSearch()} disabled={isGameSearching} className="bg-cyan-700 text-white hover:bg-cyan-600">
+                <Button onClick={() => handleGameSearch()} disabled={isGameSearching} className="bg-cyan-700 text-white hover:bg-cyan-600">
                     {isGameSearching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                    Search Games
+                    Search Game
                   </Button>
                 </div>
               </div>
@@ -845,39 +1260,6 @@ function RealNorthPoleFlow({ user }) {
                 </div>
               )}
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-bold text-purple-100">Playable Demo Games</h4>
-                  <Badge className="border border-blue-700/30 bg-blue-900/40 text-blue-300">Sandbox testing</Badge>
-                </div>
-                <div className="grid gap-4 lg:grid-cols-2">
-                {playableDemoGames.map((game) => {
-                  const selected = selectedGame?.id === game.id;
-                  return (
-                    <Card key={game.id} className={`border transition-all ${selected ? 'border-cyan-400 bg-cyan-600/20' : 'border-purple-700/30 bg-purple-950/30 hover:border-cyan-400/60'}`}>
-                      <CardContent className="p-5">
-                        <div className="flex items-start gap-4">
-                          <div className="text-4xl">{game.icon || 'Game'}</div>
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-2 flex flex-wrap items-center gap-2">
-                              <h4 className="text-lg font-bold text-white">{game.title}</h4>
-                              <Badge className="bg-purple-600/20 text-xs text-purple-300">{game.category}</Badge>
-                              <Badge className="bg-blue-600/20 text-xs text-blue-300">Playable demo</Badge>
-                              {selected && <Badge className="bg-cyan-600/20 text-cyan-200">Selected</Badge>}
-                            </div>
-                            <p className="mb-4 text-sm text-purple-200/75">{game.description}</p>
-                            <Button onClick={() => selectGame(game)} className="w-full bg-cyan-700 text-white hover:bg-cyan-600">
-                              <CheckCircle2 className="mr-2 h-4 w-4" />
-                              Choose Game
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-                </div>
-              </div>
               <Button variant="outline" onClick={() => setStep('prize')} className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40">Back to Prize</Button>
             </div>
           )}
@@ -913,7 +1295,7 @@ function RealNorthPoleFlow({ user }) {
                   <DollarSign className="h-4 w-4 text-green-300" />
                   <h3 className="text-sm font-bold text-white">Room and Entry Contribution Options</h3>
                   <Badge className="border border-pink-500/30 bg-pink-600/15 text-pink-200">
-                    The Poles Fund
+                    The Poles Foundation
                   </Badge>
                 </div>
                 <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
@@ -962,7 +1344,7 @@ function RealNorthPoleFlow({ user }) {
                 <Button variant="outline" onClick={() => setStep('game')} className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40">Back to Games</Button>
                 <Button onClick={createMatch} disabled={isCreating || !createAgreementAccepted} className="flex-1 bg-green-700 text-white hover:bg-green-600">
                   {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
-                  Create Persisted Match
+                  Create Prize Room
                 </Button>
               </div>
             </div>
@@ -974,16 +1356,32 @@ function RealNorthPoleFlow({ user }) {
         <CardHeader className="flex flex-row items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2 text-white">
             <Gamepad2 className="h-5 w-5 text-cyan-300" />
-            Open North Pole Matches
+            Prize Rooms
           </CardTitle>
-          <Button
-            variant="outline"
-            onClick={loadMatches}
-            className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={matchView === 'active' ? 'default' : 'outline'}
+              onClick={() => setMatchView('active')}
+              className={matchView === 'active' ? 'bg-cyan-700 text-white hover:bg-cyan-600' : 'border-purple-700/50 text-purple-200 hover:bg-purple-900/40'}
+            >
+              View Active Matches
+            </Button>
+            <Button
+              variant={matchView === 'mine' ? 'default' : 'outline'}
+              onClick={() => setMatchView('mine')}
+              className={matchView === 'mine' ? 'bg-cyan-700 text-white hover:bg-cyan-600' : 'border-purple-700/50 text-purple-200 hover:bg-purple-900/40'}
+            >
+              View My Matches
+            </Button>
+            <Button
+              variant="outline"
+              onClick={loadMatches}
+              className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Refresh
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {isLoading ? (
@@ -992,8 +1390,8 @@ function RealNorthPoleFlow({ user }) {
                 <div key={item} className="h-24 animate-pulse rounded-xl bg-purple-900/30" />
               ))}
             </div>
-          ) : matches.length ? (
-            matches.map((match) => (
+          ) : visibleMatches.length ? (
+            visibleMatches.map((match) => (
               <NorthPoleMatchCard
                 key={match.id}
                 match={match}
@@ -1005,11 +1403,22 @@ function RealNorthPoleFlow({ user }) {
                 pendingJoinId={pendingJoinId}
                 joinAgreementAccepted={pendingJoinId === match.id && joinAgreementAccepted}
                 isJoining={joiningId === match.id}
+                scoreDraft={scoreDrafts[match.id]}
+                onScoreDraftChange={updateScoreDraft}
+                onSubmitScore={submitMatchScoreForMatch}
+                onVerifyWinner={verifyWinnerForMatch}
+                onLockWinner={lockWinnerForMatch}
+                onCreateFulfillment={createFulfillmentForMatch}
+                onLeave={leaveMatch}
+                onCancelMatch={cancelMatch}
+                isAdmin={isAdmin}
+                verificationRecommendation={verificationRecommendations[match.id]}
+                actionLoading={flowActionLoading}
               />
             ))
           ) : (
             <div className="rounded-xl border border-purple-700/20 bg-black/25 p-8 text-center text-sm text-purple-300">
-              No persisted North Pole matches yet. Create one above and refresh the page to confirm it remains.
+              {matchView === 'mine' ? 'You have not created or joined any prize rooms yet.' : 'No active prize rooms yet. Create one above and refresh the page to confirm it remains.'}
             </div>
           )}
         </CardContent>
@@ -1018,225 +1427,9 @@ function RealNorthPoleFlow({ user }) {
   );
 }
 
-function DemoSimulation({ user }) {
-  const [step, setStep] = useState(STEPS.PRIZE_SELECT);
-  const [selectedPrize, setSelectedPrize] = useState(null);
-  const [selectedAdapter, setSelectedAdapter] = useState(null);
-  const [currentMatch, setCurrentMatch] = useState(null);
-  const [fulfillment, setFulfillment] = useState(null);
-  const [verifying, setVerifying] = useState(false);
-  const [verifyError, setVerifyError] = useState('');
-
-  const handlePrizeSelect = (prize) => {
-    setSelectedPrize(prize);
-    setStep(STEPS.GAME_LOBBY);
-  };
-
-  const handleStartMatch = useCallback(async (adapter) => {
-    if (!user || !selectedPrize) return;
-    setSelectedAdapter(adapter);
-    setVerifyError('');
-
-    const matchPlan = adapter.matchPlan || {};
-    const match = await createNorthPoleMatch({
-      userId: user.id,
-      gameId: adapter.id,
-      prizeId: selectedPrize.id,
-      prizeSnapshot: {
-        ...selectedPrize,
-        match_plan: matchPlan,
-      },
-      maxPlayers: matchPlan.players || selectedPrize.max_players || 10,
-      buyInCents: matchPlan.perPlayerCents || selectedPrize.buy_in_cents || 0,
-      status: 'active',
-      sandboxMode: true,
-      matchPlan,
-    });
-    setCurrentMatch(match);
-    setStep(STEPS.PLAYING);
-  }, [user, selectedPrize]);
-
-  const handleGameResult = useCallback(async (resultPayload) => {
-    if (!currentMatch) return;
-    setStep(STEPS.VERIFYING);
-    setVerifying(true);
-    setVerifyError('');
-
-    if (
-      resultPayload?.eventType !== 'MATCH_RESULT_FINALIZED' ||
-      !resultPayload?.winner?.userId ||
-      !resultPayload?.scores
-    ) {
-      setVerifyError('Invalid result payload from game adapter.');
-      setVerifying(false);
-      return;
-    }
-
-    try {
-      const verified = await finalizeAndVerify({
-        matchDbId: currentMatch.id,
-        matchId: currentMatch.match_id,
-        userId: user.id,
-        resultPayload,
-      });
-      setCurrentMatch(verified);
-
-      const ff = await createFulfillmentRecord({
-        matchId: verified.match_id,
-        winnerUserId: verified.winner_user_id,
-        prizeId: verified.prize_id,
-        prizeSnapshot: verified.prize_snapshot,
-      });
-      setFulfillment(ff);
-
-      setStep(STEPS.RESULT);
-    } catch (err) {
-      setVerifyError(err.message || 'Demo verification failed.');
-    } finally {
-      setVerifying(false);
-    }
-  }, [currentMatch, user]);
-
-  const handlePlayAgain = () => {
-    setStep(STEPS.PRIZE_SELECT);
-    setSelectedPrize(null);
-    setSelectedAdapter(null);
-    setCurrentMatch(null);
-    setFulfillment(null);
-    setVerifyError('');
-  };
-
-  const GameComponent = selectedAdapter ? getAdapter(selectedAdapter.id)?.GameComponent : null;
-
-  return (
-    <div className="space-y-6">
-      <Alert className="border-blue-700/40 bg-blue-950/25 text-blue-100">
-        <Gift className="h-4 w-4" />
-        <AlertTitle>Demo Simulation</AlertTitle>
-        <AlertDescription>
-          This section uses hardcoded demo prizes and sandbox gameplay. It is separate from the real persisted match creation flow.
-        </AlertDescription>
-      </Alert>
-
-      {step !== STEPS.RESULT && (
-        <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
-          {[
-            { id: STEPS.PRIZE_SELECT, label: '1. Choose Prize' },
-            { id: STEPS.GAME_LOBBY, label: '2. Cost + Game' },
-            { id: STEPS.PLAYING, label: '3. Play' },
-            { id: STEPS.VERIFYING, label: '4. Verify' },
-            { id: STEPS.RESULT, label: '5. Result' },
-          ].map((item) => {
-            const order = [STEPS.PRIZE_SELECT, STEPS.GAME_LOBBY, STEPS.PLAYING, STEPS.VERIFYING, STEPS.RESULT];
-            const currentIndex = order.indexOf(step);
-            const itemIndex = order.indexOf(item.id);
-            const isDone = itemIndex < currentIndex;
-            const isActive = item.id === step;
-            return (
-              <div
-                key={item.id}
-                className={`rounded-full border px-3 py-1 ${
-                  isActive
-                    ? 'border-purple-400 bg-purple-600 text-white'
-                    : isDone
-                      ? 'border-green-700/40 bg-green-900/40 text-green-300'
-                      : 'border-purple-800/30 bg-purple-900/20 text-purple-500'
-                }`}
-              >
-                {isDone ? 'Done - ' : ''}{item.label}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {step === STEPS.PRIZE_SELECT && (
-        <Card className="border border-purple-700/30 bg-purple-900/20">
-          <CardContent className="p-6">
-            <PrizeSelector onSelect={handlePrizeSelect} />
-          </CardContent>
-        </Card>
-      )}
-
-      {step === STEPS.GAME_LOBBY && selectedPrize && (
-        <Card className="border border-purple-700/30 bg-purple-900/20">
-          <CardContent className="p-6">
-            <div className="mb-4">
-              <Button
-                variant="ghost"
-                onClick={() => setStep(STEPS.PRIZE_SELECT)}
-                className="p-0 text-sm text-purple-400 hover:text-purple-200"
-              >
-                Back to Prize Selection
-              </Button>
-            </div>
-            <GameLobby selectedPrize={selectedPrize} onStartMatch={handleStartMatch} />
-          </CardContent>
-        </Card>
-      )}
-
-      {step === STEPS.PLAYING && GameComponent && currentMatch && (
-        <Card className="border border-purple-700/30 bg-purple-900/20">
-          <CardContent className="p-6">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-purple-400">Match</span>
-                <span className="font-mono text-sm font-bold text-white">{currentMatch.match_id}</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs text-yellow-300">Prize: {selectedPrize?.title}</span>
-                <Badge className="border border-blue-700/30 bg-blue-900/40 text-blue-300 text-xs">Prize Locked</Badge>
-                {selectedAdapter?.matchPlan && (
-                  <Badge className="border border-green-700/30 bg-green-900/40 text-green-300 text-xs">
-                    {formatMoney(selectedAdapter.matchPlan.perPlayerCents)} each / {selectedAdapter.matchPlan.players} players
-                  </Badge>
-                )}
-              </div>
-            </div>
-            <GameComponent
-              matchId={currentMatch.match_id}
-              userId={user?.id || 'demo-user'}
-              onResult={handleGameResult}
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      {step === STEPS.VERIFYING && (
-        <Card className="border border-purple-700/30 bg-purple-900/20">
-          <CardContent className="p-12 text-center">
-            {verifying ? (
-              <>
-                <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-purple-400" />
-                <h3 className="mb-2 text-xl font-bold text-white">Verifying Match Result...</h3>
-                <p className="text-sm text-purple-300">Scores are being saved and the winner is being locked.</p>
-              </>
-            ) : verifyError ? (
-              <>
-                <h3 className="mb-2 text-xl font-bold text-red-400">Verification Failed</h3>
-                <p className="mb-4 text-sm text-red-300">{verifyError}</p>
-                <Button onClick={handlePlayAgain} className="bg-purple-600 hover:bg-purple-700">Try Again</Button>
-              </>
-            ) : null}
-          </CardContent>
-        </Card>
-      )}
-
-      {step === STEPS.RESULT && currentMatch && (
-        <MatchResultScreen
-          match={currentMatch}
-          fulfillment={fulfillment}
-          currentUserId={user?.id}
-          onPlayAgain={handlePlayAgain}
-        />
-      )}
-    </div>
-  );
-}
-
 export default function NorthPole() {
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('real');
+  const [activeTab, setActiveTab] = useState('build');
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   useEffect(() => {
@@ -1266,29 +1459,7 @@ export default function NorthPole() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-black via-purple-950 to-black text-white">
-      <MediaHero
-        eyebrow="The North Pole"
-        title="Digital arenas. Real confidence."
-        description="Create prize rooms around games, creators, streamers, and esports-style skill. Every room should feel like stepping under the lights with a clear path to compete, verify, and win."
-        image={mediaImages.northArena}
-        badges={["Neon arena energy", "Skill-verified matches", "Prize room momentum", "Fund included"]}
-        primaryAction={{ href: "#north-pole-flow", label: "Build a prize room" }}
-        secondaryAction={{ href: "/AffiliateCatalog", label: "Browse prize catalog" }}
-      >
-        <div className="grid gap-3">
-          <VideoBackgroundCard
-            title="Creator match night"
-            description="Use short, poster-backed media moments to make each match feel public, social, and worth promoting."
-            image={mediaImages.northPrize}
-            label="Arena preview"
-            metric="Live"
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <PrizeMediaCard title="Prize vault" description="Gear, consoles, collectibles, and experiences." image={mediaImages.northPrize} meta="Rewards" />
-            <PrizeMediaCard title="Score lock" description="Transparent skill rules before players enter." image={mediaImages.northArena} meta="Trust" />
-          </div>
-        </div>
-      </MediaHero>
+      <NorthPoleLandingHero />
 
       <div id="north-pole-flow" className="mx-auto max-w-6xl p-4 md:p-8">
         <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
@@ -1297,7 +1468,7 @@ export default function NorthPole() {
             <ShieldCheck className="mr-1 h-3 w-3" />Persisted matches
           </Badge>
           <Badge className="border border-pink-700/30 bg-pink-900/40 text-pink-300">
-            <Heart className="mr-1 h-3 w-3" />The Poles Fund
+            <Heart className="mr-1 h-3 w-3" />The Poles Foundation
           </Badge>
           {user && (
             <Badge className="border border-purple-700/30 bg-purple-900/40 text-purple-300">
@@ -1308,11 +1479,8 @@ export default function NorthPole() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-6 w-full border border-purple-700/30 bg-purple-900/40">
-            <TabsTrigger value="real" className="flex-1 text-purple-200 data-[state=active]:bg-purple-700">
-              <Gift className="mr-2 h-4 w-4" />The North Pole
-            </TabsTrigger>
-            <TabsTrigger value="demo" className="flex-1 text-purple-200 data-[state=active]:bg-purple-700">
-              <Gamepad2 className="mr-2 h-4 w-4" />Demo Simulation
+            <TabsTrigger value="build" className="flex-1 text-purple-200 data-[state=active]:bg-purple-700">
+              <Gift className="mr-2 h-4 w-4" />Build a Prize Room
             </TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="admin" className="flex-1 text-purple-200 data-[state=active]:bg-purple-700">
@@ -1321,12 +1489,8 @@ export default function NorthPole() {
             )}
           </TabsList>
 
-          <TabsContent value="real">
+          <TabsContent value="build">
             <RealNorthPoleFlow user={user} />
-          </TabsContent>
-
-          <TabsContent value="demo">
-            <DemoSimulation user={user} />
           </TabsContent>
 
           {isAdmin && (
