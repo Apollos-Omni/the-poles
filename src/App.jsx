@@ -43,6 +43,7 @@ const LeagueOrganizationDetailPage = lazy(() => import('@/pages/LeagueOrganizati
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
 const CreateMatchPage = Pages.CreateMatch;
+const NorthPolePage = Pages.NorthPole;
 
 const protectedPageRoles = {
   AgentDashboard: ADMIN_ROLES,
@@ -64,6 +65,7 @@ const publicRoutePaths = new Set([
   '/SignIn',
   '/CreateAccount',
   '/CreateMatch',
+  '/NorthPole',
   '/auth/callback',
 ]);
 
@@ -115,6 +117,7 @@ const AuthenticatedApp = () => {
       <Route path="/SignIn" element={<AuthPage mode="signin" />} />
       <Route path="/CreateAccount" element={<AuthPage mode="signup" />} />
       <Route path="/CreateMatch" element={<CreateMatchPage />} />
+      <Route path="/NorthPole" element={<NorthPolePage />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
