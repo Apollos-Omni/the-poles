@@ -54,9 +54,9 @@ const actionCards = [
     border: "border-purple-300/25",
   },
   {
-    title: "Create Skill Match",
+    title: "Build a Prize Room",
     description: "Choose a game, set rules, and build a verified challenge.",
-    href: createPageUrl("CreateMatch"),
+    href: "/NorthPole#north-pole-flow",
     icon: Trophy,
     image: mediaImages.northPrize,
     mediaAccent: "gold",

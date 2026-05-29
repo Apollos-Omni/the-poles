@@ -161,7 +161,7 @@ function HomeScreen({ onCreateMatch, onNavigate }) {
          </div>
          <p className="text-purple-300/60 text-xs">Select your prize. Compete in a digital skill match based on preparation and performance. The verified winner takes the prize.</p>
           <div className="flex gap-2">
-            <Button size="sm" className="bg-purple-700 hover:bg-purple-600 text-white text-xs" onClick={() => onNavigate('gameroom')}>Browse Matches</Button>
+            <Link to="/NorthPole"><Button size="sm" className="bg-purple-700 hover:bg-purple-600 text-white text-xs">Browse Matches</Button></Link>
             <Link to="/NorthPole"><Button size="sm" variant="outline" className="border-purple-700/40 text-purple-300 text-xs">Shop & Create</Button></Link>
           </div>
         </div>

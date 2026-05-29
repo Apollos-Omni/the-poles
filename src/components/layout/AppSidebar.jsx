@@ -38,7 +38,7 @@ const mainNavItems = [
   { name: 'The South Pole', icon: Mountain, page: 'SouthPole', href: '/SouthPole' },
   { name: 'The Poles Fund', icon: Heart, page: 'ThePolesFund', href: '/ThePolesFund' },
   { name: 'Mission Ledger', icon: ClipboardList, page: 'MissionLedger', href: '/MissionLedger' },
-  { name: 'Create Skill Match', icon: Trophy, page: 'CreateMatch' },
+  { name: 'Build a Prize Room', icon: Trophy, page: 'NorthPole', href: '/NorthPole#north-pole-flow' },
   { name: 'League Hub', icon: Trophy, page: 'LeagueHub', href: '/Leagues' },
   { name: 'Profile', icon: UserIcon, page: 'Profile' },
   { name: 'Support', icon: LifeBuoy, page: 'ContactUs' },
