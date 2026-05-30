@@ -1,0 +1,22 @@
+{
+  "name": "MatchEntry",
+  "type": "object",
+  "properties": {
+    "matchId": { "type": "string" },
+    "userId": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "paid", "refunded", "disqualified"],
+      "default": "pending"
+    },
+    "entryAmount": { "type": "number" },
+    "currency": { "type": "string", "default": "USD" },
+    "paymentProvider": {
+      "type": "string",
+      "enum": ["simulated"],
+      "default": "simulated"
+    },
+    "paymentIntentId": { "type": "string" }
+  },
+  "required": ["matchId", "userId", "status", "entryAmount", "currency", "paymentProvider", "paymentIntentId"]
+}

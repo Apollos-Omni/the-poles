@@ -1,0 +1,21 @@
+{
+  "name": "WinnerVerification",
+  "type": "object",
+  "properties": {
+    "matchId": { "type": "string" },
+    "winnerUserId": { "type": "string" },
+    "winningScore": { "type": "number" },
+    "verificationMethod": {
+      "type": "string",
+      "enum": ["automatic", "ai_assisted", "admin_review"],
+      "default": "automatic"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "locked", "disputed", "overturned"],
+      "default": "pending"
+    },
+    "auditNotes": { "type": "string" }
+  },
+  "required": ["matchId", "winnerUserId", "verificationMethod", "status"]
+}

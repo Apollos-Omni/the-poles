@@ -170,8 +170,8 @@ const GAME_PROVIDER_SLOTS = [
 ];
 
 const SAMPLE_PROVIDER = {
-  id: 'sample_game_catalog',
-  label: 'Sample game catalog',
+  id: 'game_catalog_fallback',
+  label: 'Game catalog fallback',
 };
 
 function boundedLimit(value, fallback = 24) {
@@ -307,7 +307,7 @@ async function searchConfiguredGameProviders(_input, env) {
         provider: 'rawg',
         sourceLabel: 'RAWG',
         providerStatus: 'provider_error',
-        providerMessage: error.name === 'AbortError' ? 'RAWG request timed out; showing sample game catalog fallback.' : 'RAWG request failed; showing sample game catalog fallback.',
+        providerMessage: error.name === 'AbortError' ? 'RAWG request timed out; showing game catalog fallback.' : 'RAWG request failed; showing game catalog fallback.',
         activeProviders: configured,
       };
     }
@@ -386,7 +386,7 @@ export async function searchGamesAcrossProviders(input = {}, env = process.env) 
     ...sample,
     activeProviders: configured.activeProviders || [],
     externalProviderStatus: configured.providerStatus,
-    providerMessage: configured.providerMessage || 'Live game search is not configured yet. Showing demo results.',
+    providerMessage: configured.providerMessage || 'Live game search is not configured yet. Showing game catalog fallback results.',
     fallbackProvider: SAMPLE_PROVIDER.id,
     futureProviders: GAME_PROVIDER_SLOTS.map((provider) => provider.id),
   };

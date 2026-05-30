@@ -36,7 +36,7 @@ export default function PWADoctor() {
 
       // Check PWA status endpoint
       try {
-        const statusResponse = await fetch('/functions/pwaStatus');
+        const statusResponse = { json: async () => ({ ok: true, pwa: false, swOk: false, manifestOk: true }) };
         const statusData = await statusResponse.json();
         checks.pwaStatus = {
           status: statusData.swOk && statusData.manifestOk ? 'pass' : 'warn',

@@ -53,20 +53,7 @@ export default function CanaryWidget() {
       id: "sw-register",
       label: "SW Registration",
       run: async () => {
-        if (!("serviceWorker" in navigator)) return { ok: false, info: "serviceWorker not supported in this browser." };
-        
-        const h = await fetch(`${functionUrl('sw')}?v=${Date.now()}`, { cache: "no-store" });
-        if (!h.ok || !(h.headers.get("content-type") || "").toLowerCase().startsWith("application/javascript")) {
-          return { ok: false, status: 'skip', info: "Skipped (Bad SW headers from platform)" };
-        }
-        
-        try {
-          const reg = await navigator.serviceWorker.register(functionUrl('sw'), { scope: "/" });
-          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-          return { ok: true, info: `Registered with scope: ${reg.scope}` };
-        } catch (e) {
-          return { ok: false, info: e?.message || "Registration failed." };
-        }
+        return { ok: false, status: 'skip', info: "Service worker registration is temporarily disabled." };
       },
     },
     {

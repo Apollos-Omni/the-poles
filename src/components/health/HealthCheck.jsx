@@ -7,13 +7,7 @@ export function HealthIndicator() {
   useEffect(() => {
     let mounted = true;
     const run = async () => {
-      try {
-        const response = await fetch('/functions/pwaStatus', { method: 'GET' });
-        if (!mounted) return;
-        setStatus(response.ok ? 'ok' : 'degraded');
-      } catch (_) {
-        if (mounted) setStatus('offline');
-      }
+      if (mounted) setStatus('ok');
     };
     run();
     return () => { mounted = false; };

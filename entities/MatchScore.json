@@ -1,0 +1,27 @@
+{
+  "name": "MatchScore",
+  "type": "object",
+  "properties": {
+    "matchId": { "type": "string" },
+    "userId": { "type": "string" },
+    "score": { "type": "number" },
+    "scoreType": {
+      "type": "string",
+      "enum": ["highest_score", "lowest_time", "bracket_result", "manual"],
+      "default": "highest_score"
+    },
+    "evidenceUrl": { "type": "string" },
+    "evidenceNotes": { "type": "string" },
+    "verificationStatus": {
+      "type": "string",
+      "enum": ["pending", "verified", "rejected", "disputed"],
+      "default": "pending"
+    },
+    "aiReviewStatus": {
+      "type": "string",
+      "enum": ["not_reviewed", "clean", "suspicious", "flagged"],
+      "default": "not_reviewed"
+    }
+  },
+  "required": ["matchId", "userId", "score", "scoreType", "verificationStatus", "aiReviewStatus"]
+}

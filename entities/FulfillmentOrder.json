@@ -1,0 +1,31 @@
+{
+  "name": "FulfillmentOrder",
+  "type": "object",
+  "properties": {
+    "matchId": { "type": "string" },
+    "winnerUserId": { "type": "string" },
+    "prizeId": { "type": "string" },
+    "productSource": {
+      "type": "string",
+      "enum": ["ebay", "amazon", "manual"],
+      "default": "manual"
+    },
+    "productUrl": { "type": "string" },
+    "itemId": { "type": "string" },
+    "title": { "type": "string" },
+    "price": { "type": "number" },
+    "currency": { "type": "string", "default": "USD" },
+    "shippingCost": { "type": "number" },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "ready_to_order", "ordered", "shipped", "delivered", "cancelled"],
+      "default": "pending"
+    },
+    "trackingNumber": { "type": "string" },
+    "carrier": { "type": "string" },
+    "orderedAt": { "type": "string", "format": "date-time" },
+    "shippedAt": { "type": "string", "format": "date-time" },
+    "deliveredAt": { "type": "string", "format": "date-time" }
+  },
+  "required": ["matchId", "winnerUserId", "prizeId", "productSource", "title", "status"]
+}

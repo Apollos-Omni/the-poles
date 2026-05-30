@@ -1,7 +1,6 @@
 import { searchProductCatalog } from '../../data/products.js';
 
 const EXTERNAL_SEARCH_TIMEOUT_MS = 7000;
-const EBAY_MARKETPLACE_ID = 'EBAY_US';
 const EBAY_OAUTH_URL = 'https://api.ebay.com/identity/v1/oauth2/token';
 const EBAY_SEARCH_URL = 'https://api.ebay.com/buy/browse/v1/item_summary/search';
 let ebayTokenCache = null;
@@ -10,7 +9,7 @@ const PRODUCT_PROVIDER_SLOTS = [
   {
     id: 'ebay_browse',
     label: 'eBay Browse API',
-    configured: (env) => Boolean((env.EBAY_CLIENT_ID || env.EBAY_APP_ID) && env.EBAY_CLIENT_SECRET),
+    configured: (env) => Boolean(env.EBAY_CLIENT_ID && env.EBAY_CLIENT_SECRET),
     status: 'live',
   },
   {
@@ -49,9 +48,9 @@ const PRODUCT_PROVIDER_SLOTS = [
   },
 ];
 
-const DEMO_PROVIDER = {
-  id: 'demo_catalog',
-  label: 'Demo product catalog',
+const CATALOG_PROVIDER = {
+  id: 'catalog_fallback',
+  label: 'Product catalog fallback',
 };
 
 function boundedLimit(value, fallback = 24) {
@@ -69,11 +68,15 @@ function externalAbortSignal(timeoutMs = EXTERNAL_SEARCH_TIMEOUT_MS) {
   return { signal: controller.signal, clear: () => clearTimeout(timeout) };
 }
 
-function ebayHeaders(token) {
+function ebayMarketplaceId(env) {
+  return env.EBAY_MARKETPLACE_ID || 'EBAY_US';
+}
+
+function ebayHeaders(token, env) {
   return {
     Authorization: `Bearer ${token}`,
     Accept: 'application/json',
-    'X-EBAY-C-MARKETPLACE-ID': EBAY_MARKETPLACE_ID,
+    'X-EBAY-C-MARKETPLACE-ID': ebayMarketplaceId(env),
   };
 }
 
@@ -87,7 +90,11 @@ async function getEbayAccessToken(env) {
     return ebayTokenCache.token;
   }
 
-  const auth = Buffer.from(`${env.EBAY_CLIENT_ID || env.EBAY_APP_ID}:${env.EBAY_CLIENT_SECRET}`).toString('base64');
+  if (!env.EBAY_CLIENT_ID || !env.EBAY_CLIENT_SECRET) {
+    throw new Error('eBay Browse API is not configured. Set EBAY_CLIENT_ID and EBAY_CLIENT_SECRET.');
+  }
+
+  const auth = Buffer.from(`${env.EBAY_CLIENT_ID}:${env.EBAY_CLIENT_SECRET}`).toString('base64');
   const body = new URLSearchParams({
     grant_type: 'client_credentials',
     scope: 'https://api.ebay.com/oauth/api_scope',
@@ -120,6 +127,7 @@ async function getEbayAccessToken(env) {
 }
 
 function normalizeEbayItem(item) {
+  const clean = normalizeEbayCleanItem(item);
   const price = item.price || {};
   const priceCents = toCents(price.value);
   const category = item.categories?.[0]?.categoryName || 'Prize';
@@ -150,9 +158,34 @@ function normalizeEbayItem(item) {
     currency: price.currency || 'USD',
     availability,
     provider_ids: {
-      ebay_item_id: item.itemId || item.legacyItemId || null,
+      ebay_item_id: clean.itemId,
     },
+    raw_ebay: clean,
   }, { id: 'ebay_browse', label: 'eBay Browse API' });
+}
+
+function normalizeShippingOption(shippingOptions = []) {
+  const options = Array.isArray(shippingOptions) ? shippingOptions : [];
+  return options.find((option) => option.shippingCost?.value !== undefined) || options[0] || {};
+}
+
+function normalizeEbayCleanItem(item = {}) {
+  const shippingOption = normalizeShippingOption(item.shippingOptions);
+  const shippingCost = shippingOption.shippingCost || {};
+  return {
+    source: 'ebay',
+    itemId: item.itemId || item.legacyItemId || '',
+    title: item.title || '',
+    imageUrl: item.image?.imageUrl || item.thumbnailImages?.[0]?.imageUrl || '',
+    priceValue: item.price?.value ?? null,
+    priceCurrency: item.price?.currency || null,
+    itemWebUrl: item.itemWebUrl || null,
+    condition: item.condition || null,
+    sellerUsername: item.seller?.username || null,
+    shippingCostValue: shippingCost.value ?? null,
+    shippingCostCurrency: shippingCost.currency || null,
+    buyingOptions: Array.isArray(item.buyingOptions) ? item.buyingOptions : [],
+  };
 }
 
 function hashFallback(...parts) {
@@ -169,7 +202,7 @@ function activeProductProviders(env) {
     }));
 }
 
-function withProductSource(product, provider = DEMO_PROVIDER) {
+function withProductSource(product, provider = CATALOG_PROVIDER) {
   const source = product.source || provider.id;
   const sourceLabel = product.source_label || product.sourceLabel || provider.label;
   const offers = Array.isArray(product.offers) ? product.offers : [];
@@ -200,27 +233,25 @@ function withProductSource(product, provider = DEMO_PROVIDER) {
   };
 }
 
-function searchDemoCatalog(input) {
+function searchCatalogFallback(input) {
   const { products, totalResults } = searchProductCatalog(input);
   return {
-    products: products.map((product) => withProductSource(product, DEMO_PROVIDER)),
+    products: products.map((product) => withProductSource(product, CATALOG_PROVIDER)),
     totalResults,
-    provider: DEMO_PROVIDER.id,
-    sourceLabel: DEMO_PROVIDER.label,
+    provider: CATALOG_PROVIDER.id,
+    sourceLabel: CATALOG_PROVIDER.label,
     providerStatus: 'fallback',
   };
 }
 
-async function searchEbayBrowse(input, env) {
+async function fetchEbayItemSummarySearch(input, env) {
   const q = String(input.q || input.query || '').trim();
   if (!q) {
     return {
-      products: [],
+      itemSummaries: [],
       totalResults: 0,
-      provider: 'ebay_browse',
-      sourceLabel: 'eBay Browse API',
-      providerStatus: 'empty_query',
-      activeProviders: activeProductProviders(env),
+      limit: boundedLimit(input.limit, 24),
+      offset: 0,
     };
   }
 
@@ -236,27 +267,61 @@ async function searchEbayBrowse(input, env) {
   try {
     const response = await fetch(`${EBAY_SEARCH_URL}?${params.toString()}`, {
       method: 'GET',
-      headers: ebayHeaders(token),
+      headers: ebayHeaders(token, env),
       signal,
     });
     if (!response.ok) {
       throw new Error(`eBay Browse search failed with HTTP ${response.status}`);
     }
     const data = await response.json();
-    const products = Array.isArray(data.itemSummaries)
-      ? data.itemSummaries.map(normalizeEbayItem)
-      : [];
     return {
-      products,
-      totalResults: Number(data.total || products.length) || products.length,
-      provider: 'ebay_browse',
-      sourceLabel: 'eBay Browse API',
-      providerStatus: 'live',
-      activeProviders: activeProductProviders(env),
+      itemSummaries: Array.isArray(data.itemSummaries) ? data.itemSummaries : [],
+      totalResults: Number(data.total || 0) || 0,
+      limit,
+      offset,
     };
   } finally {
     clear();
   }
+}
+
+async function searchEbayBrowse(input, env) {
+  const q = String(input.q || input.query || '').trim();
+  if (!q) {
+    return {
+      products: [],
+      totalResults: 0,
+      provider: 'ebay_browse',
+      sourceLabel: 'eBay Browse API',
+      providerStatus: 'empty_query',
+      activeProviders: activeProductProviders(env),
+    };
+  }
+
+  const data = await fetchEbayItemSummarySearch(input, env);
+  const products = data.itemSummaries.map(normalizeEbayItem);
+  return {
+    products,
+    totalResults: data.totalResults || products.length,
+    provider: 'ebay_browse',
+    sourceLabel: 'eBay Browse API',
+    providerStatus: 'live',
+    activeProviders: activeProductProviders(env),
+  };
+}
+
+export async function searchEbayBrowseCleanResults(input = {}, env = process.env) {
+  const data = await fetchEbayItemSummarySearch(input, env);
+  const results = data.itemSummaries.map(normalizeEbayCleanItem);
+  return {
+    source: 'ebay',
+    marketplaceId: ebayMarketplaceId(env),
+    q: String(input.q || input.query || '').trim(),
+    limit: data.limit,
+    offset: data.offset,
+    totalResults: data.totalResults || results.length,
+    results,
+  };
 }
 
 async function searchConfiguredProductProviders(input, env) {
@@ -283,7 +348,7 @@ async function searchConfiguredProductProviders(input, env) {
         provider: 'ebay_browse',
         sourceLabel: 'eBay Browse API',
         providerStatus: 'provider_error',
-        providerMessage: error.name === 'AbortError' ? 'eBay Browse API request timed out; showing demo catalog fallback.' : 'eBay Browse API request failed; showing demo catalog fallback.',
+        providerMessage: error.name === 'AbortError' ? 'eBay Browse API request timed out; showing catalog fallback.' : 'eBay Browse API request failed; showing catalog fallback.',
         activeProviders: configured,
       };
     }
@@ -304,18 +369,18 @@ export async function searchProductsAcrossProviders(input = {}, env = process.en
   if (configured.products.length) {
     return {
       ...configured,
-      fallbackProvider: DEMO_PROVIDER.id,
+      fallbackProvider: CATALOG_PROVIDER.id,
       futureProviders: PRODUCT_PROVIDER_SLOTS.map((provider) => provider.id),
     };
   }
 
-  const demo = searchDemoCatalog(input);
+  const fallback = searchCatalogFallback(input);
   return {
-    ...demo,
+    ...fallback,
     activeProviders: configured.activeProviders || [],
     externalProviderStatus: configured.providerStatus,
-    providerMessage: configured.providerMessage || 'Live product search is not configured yet. Showing demo results.',
-    fallbackProvider: DEMO_PROVIDER.id,
+    providerMessage: configured.providerMessage || 'Live product search is not configured yet. Showing catalog fallback results.',
+    fallbackProvider: CATALOG_PROVIDER.id,
     futureProviders: PRODUCT_PROVIDER_SLOTS.map((provider) => provider.id),
   };
 }

@@ -5,6 +5,21 @@
     "match_id": {
       "type": "string"
     },
+    "entityType": {
+      "type": "string"
+    },
+    "entityId": {
+      "type": "string"
+    },
+    "matchId": {
+      "type": "string"
+    },
+    "userId": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string"
+    },
     "actor": {
       "type": "string",
       "description": "'agent' | 'system' | 'user'"
@@ -21,6 +36,10 @@
       "type": "string"
     },
     "meta": {
+      "type": "object",
+      "default": {}
+    },
+    "metadata": {
       "type": "object",
       "default": {}
     }

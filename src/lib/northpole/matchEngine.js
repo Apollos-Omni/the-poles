@@ -1,5 +1,5 @@
 import { base44 } from '@/api/base44Client';
-import { invokeBackendFunction } from '@/api/apiClient';
+import { apiRequest, invokeBackendFunction } from '@/api/apiClient';
 
 export const SKILL_COMPETITION_AGREEMENT_VERSION = 'skill_competition_agreement_v1';
 
@@ -61,22 +61,91 @@ export async function joinNorthPoleMatch({
   skillAgreementAccepted = false,
   skillAgreementVersion = SKILL_COMPETITION_AGREEMENT_VERSION,
 }) {
-  const response = await invokeBackendFunction('joinNorthPoleMatch', {
-    id: matchId,
-    skill_agreement_accepted: skillAgreementAccepted,
-    skill_agreement_version: skillAgreementVersion,
+  if (!skillAgreementAccepted || skillAgreementVersion !== SKILL_COMPETITION_AGREEMENT_VERSION) {
+    throw new Error('Skill-based competition agreement must be accepted before entering this match.');
+  }
+
+  const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/join-simulated`, {
+    method: 'POST',
+    body: {},
   });
 
-  return response.data?.match || response.data?.data;
+  return response.data || response.entry;
 }
 
-export async function submitScore({ matchId, matchDbId, userId, score, meta = {} }) {
-  const match = await base44.entities.NorthPoleMatch.update(matchDbId, {
-    scores: { [userId]: score },
+export async function leaveNorthPoleMatch({ matchId }) {
+  const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/leave`, {
+    method: 'POST',
+    body: {},
   });
 
-  await logEvent(matchId, 'score_submitted', userId, { score, meta }, `Score ${score} submitted`);
-  return match;
+  return response.match || response.data;
+}
+
+export async function cancelNorthPoleMatch({ matchId }) {
+  const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/cancel`, {
+    method: 'POST',
+    body: {},
+  });
+
+  return response.match || response.data;
+}
+
+export async function submitScore({ matchId, score, scoreType = 'highest_score', evidenceUrl = '', evidenceNotes = '' }) {
+  const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/submit-score`, {
+    method: 'POST',
+    body: {
+      score,
+      scoreType,
+      evidenceUrl,
+      evidenceNotes,
+    },
+  });
+
+  return response.score || response.data;
+}
+
+export async function verifyWinner({ matchId }) {
+  return apiRequest(`/api/matches/${encodeURIComponent(matchId)}/verify-winner`, {
+    method: 'POST',
+    body: {},
+  });
+}
+
+export async function lockWinner({ matchId, winnerUserId, winningScore, verificationMethod = 'automatic', auditNotes = '' }) {
+  const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/lock-winner`, {
+    method: 'POST',
+    body: {
+      winnerUserId,
+      winningScore,
+      verificationMethod,
+      auditNotes,
+    },
+  });
+
+  return response.verification || response.data;
+}
+
+export async function createFulfillmentOrder({ matchId }) {
+  const response = await apiRequest(`/api/fulfillment/${encodeURIComponent(matchId)}/create`, {
+    method: 'POST',
+    body: {},
+  });
+
+  return response.fulfillment || response.data;
+}
+
+export async function updateFulfillmentOrderStatus({ fulfillmentId, status, trackingNumber = '', carrier = '' }) {
+  const response = await apiRequest(`/api/fulfillment/${encodeURIComponent(fulfillmentId)}/status`, {
+    method: 'PATCH',
+    body: {
+      status,
+      trackingNumber,
+      carrier,
+    },
+  });
+
+  return response.fulfillment || response.data;
 }
 
 export async function finalizeAndVerify({ matchDbId, matchId, resultPayload }) {

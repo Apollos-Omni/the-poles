@@ -1,0 +1,9 @@
+{
+  "name": "The Poles",
+  "short_name": "The Poles",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050009",
+  "theme_color": "#6d28d9",
+  "icons": []
+}

@@ -12,6 +12,7 @@ import { searchGamesAcrossProviders } from '../lib/searchProviders/games.js';
 const T = {
   userMatches: 'user_matches',
   tickets: 'tickets',
+  matchEntries: 'match_entries',
   scores: 'scores',
   auditEvents: 'audit_events',
   leaderboard: 'leaderboard',
@@ -34,6 +35,18 @@ const ADMIN_ROLES = [ROLES.OWNER, ROLES.ADMIN];
 const AFFILIATE_ADMIN_ROLES = [ROLES.OWNER, ROLES.ADMIN, ROLES.AFFILIATE_MANAGER];
 const SKILL_COMPETITION_AGREEMENT_VERSION = 'skill_competition_agreement_v1';
 const SKILL_AGREEMENT_REQUIRED_ERROR = 'Skill-based competition agreement must be accepted before entering this match.';
+const NORTH_POLE_VISIBLE_STATUSES = [
+  'draft',
+  'open',
+  'waiting_for_players',
+  'in_progress',
+  'pending_verification',
+  'winner_verified',
+  'fulfillment_pending',
+  'fulfilled',
+  'disputed',
+  'cancelled',
+];
 
 const WRITE_POLICIES = {
   affiliate_merchants: AFFILIATE_ADMIN_ROLES,
@@ -86,6 +99,8 @@ const entityRequestSchema = z.object({
 }).passthrough();
 
 const ENTITY_TABLE_ALIASES = {
+  MatchEntry: 'match_entries',
+  MatchScore: 'match_scores',
   NorthPoleMatch: 'north_pole_matches',
   NorthPoleFulfillment: 'north_pole_fulfillments',
   ScoreSubmission: 'score_submissions',
@@ -93,6 +108,7 @@ const ENTITY_TABLE_ALIASES = {
   WinnerVerification: 'winner_verifications',
   MatchDispute: 'match_disputes',
   FulfillmentIntent: 'fulfillment_intents',
+  FulfillmentOrder: 'fulfillment_orders',
   PurchaseIntent: 'purchase_intents',
   MatchEvent: 'match_events',
   UserMatch: 'user_match_entities',
@@ -579,12 +595,50 @@ async function createNorthPoleMatchRecord({ store, user, input, sandboxMode = fa
     ...agreementFields,
   });
 
+  const entry = await store.create(T.matchEntries, {
+    matchId,
+    userId: user.id,
+    status: 'paid',
+    entryAmount: buyInCents,
+    currency: 'USD',
+    paymentProvider: 'simulated',
+    paymentIntentId: `sim_payment_${crypto.randomUUID()}`,
+  });
+
   await store.create('match_events', {
     match_id: matchId,
     event_type: 'match_created',
     actor_user_id: user.id,
     data: { match_id: matchId, game_id: gameId, sandbox_mode: sandboxMode },
     note: sandboxMode ? 'Sandbox match created' : 'North Pole match created',
+  });
+
+  await store.create(T.auditEvents, {
+    actor: `user:${user.id}`,
+    stage: 'MATCH_CREATED',
+    message: 'North Pole match created',
+    meta: {
+      entityType: 'NorthPoleMatch',
+      entityId: match.id,
+      matchId,
+      userId: user.id,
+      action: 'MATCH_CREATED',
+      metadata: { gameId, prizeId, sandboxMode },
+    },
+  });
+
+  await store.create(T.auditEvents, {
+    actor: `user:${user.id}`,
+    stage: 'MATCH_ENTRY_SIMULATED_PAID',
+    message: 'Creator simulated entry created',
+    meta: {
+      entityType: 'MatchEntry',
+      entityId: entry.id,
+      matchId,
+      userId: user.id,
+      action: 'MATCH_ENTRY_SIMULATED_PAID',
+      metadata: { paymentProvider: 'simulated', creatorEntry: true },
+    },
   });
 
   return match;
@@ -853,7 +907,7 @@ export function createFunctionRouter({ store }) {
       ? await store.list('north_pole_matches', {}, options)
       : await store.list('north_pole_matches', {
         sandbox_mode: false,
-        status: ['open', 'active'],
+        status: NORTH_POLE_VISIBLE_STATUSES,
       }, options);
     ok(res, { rows, data: rows });
   }));
@@ -922,9 +976,18 @@ export function createFunctionRouter({ store }) {
     if (playerIds.length >= maxPlayers) return res.status(400).json({ success: false, error: 'This match is already full' });
 
     const nextPlayerIds = [...playerIds, user.id];
-    const nextStatus = nextPlayerIds.length >= maxPlayers ? 'active' : 'open';
+    const nextStatus = nextPlayerIds.length >= maxPlayers ? 'in_progress' : 'waiting_for_players';
     const acceptedAt = new Date().toISOString();
     const participantAgreements = normalizeParticipantAgreements(match.participant_agreements);
+    const entry = await store.create(T.matchEntries, {
+      matchId: match.match_id,
+      userId: user.id,
+      status: 'paid',
+      entryAmount: match.buy_in_cents || match.entry_amount_cents || 0,
+      currency: 'USD',
+      paymentProvider: 'simulated',
+      paymentIntentId: `sim_payment_${crypto.randomUUID()}`,
+    });
     const updated = await store.update('north_pole_matches', match.id, {
       player_ids: nextPlayerIds,
       status: nextStatus,
@@ -947,6 +1010,20 @@ export function createFunctionRouter({ store }) {
       actor_user_id: user.id,
       data: { player_count: nextPlayerIds.length, max_players: maxPlayers },
       note: nextStatus === 'active' ? 'Match filled and is ready to start' : 'Player joined match',
+    });
+
+    await store.create(T.auditEvents, {
+      actor: `user:${user.id}`,
+      stage: 'MATCH_ENTRY_SIMULATED_PAID',
+      message: 'Player joined with simulated payment',
+      meta: {
+        entityType: 'MatchEntry',
+        entityId: entry.id,
+        matchId: match.match_id,
+        userId: user.id,
+        action: 'MATCH_ENTRY_SIMULATED_PAID',
+        metadata: { paymentProvider: 'simulated' },
+      },
     });
 
     ok(res, { match: updated, row: updated, data: updated });
@@ -1081,7 +1158,10 @@ export function createFunctionRouter({ store }) {
     if (approve && match) {
       updatedMatch = await store.update('north_pole_matches', match.id, {
         status: 'fulfillment_pending',
+        winner_id: winnerUserId,
         winner_user_id: winnerUserId,
+        verified_at: nowIso,
+        verified_by: user.id,
         winner_locked_at: nowIso,
       });
       fulfillmentIntent = await store.create(T.fulfillmentIntents, {

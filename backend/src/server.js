@@ -1,10 +1,18 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import { createAuthRouter } from './routes/auth.js';
 import { createFunctionRouter } from './routes/functions.js';
+import { createMatchFlowRouter } from './routes/matchFlow.js';
 import { createStore } from './lib/store.js';
+import { searchEbayBrowseCleanResults } from './lib/searchProviders/products.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT || 8787);
@@ -51,6 +59,16 @@ app.get('/api/health', async (_req, res) => {
 const functionRouter = createFunctionRouter({ store });
 app.use('/api/auth', createAuthRouter({ store }));
 app.use('/api/functions', functionRouter);
+app.use('/api', createMatchFlowRouter({ store }));
+
+app.get('/api/ebay/search', async (req, res, next) => {
+  try {
+    const result = await searchEbayBrowseCleanResults(req.query, process.env);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Compatibility for old frontend code and diagnostics that fetch /functions/name directly.
 app.use('/functions', functionRouter);
