@@ -91,14 +91,50 @@ export async function cancelNorthPoleMatch({ matchId }) {
   return response.match || response.data;
 }
 
-export async function submitScore({ matchId, score, scoreType = 'highest_score', evidenceUrl = '', evidenceNotes = '' }) {
+export async function submitScore({
+  matchId,
+  userId,
+  score,
+  scoreType = 'highest_score',
+  evidenceUrl = '',
+  evidenceNotes = '',
+  platformUsername = '',
+  matchRound = '',
+  metadata = {},
+}) {
   const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/submit-score`, {
     method: 'POST',
     body: {
+      userId,
       score,
       scoreType,
       evidenceUrl,
       evidenceNotes,
+      platformUsername,
+      matchRound,
+      metadata,
+    },
+  });
+
+  return response.score || response.data;
+}
+
+export async function reviewScore({
+  matchId,
+  scoreId,
+  verificationStatus,
+  aiReviewStatus = 'not_reviewed',
+  reviewNotes = '',
+  reviewedBy = '',
+}) {
+  const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/review-score`, {
+    method: 'POST',
+    body: {
+      scoreId,
+      verificationStatus,
+      aiReviewStatus,
+      reviewNotes,
+      reviewedBy,
     },
   });
 
@@ -112,7 +148,15 @@ export async function verifyWinner({ matchId }) {
   });
 }
 
-export async function lockWinner({ matchId, winnerUserId, winningScore, verificationMethod = 'automatic', auditNotes = '' }) {
+export async function lockWinner({
+  matchId,
+  winnerUserId,
+  winningScore,
+  verificationMethod = 'automatic',
+  auditNotes = '',
+  lockedBy = '',
+  adminOverride = false,
+}) {
   const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/lock-winner`, {
     method: 'POST',
     body: {
@@ -120,6 +164,35 @@ export async function lockWinner({ matchId, winnerUserId, winningScore, verifica
       winningScore,
       verificationMethod,
       auditNotes,
+      lockedBy,
+      adminOverride,
+    },
+  });
+
+  return response.verification || response.data;
+}
+
+export async function disputeWinner({ matchId, userId, reason, evidenceUrl = '' }) {
+  const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/dispute-winner`, {
+    method: 'POST',
+    body: {
+      userId,
+      reason,
+      evidenceUrl,
+    },
+  });
+
+  return response.dispute || response.data;
+}
+
+export async function adminOverrideWinner({ matchId, adminUserId, newWinnerUserId, reason, evidenceUrl = '' }) {
+  const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/admin-override-winner`, {
+    method: 'POST',
+    body: {
+      adminUserId,
+      newWinnerUserId,
+      reason,
+      evidenceUrl,
     },
   });
 

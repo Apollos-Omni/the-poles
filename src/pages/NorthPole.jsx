@@ -47,6 +47,8 @@ import {
   submitScore as submitMatchScore,
   verifyWinner,
   lockWinner,
+  disputeWinner,
+  adminOverrideWinner,
   createFulfillmentOrder,
   SKILL_COMPETITION_AGREEMENT_VERSION,
 } from '@/lib/northpole/matchEngine';
@@ -108,13 +110,12 @@ function statusClass(status) {
 }
 
 const MATCH_STATUS_STEPS = [
-  { id: 'open', label: 'Open', statuses: ['draft', 'open'] },
-  { id: 'waiting', label: 'Waiting for players', statuses: ['waiting_for_players'] },
-  { id: 'active', label: 'In progress', statuses: ['in_progress'] },
-  { id: 'verify', label: 'Pending verification', statuses: ['pending_verification', 'disputed'] },
-  { id: 'winner', label: 'Winner verified', statuses: ['winner_verified'] },
-  { id: 'fulfillment_pending', label: 'Fulfillment pending', statuses: ['fulfillment_pending'] },
-  { id: 'fulfilled', label: 'Fulfilled', statuses: ['fulfilled'] },
+  { id: 'scores', label: 'Scores submitted', statuses: ['draft', 'open', 'waiting_for_players', 'in_progress'] },
+  { id: 'review', label: 'Scores under review', statuses: ['pending_verification'] },
+  { id: 'recommended', label: 'Winner recommended', statuses: ['winner_recommended'] },
+  { id: 'locked', label: 'Winner locked', statuses: ['winner_verified', 'fulfillment_pending'] },
+  { id: 'dispute', label: 'Dispute opened', statuses: ['disputed'] },
+  { id: 'fulfilled', label: 'Fulfillment ready', statuses: ['fulfilled'] },
   { id: 'cancelled', label: 'Cancelled', statuses: ['cancelled'] },
 ];
 
@@ -301,11 +302,17 @@ function NorthPoleMatchCard({
   onSubmitScore,
   onVerifyWinner,
   onLockWinner,
+  onDisputeWinner,
+  onAdminOverrideWinner,
   onCreateFulfillment,
   onLeave,
   onCancelMatch,
   isAdmin,
   verificationRecommendation,
+  disputeDraft,
+  onDisputeDraftChange,
+  overrideDraft,
+  onOverrideDraftChange,
   actionLoading,
 }) {
   const playerIds = Array.isArray(match.player_ids) ? match.player_ids : [];
@@ -438,7 +445,7 @@ function NorthPoleMatchCard({
                 <option value="highest_score">Highest score</option>
                 <option value="lowest_time">Lowest time</option>
                 <option value="bracket_result">Bracket result</option>
-                <option value="manual">Manual</option>
+                <option value="manual_review">Manual review</option>
               </select>
               <Input
                 value={scoreDraft?.evidenceUrl || ''}
@@ -469,7 +476,7 @@ function NorthPoleMatchCard({
                 disabled={actionLoading === `verify-${match.id}`}
                 className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40"
               >
-                Verify Winner
+                Recommend Winner
               </Button>
               {verificationRecommendation?.recommendedWinner && (
                 <Button
@@ -478,7 +485,7 @@ function NorthPoleMatchCard({
                   disabled={actionLoading === `lock-${match.id}`}
                   className="bg-green-700 text-white hover:bg-green-600"
                 >
-                  Approve Winner
+                  Lock Winner
                 </Button>
               )}
               {match.winner_user_id && (
@@ -494,11 +501,96 @@ function NorthPoleMatchCard({
             </div>
             {verificationRecommendation && (
               <div className="mt-3 rounded-lg border border-purple-800/30 bg-purple-950/25 p-3 text-xs text-purple-100">
-                <div>Recommended winner: <span className="font-mono text-yellow-200">{verificationRecommendation.recommendedWinner?.userId || 'None yet'}</span></div>
+                <div>Recommended winner: <span className="font-mono text-yellow-200">{verificationRecommendation.recommendedWinnerUserId || verificationRecommendation.recommendedWinner?.userId || 'None yet'}</span></div>
+                <div>Winning score: <span className="font-mono text-cyan-200">{verificationRecommendation.winningScore ?? '-'}</span></div>
                 <div>Rule: {verificationRecommendation.deterministicRule}</div>
+                <div>Confidence: {verificationRecommendation.confidence || 'needs_review'} / Can lock winner: {verificationRecommendation.canLockWinner ? 'yes' : 'no'}</div>
                 {verificationRecommendation.warnings?.length > 0 && (
                   <div className="text-yellow-200">Warnings: {verificationRecommendation.warnings.join(', ')}</div>
                 )}
+                {verificationRecommendation.scoresConsidered?.length > 0 && (
+                  <div className="mt-3 overflow-x-auto">
+                    <table className="w-full min-w-[520px] text-left">
+                      <thead className="text-purple-300">
+                        <tr>
+                          <th className="py-1 pr-3">User</th>
+                          <th className="py-1 pr-3">Score</th>
+                          <th className="py-1 pr-3">Verification</th>
+                          <th className="py-1 pr-3">AI-assisted review</th>
+                          <th className="py-1">Evidence</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {verificationRecommendation.scoresConsidered.map((score) => (
+                          <tr key={score.id || `${score.userId}-${score.score}`} className="border-t border-purple-800/30">
+                            <td className="py-1 pr-3 font-mono">{score.userId || score.user_id}</td>
+                            <td className="py-1 pr-3">{score.score}</td>
+                            <td className="py-1 pr-3">{score.verificationStatus || 'pending'}</td>
+                            <td className="py-1 pr-3">{score.aiReviewStatus || 'not_reviewed'}</td>
+                            <td className="py-1">
+                              {score.evidenceUrl ? (
+                                <a href={score.evidenceUrl} target="_blank" rel="noreferrer" className="text-cyan-300 hover:underline">Open</a>
+                              ) : 'None'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="mt-3 grid gap-3 rounded-lg border border-orange-800/30 bg-orange-950/10 p-3 lg:grid-cols-[1fr_1fr_auto]">
+              <Input
+                value={disputeDraft?.reason || ''}
+                onChange={(event) => onDisputeDraftChange(match, { reason: event.target.value })}
+                placeholder="Dispute reason"
+                className="border-orange-700/40 bg-black/30 text-white placeholder:text-orange-300/50"
+              />
+              <Input
+                value={disputeDraft?.evidenceUrl || ''}
+                onChange={(event) => onDisputeDraftChange(match, { evidenceUrl: event.target.value })}
+                placeholder="Dispute evidence URL"
+                className="border-orange-700/40 bg-black/30 text-white placeholder:text-orange-300/50"
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onDisputeWinner(match)}
+                disabled={actionLoading === `dispute-${match.id}` || !disputeDraft?.reason}
+                className="border-orange-700/50 text-orange-200 hover:bg-orange-950/40"
+              >
+                Dispute
+              </Button>
+            </div>
+            {isAdmin && (
+              <div className="mt-3 grid gap-3 rounded-lg border border-red-800/30 bg-red-950/10 p-3 lg:grid-cols-[1fr_1fr_1fr_auto]">
+                <Input
+                  value={overrideDraft?.newWinnerUserId || ''}
+                  onChange={(event) => onOverrideDraftChange(match, { newWinnerUserId: event.target.value })}
+                  placeholder="New winner user ID"
+                  className="border-red-700/40 bg-black/30 text-white placeholder:text-red-300/50"
+                />
+                <Input
+                  value={overrideDraft?.reason || ''}
+                  onChange={(event) => onOverrideDraftChange(match, { reason: event.target.value })}
+                  placeholder="Override reason"
+                  className="border-red-700/40 bg-black/30 text-white placeholder:text-red-300/50"
+                />
+                <Input
+                  value={overrideDraft?.evidenceUrl || ''}
+                  onChange={(event) => onOverrideDraftChange(match, { evidenceUrl: event.target.value })}
+                  placeholder="Override evidence URL"
+                  className="border-red-700/40 bg-black/30 text-white placeholder:text-red-300/50"
+                />
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => onAdminOverrideWinner(match)}
+                  disabled={actionLoading === `override-${match.id}` || !overrideDraft?.newWinnerUserId || !overrideDraft?.reason}
+                >
+                  Admin Override
+                </Button>
               </div>
             )}
           </div>
@@ -538,6 +630,8 @@ function RealNorthPoleFlow({ user }) {
   const [joinAgreementAccepted, setJoinAgreementAccepted] = useState(false);
   const [scoreDrafts, setScoreDrafts] = useState({});
   const [verificationRecommendations, setVerificationRecommendations] = useState({});
+  const [disputeDrafts, setDisputeDrafts] = useState({});
+  const [overrideDrafts, setOverrideDrafts] = useState({});
   const [flowActionLoading, setFlowActionLoading] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -908,6 +1002,33 @@ function RealNorthPoleFlow({ user }) {
     }));
   };
 
+  const updateDisputeDraft = (match, patch) => {
+    const matchKey = match.id;
+    setDisputeDrafts((prev) => ({
+      ...prev,
+      [matchKey]: {
+        reason: '',
+        evidenceUrl: '',
+        ...(prev[matchKey] || {}),
+        ...patch,
+      },
+    }));
+  };
+
+  const updateOverrideDraft = (match, patch) => {
+    const matchKey = match.id;
+    setOverrideDrafts((prev) => ({
+      ...prev,
+      [matchKey]: {
+        newWinnerUserId: '',
+        reason: '',
+        evidenceUrl: '',
+        ...(prev[matchKey] || {}),
+        ...patch,
+      },
+    }));
+  };
+
   const submitMatchScoreForMatch = async (match) => {
     const draft = scoreDrafts[match.id] || {};
     const numericScore = Number(draft.score);
@@ -943,7 +1064,7 @@ function RealNorthPoleFlow({ user }) {
     try {
       const recommendation = await verifyWinner({ matchId: match.match_id || match.id });
       setVerificationRecommendations((prev) => ({ ...prev, [match.id]: recommendation }));
-      setMessage('Winner recommendation created from stored scores.');
+      setMessage('Recommended winner created from deterministic match rules.');
       await loadMatches();
     } catch (err) {
       setError(err.message || 'Could not verify winner.');
@@ -954,7 +1075,8 @@ function RealNorthPoleFlow({ user }) {
 
   const lockWinnerForMatch = async (match) => {
     const recommendation = verificationRecommendations[match.id];
-    if (!recommendation?.recommendedWinner) {
+    const recommendedWinnerUserId = recommendation?.recommendedWinnerUserId || recommendation?.recommendedWinner?.userId;
+    if (!recommendedWinnerUserId) {
       setError('Run winner verification before locking a winner.');
       return;
     }
@@ -965,15 +1087,69 @@ function RealNorthPoleFlow({ user }) {
     try {
       await lockWinner({
         matchId: match.match_id || match.id,
-        winnerUserId: recommendation.recommendedWinner.userId,
-        winningScore: recommendation.recommendedWinner.score,
+        winnerUserId: recommendedWinnerUserId,
+        winningScore: recommendation.winningScore ?? recommendation.recommendedWinner?.score,
         verificationMethod: recommendation.warnings?.length ? 'admin_review' : 'automatic',
         auditNotes: recommendation.deterministicRule,
+        lockedBy: user?.id || user?.email || '',
       });
-      setMessage('Winner verified. Fulfillment is pending.');
+      setMessage('Winner locked. Fulfillment is pending.');
       await loadMatches();
     } catch (err) {
       setError(err.message || 'Could not lock winner.');
+    } finally {
+      setFlowActionLoading('');
+    }
+  };
+
+  const disputeWinnerForMatch = async (match) => {
+    const draft = disputeDrafts[match.id] || {};
+    if (!draft.reason) {
+      setError('Enter a dispute reason before opening a dispute.');
+      return;
+    }
+
+    setFlowActionLoading(`dispute-${match.id}`);
+    setError('');
+    setMessage('');
+    try {
+      await disputeWinner({
+        matchId: match.match_id || match.id,
+        userId: user?.id,
+        reason: draft.reason,
+        evidenceUrl: draft.evidenceUrl || '',
+      });
+      setMessage('Winner dispute opened for review.');
+      await loadMatches();
+    } catch (err) {
+      setError(err.message || 'Could not open dispute.');
+    } finally {
+      setFlowActionLoading('');
+    }
+  };
+
+  const adminOverrideWinnerForMatch = async (match) => {
+    const draft = overrideDrafts[match.id] || {};
+    if (!draft.newWinnerUserId || !draft.reason) {
+      setError('Enter the new winner user ID and override reason.');
+      return;
+    }
+
+    setFlowActionLoading(`override-${match.id}`);
+    setError('');
+    setMessage('');
+    try {
+      await adminOverrideWinner({
+        matchId: match.match_id || match.id,
+        adminUserId: user?.id,
+        newWinnerUserId: draft.newWinnerUserId,
+        reason: draft.reason,
+        evidenceUrl: draft.evidenceUrl || '',
+      });
+      setMessage('Admin override recorded and winner locked.');
+      await loadMatches();
+    } catch (err) {
+      setError(err.message || 'Could not override winner.');
     } finally {
       setFlowActionLoading('');
     }
@@ -1408,11 +1584,17 @@ function RealNorthPoleFlow({ user }) {
                 onSubmitScore={submitMatchScoreForMatch}
                 onVerifyWinner={verifyWinnerForMatch}
                 onLockWinner={lockWinnerForMatch}
+                onDisputeWinner={disputeWinnerForMatch}
+                onAdminOverrideWinner={adminOverrideWinnerForMatch}
                 onCreateFulfillment={createFulfillmentForMatch}
                 onLeave={leaveMatch}
                 onCancelMatch={cancelMatch}
                 isAdmin={isAdmin}
                 verificationRecommendation={verificationRecommendations[match.id]}
+                disputeDraft={disputeDrafts[match.id]}
+                onDisputeDraftChange={updateDisputeDraft}
+                overrideDraft={overrideDrafts[match.id]}
+                onOverrideDraftChange={updateOverrideDraft}
                 actionLoading={flowActionLoading}
               />
             ))

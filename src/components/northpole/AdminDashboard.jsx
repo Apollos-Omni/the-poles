@@ -7,7 +7,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Trophy, Package, CheckCircle2, XCircle, Truck, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
-import { logEvent, updateFulfillmentOrderStatus } from '@/lib/northpole/matchEngine';
+import {
+  logEvent,
+  reviewScore,
+  verifyWinner,
+  lockWinner,
+  disputeWinner,
+  adminOverrideWinner,
+  updateFulfillmentOrderStatus,
+} from '@/lib/northpole/matchEngine';
 import MatchEventLog from './MatchEventLog';
 
 const STATUS_COLORS = {
@@ -34,6 +42,8 @@ export default function AdminDashboard({ currentUser }) {
   const [events, setEvents] = useState({});
   const [expandedMatch, setExpandedMatch] = useState(null);
   const [adminNotes, setAdminNotes] = useState({});
+  const [scoreReviewNotes, setScoreReviewNotes] = useState({});
+  const [winnerActions, setWinnerActions] = useState({});
   const [trackingDrafts, setTrackingDrafts] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState({});
@@ -149,6 +159,94 @@ export default function AdminDashboard({ currentUser }) {
     setActionLoading(prev => ({ ...prev, [key]: false }));
   };
 
+  const handleScoreReview = async (score, verificationStatus, aiReviewStatus = score.aiReviewStatus || 'not_reviewed') => {
+    const key = `${score.id}_${verificationStatus}`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    await reviewScore({
+      matchId: score.matchId,
+      scoreId: score.id,
+      verificationStatus,
+      aiReviewStatus,
+      reviewNotes: scoreReviewNotes[score.id] || '',
+      reviewedBy: currentUser?.id || currentUser?.email || 'admin',
+    });
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const handleRecommendWinner = async (matchId) => {
+    const key = `${matchId}_recommend`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    const recommendation = await verifyWinner({ matchId });
+    setWinnerActions(prev => ({ ...prev, [matchId]: { ...(prev[matchId] || {}), recommendation } }));
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const handleLockRecommendedWinner = async (matchId) => {
+    const recommendation = winnerActions[matchId]?.recommendation;
+    const winnerUserId = recommendation?.recommendedWinnerUserId || recommendation?.recommendedWinner?.userId;
+    if (!winnerUserId) return;
+    const key = `${matchId}_lock`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    await lockWinner({
+      matchId,
+      winnerUserId,
+      winningScore: recommendation.winningScore ?? recommendation.recommendedWinner?.score,
+      verificationMethod: recommendation.warnings?.length ? 'admin_review' : 'automatic',
+      auditNotes: recommendation.deterministicRule || '',
+      lockedBy: currentUser?.id || currentUser?.email || 'admin',
+    });
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const updateWinnerAction = (matchId, patch) => {
+    setWinnerActions(prev => ({
+      ...prev,
+      [matchId]: {
+        disputeReason: '',
+        disputeEvidenceUrl: '',
+        overrideWinnerUserId: '',
+        overrideReason: '',
+        overrideEvidenceUrl: '',
+        ...(prev[matchId] || {}),
+        ...patch,
+      },
+    }));
+  };
+
+  const handleDisputeWinner = async (matchId) => {
+    const draft = winnerActions[matchId] || {};
+    if (!draft.disputeReason) return;
+    const key = `${matchId}_dispute`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    await disputeWinner({
+      matchId,
+      userId: currentUser?.id,
+      reason: draft.disputeReason,
+      evidenceUrl: draft.disputeEvidenceUrl || '',
+    });
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const handleAdminOverrideWinner = async (matchId) => {
+    const draft = winnerActions[matchId] || {};
+    if (!draft.overrideWinnerUserId || !draft.overrideReason) return;
+    const key = `${matchId}_override`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    await adminOverrideWinner({
+      matchId,
+      adminUserId: currentUser?.id,
+      newWinnerUserId: draft.overrideWinnerUserId,
+      reason: draft.overrideReason,
+      evidenceUrl: draft.overrideEvidenceUrl || '',
+    });
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -206,6 +304,39 @@ export default function AdminDashboard({ currentUser }) {
                     {score.evidenceUrl}
                   </a>
                 )}
+                <Input
+                  value={scoreReviewNotes[score.id] || ''}
+                  onChange={event => setScoreReviewNotes(prev => ({ ...prev, [score.id]: event.target.value }))}
+                  placeholder="Review notes"
+                  className="mt-2 border-purple-700/40 bg-black/30 text-white placeholder:text-purple-400/60"
+                />
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => handleScoreReview(score, 'verified', score.aiReviewStatus || 'clean')}
+                    disabled={actionLoading[`${score.id}_verified`]}
+                    className="bg-green-700 text-white hover:bg-green-600"
+                  >
+                    Verify
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleScoreReview(score, 'disputed', 'flagged')}
+                    disabled={actionLoading[`${score.id}_disputed`]}
+                    className="border-orange-700/50 text-orange-200 hover:bg-orange-950/40"
+                  >
+                    Mark Disputed
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleScoreReview(score, 'rejected', 'flagged')}
+                    disabled={actionLoading[`${score.id}_rejected`]}
+                  >
+                    Reject
+                  </Button>
+                </div>
               </div>
             ))}
             {pendingScoreReviews.length === 0 && disputedScores.length === 0 && (
@@ -229,6 +360,9 @@ export default function AdminDashboard({ currentUser }) {
                 </div>
                 <div className="mt-2 text-yellow-200">Winner: {verification.winnerUserId}</div>
                 <div className="text-purple-300">Method: {verification.verificationMethod} / Score: {verification.winningScore ?? '-'}</div>
+                {verification.warnings?.length > 0 && (
+                  <div className="mt-1 text-yellow-200">Warnings: {verification.warnings.join(', ')}</div>
+                )}
               </div>
             ))}
             {winnerVerifications.length === 0 && (
@@ -237,6 +371,111 @@ export default function AdminDashboard({ currentUser }) {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="bg-black/30 border border-purple-800/30">
+        <CardHeader>
+          <CardTitle className="text-lg text-white">Winner Verification Controls</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {matches.filter(match => ['pending_verification', 'disputed', 'winner_verified', 'fulfillment_pending'].includes(match.status)).slice(0, 8).map(match => {
+            const matchId = match.match_id || match.id;
+            const draft = winnerActions[matchId] || {};
+            const recommendation = draft.recommendation;
+            const recommendedWinnerUserId = recommendation?.recommendedWinnerUserId || recommendation?.recommendedWinner?.userId;
+            return (
+              <div key={match.id} className="rounded-lg border border-purple-800/30 bg-purple-950/20 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <div className="font-mono text-sm text-white">{matchId}</div>
+                    <div className="text-xs text-purple-300">Locked winner: {match.winner_user_id || 'None'}</div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRecommendWinner(matchId)}
+                      disabled={actionLoading[`${matchId}_recommend`]}
+                      className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40"
+                    >
+                      Recommend Winner
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleLockRecommendedWinner(matchId)}
+                      disabled={actionLoading[`${matchId}_lock`] || !recommendedWinnerUserId}
+                      className="bg-green-700 text-white hover:bg-green-600"
+                    >
+                      Lock Winner
+                    </Button>
+                  </div>
+                </div>
+                {recommendation && (
+                  <div className="mt-2 rounded border border-purple-800/30 bg-black/20 p-2 text-xs text-purple-100">
+                    <div>Recommended winner: <span className="font-mono text-yellow-200">{recommendedWinnerUserId || 'None'}</span></div>
+                    <div>Rule: {recommendation.deterministicRule}</div>
+                    <div>AI-assisted review is informational only. Confidence: {recommendation.confidence}. Can lock: {recommendation.canLockWinner ? 'yes' : 'no'}.</div>
+                    {recommendation.warnings?.length > 0 && <div className="text-yellow-200">Warnings: {recommendation.warnings.join(', ')}</div>}
+                  </div>
+                )}
+                <div className="mt-3 grid gap-2 lg:grid-cols-[1fr_1fr_auto]">
+                  <Input
+                    value={draft.disputeReason || ''}
+                    onChange={event => updateWinnerAction(matchId, { disputeReason: event.target.value })}
+                    placeholder="Dispute reason"
+                    className="border-orange-700/40 bg-black/30 text-white placeholder:text-orange-300/50"
+                  />
+                  <Input
+                    value={draft.disputeEvidenceUrl || ''}
+                    onChange={event => updateWinnerAction(matchId, { disputeEvidenceUrl: event.target.value })}
+                    placeholder="Dispute evidence URL"
+                    className="border-orange-700/40 bg-black/30 text-white placeholder:text-orange-300/50"
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDisputeWinner(matchId)}
+                    disabled={actionLoading[`${matchId}_dispute`] || !draft.disputeReason}
+                    className="border-orange-700/50 text-orange-200 hover:bg-orange-950/40"
+                  >
+                    Dispute
+                  </Button>
+                </div>
+                <div className="mt-3 grid gap-2 lg:grid-cols-[1fr_1fr_1fr_auto]">
+                  <Input
+                    value={draft.overrideWinnerUserId || ''}
+                    onChange={event => updateWinnerAction(matchId, { overrideWinnerUserId: event.target.value })}
+                    placeholder="Override winner user ID"
+                    className="border-red-700/40 bg-black/30 text-white placeholder:text-red-300/50"
+                  />
+                  <Input
+                    value={draft.overrideReason || ''}
+                    onChange={event => updateWinnerAction(matchId, { overrideReason: event.target.value })}
+                    placeholder="Override reason"
+                    className="border-red-700/40 bg-black/30 text-white placeholder:text-red-300/50"
+                  />
+                  <Input
+                    value={draft.overrideEvidenceUrl || ''}
+                    onChange={event => updateWinnerAction(matchId, { overrideEvidenceUrl: event.target.value })}
+                    placeholder="Override evidence URL"
+                    className="border-red-700/40 bg-black/30 text-white placeholder:text-red-300/50"
+                  />
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleAdminOverrideWinner(matchId)}
+                    disabled={actionLoading[`${matchId}_override`] || !draft.overrideWinnerUserId || !draft.overrideReason}
+                  >
+                    Admin Override
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+          {matches.filter(match => ['pending_verification', 'disputed', 'winner_verified', 'fulfillment_pending'].includes(match.status)).length === 0 && (
+            <p className="py-4 text-center text-sm text-purple-400">No matches are waiting for winner verification.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="bg-black/30 border border-purple-800/30">
         <CardHeader>

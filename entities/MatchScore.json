@@ -7,7 +7,7 @@
     "score": { "type": "number" },
     "scoreType": {
       "type": "string",
-      "enum": ["highest_score", "lowest_time", "bracket_result", "manual"],
+      "enum": ["highest_score", "lowest_time", "bracket_result", "manual_review", "manual"],
       "default": "highest_score"
     },
     "evidenceUrl": { "type": "string" },
@@ -21,7 +21,13 @@
       "type": "string",
       "enum": ["not_reviewed", "clean", "suspicious", "flagged"],
       "default": "not_reviewed"
-    }
+    },
+    "platformUsername": { "type": "string" },
+    "matchRound": { "type": "string" },
+    "metadata": { "type": "object", "default": {} },
+    "reviewNotes": { "type": "string" },
+    "reviewedBy": { "type": "string" },
+    "reviewedAt": { "type": "string" }
   },
   "required": ["matchId", "userId", "score", "scoreType", "verificationStatus", "aiReviewStatus"]
 }

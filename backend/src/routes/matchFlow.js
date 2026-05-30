@@ -11,9 +11,11 @@ const ok = (res, data = {}) => res.json({ success: true, ...data });
 const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID()}`;
 
-const scoreTypes = ['highest_score', 'lowest_time', 'bracket_result', 'manual'];
+const scoreTypes = ['highest_score', 'lowest_time', 'bracket_result', 'manual_review', 'manual'];
 const fulfillmentStatuses = ['ordered', 'shipped', 'delivered', 'cancelled'];
 const cancellableMatchStatuses = new Set(['draft', 'open', 'waiting_for_players']);
+const verificationStatuses = ['pending', 'verified', 'rejected', 'disputed'];
+const aiReviewStatuses = ['not_reviewed', 'clean', 'suspicious', 'flagged'];
 
 const joinSchema = z.object({
   entryAmount: z.number().int().nonnegative().optional(),
@@ -22,13 +24,33 @@ const joinSchema = z.object({
 }).passthrough();
 
 const submitScoreSchema = z.object({
-  score: z.number(),
+  userId: z.string().min(1).optional(),
+  user_id: z.string().min(1).optional(),
+  score: z.union([z.number(), z.string()]),
   scoreType: z.enum(scoreTypes).optional(),
   score_type: z.enum(scoreTypes).optional(),
   evidenceUrl: z.string().url().optional().or(z.literal('')),
   evidence_url: z.string().url().optional().or(z.literal('')),
   evidenceNotes: z.string().max(4000).optional(),
   evidence_notes: z.string().max(4000).optional(),
+  platformUsername: z.string().max(200).optional(),
+  platform_username: z.string().max(200).optional(),
+  matchRound: z.string().max(120).optional(),
+  match_round: z.string().max(120).optional(),
+  metadata: z.record(z.unknown()).optional(),
+}).passthrough();
+
+const reviewScoreSchema = z.object({
+  scoreId: z.string().min(1).optional(),
+  score_id: z.string().min(1).optional(),
+  verificationStatus: z.enum(verificationStatuses).optional(),
+  verification_status: z.enum(verificationStatuses).optional(),
+  aiReviewStatus: z.enum(aiReviewStatuses).optional(),
+  ai_review_status: z.enum(aiReviewStatuses).optional(),
+  reviewNotes: z.string().max(4000).optional(),
+  review_notes: z.string().max(4000).optional(),
+  reviewedBy: z.string().max(200).optional(),
+  reviewed_by: z.string().max(200).optional(),
 }).passthrough();
 
 const lockWinnerSchema = z.object({
@@ -40,6 +62,28 @@ const lockWinnerSchema = z.object({
   verification_method: z.enum(['automatic', 'ai_assisted', 'admin_review']).optional(),
   auditNotes: z.string().max(4000).optional(),
   audit_notes: z.string().max(4000).optional(),
+  lockedBy: z.string().max(200).optional(),
+  locked_by: z.string().max(200).optional(),
+  adminOverride: z.boolean().optional(),
+  admin_override: z.boolean().optional(),
+}).passthrough();
+
+const disputeWinnerSchema = z.object({
+  userId: z.string().min(1).optional(),
+  user_id: z.string().min(1).optional(),
+  reason: z.string().min(1).max(4000),
+  evidenceUrl: z.string().url().optional().or(z.literal('')),
+  evidence_url: z.string().url().optional().or(z.literal('')),
+}).passthrough();
+
+const adminOverrideWinnerSchema = z.object({
+  adminUserId: z.string().min(1).optional(),
+  admin_user_id: z.string().min(1).optional(),
+  newWinnerUserId: z.string().min(1).optional(),
+  new_winner_user_id: z.string().min(1).optional(),
+  reason: z.string().min(1).max(4000),
+  evidenceUrl: z.string().url().optional().or(z.literal('')),
+  evidence_url: z.string().url().optional().or(z.literal('')),
 }).passthrough();
 
 const updateFulfillmentStatusSchema = z.object({
@@ -133,7 +177,10 @@ function normalizePrize(match) {
 function determineScoreType(match, scores) {
   const matchType = match?.score_type || match?.match_plan?.scoreType || match?.game_snapshot?.score_type;
   if (scoreTypes.includes(matchType)) return matchType;
-  const lowestTime = scores.find((score) => score.score_type === 'lowest_time');
+  const scoreType = scores.find((score) => score.scoreType || score.score_type)?.scoreType
+    || scores.find((score) => score.scoreType || score.score_type)?.score_type;
+  if (scoreTypes.includes(scoreType)) return scoreType;
+  const lowestTime = scores.find((score) => (score.scoreType || score.score_type) === 'lowest_time');
   return lowestTime ? 'lowest_time' : 'highest_score';
 }
 
@@ -151,18 +198,88 @@ async function recommendWinner(store, match) {
   const matchId = publicMatchId(match);
   const entries = await store.list('match_entries', { matchId });
   const scores = await store.list('match_scores', { matchId });
-  const paidUserIds = new Set(entries.filter((entry) => entry.status === 'paid').map((entry) => entry.userId));
+  const eligibleUserIds = new Set(entries
+    .filter((entry) => !['cancelled', 'refunded', 'rejected'].includes(entry.status))
+    .map((entry) => String(entry.userId || entry.user_id))
+    .filter(Boolean));
   const warnings = [];
+  const rejectedScores = scores.filter((score) => score.verificationStatus === 'rejected');
+  const pendingScores = scores.filter((score) => !score.verificationStatus || score.verificationStatus === 'pending');
+  const disputedScores = scores.filter((score) => score.verificationStatus === 'disputed');
+  const verifiedScores = scores.filter((score) => score.verificationStatus === 'verified');
+  if (pendingScores.length) warnings.push('pending_scores_require_review');
+  if (disputedScores.length) warnings.push('disputed_scores_require_manual_review');
+  if (rejectedScores.length) warnings.push('rejected_scores_excluded');
 
-  const eligibleScores = scores.filter((score) => {
+  let eligibleScores = scores.filter((score) => {
     const usable = score.verificationStatus !== 'rejected'
-      && score.verificationStatus !== 'disputed'
       && Number.isFinite(Number(score.score));
-    return usable && (!paidUserIds.size || paidUserIds.has(score.userId));
+    const scoreUserId = String(score.userId || score.user_id);
+    return usable && (!eligibleUserIds.size || eligibleUserIds.has(scoreUserId));
   });
+  const hasVerifiedScores = verifiedScores.length > 0;
+  if (hasVerifiedScores) {
+    eligibleScores = eligibleScores.filter((score) => score.verificationStatus === 'verified');
+  }
 
   if (!eligibleScores.length) warnings.push('no_eligible_scores');
   const scoreType = determineScoreType(match, eligibleScores);
+  const manualReview = scoreType === 'manual_review' || scoreType === 'manual';
+  if (!hasVerifiedScores && !['bracket_result', 'manual_review', 'manual'].includes(scoreType)) {
+    warnings.push('no_verified_scores');
+  }
+
+  if (manualReview) {
+    return {
+      matchId,
+      recommendedWinnerUserId: null,
+      winningScore: null,
+      scoreType: 'manual_review',
+      confidence: 'pending_admin_review',
+      canLockWinner: false,
+      warnings: [...new Set([...warnings, 'manual_review_required'])],
+      scoresConsidered: eligibleScores,
+      auditSummary: {
+        entries: entries.length,
+        submittedScores: scores.length,
+        verifiedScores: verifiedScores.length,
+        pendingScores: pendingScores.length,
+        disputedScores: disputedScores.length,
+        rejectedScores: rejectedScores.length,
+      },
+      recommendedWinner: null,
+      rankedScores: eligibleScores,
+      deterministicRule: 'Manual review requires an admin decision before a winner can be locked.',
+    };
+  }
+
+  if (scoreType === 'bracket_result') {
+    const bracketWinner = match.bracket_winner_user_id || match.bracketWinnerUserId || match.match_plan?.bracketWinnerUserId || match.metadata?.bracketWinnerUserId;
+    const canLockWinner = Boolean(bracketWinner) && !disputedScores.length && !rejectedScores.length;
+    if (!bracketWinner) warnings.push('bracket_winner_missing');
+    return {
+      matchId,
+      recommendedWinnerUserId: bracketWinner || null,
+      winningScore: null,
+      scoreType,
+      confidence: canLockWinner ? 'high' : 'needs_review',
+      canLockWinner,
+      warnings: [...new Set(warnings)],
+      scoresConsidered: eligibleScores,
+      auditSummary: {
+        entries: entries.length,
+        submittedScores: scores.length,
+        verifiedScores: verifiedScores.length,
+        pendingScores: pendingScores.length,
+        disputedScores: disputedScores.length,
+        rejectedScores: rejectedScores.length,
+      },
+      recommendedWinner: bracketWinner ? { userId: bracketWinner, score: null, scoreId: null } : null,
+      rankedScores: eligibleScores,
+      deterministicRule: 'Bracket result winner from the match record wins after review checks pass.',
+    };
+  }
+
   const rankedScores = [...eligibleScores].sort(compareScores(scoreType));
   const winnerScore = rankedScores[0] || null;
   const tied = winnerScore
@@ -173,26 +290,37 @@ async function recommendWinner(store, match) {
   const suspiciousScores = rankedScores.filter((score) => ['suspicious', 'flagged'].includes(score.aiReviewStatus));
   if (suspiciousScores.length) warnings.push('ai_evidence_review_flagged');
   if (rankedScores.some((score) => !score.evidenceUrl)) warnings.push('missing_evidence_url');
+  const canLockWinner = Boolean(winnerScore)
+    && hasVerifiedScores
+    && tied.length <= 1
+    && disputedScores.length === 0
+    && rejectedScores.length === 0;
 
   return {
     matchId,
+    recommendedWinnerUserId: winnerScore ? String(winnerScore.userId || winnerScore.user_id) : null,
+    winningScore: winnerScore ? Number(winnerScore.score) : null,
     scoreType,
+    confidence: canLockWinner ? 'high' : winnerScore ? 'needs_review' : 'none',
+    canLockWinner,
+    warnings: [...new Set(warnings)],
+    scoresConsidered: rankedScores,
+    auditSummary: {
+      entries: entries.length,
+      submittedScores: scores.length,
+      verifiedScores: verifiedScores.length,
+      pendingScores: pendingScores.length,
+      disputedScores: disputedScores.length,
+      rejectedScores: rejectedScores.length,
+    },
     recommendedWinner: winnerScore ? {
-      userId: winnerScore.userId,
+      userId: String(winnerScore.userId || winnerScore.user_id),
       score: Number(winnerScore.score),
       scoreId: winnerScore.id,
     } : null,
     rankedScores,
-    warnings,
     deterministicRule: scoreType === 'lowest_time' ? 'Lowest submitted time wins.' : 'Highest submitted score wins.',
   };
-}
-
-function aiEvidenceReview(input) {
-  const notes = `${input.evidenceNotes || ''} ${input.evidenceUrl || ''}`.toLowerCase();
-  if (!input.evidenceUrl) return 'flagged';
-  if (/(edited|photoshop|fake|tamper|mismatch|borrowed|reused)/i.test(notes)) return 'suspicious';
-  return 'clean';
 }
 
 export function createMatchFlowRouter({ store }) {
@@ -348,24 +476,37 @@ export function createMatchFlowRouter({ store }) {
     }
 
     const matchId = publicMatchId(match);
-    const entry = await store.findOne('match_entries', { matchId, userId: user.id });
+    const submittingUserId = input.userId || input.user_id || user.id;
+    if (String(submittingUserId) !== String(user.id) && !isAdmin(user)) {
+      return res.status(403).json({ success: false, error: 'Only admins can submit a score for another user' });
+    }
+    const entry = await store.findOne('match_entries', { matchId, userId: submittingUserId });
     const playerIds = Array.isArray(match.player_ids) ? match.player_ids.map(String) : [];
-    if (entry?.status !== 'paid' && !playerIds.includes(String(user.id))) {
+    if (entry?.status !== 'paid' && !playerIds.includes(String(submittingUserId))) {
       return res.status(403).json({ success: false, error: 'Only paid simulated entrants can submit scores' });
+    }
+
+    const scoreType = input.scoreType || input.score_type || determineScoreType(match, []);
+    const normalizedScoreType = scoreType === 'manual' ? 'manual_review' : scoreType;
+    const numericScore = Number(input.score);
+    if (['highest_score', 'lowest_time'].includes(normalizedScoreType) && !Number.isFinite(numericScore)) {
+      return res.status(400).json({ success: false, error: 'Score must be numeric for highest_score and lowest_time matches' });
     }
 
     const evidenceUrl = input.evidenceUrl || input.evidence_url || '';
     const evidenceNotes = input.evidenceNotes || input.evidence_notes || '';
-    const aiReviewStatus = aiEvidenceReview({ evidenceUrl, evidenceNotes });
     const score = await store.create('match_scores', {
       matchId,
-      userId: user.id,
-      score: input.score,
-      scoreType: input.scoreType || input.score_type || 'highest_score',
+      userId: submittingUserId,
+      score: Number.isFinite(numericScore) ? numericScore : input.score,
+      scoreType: normalizedScoreType,
       evidenceUrl,
       evidenceNotes,
+      platformUsername: input.platformUsername || input.platform_username || '',
+      matchRound: input.matchRound || input.match_round || '',
+      metadata: input.metadata || {},
       verificationStatus: 'pending',
-      aiReviewStatus,
+      aiReviewStatus: 'not_reviewed',
     });
 
     if (matchRowId(match)) {
@@ -376,12 +517,55 @@ export function createMatchFlowRouter({ store }) {
       entityType: 'MatchScore',
       entityId: score.id,
       matchId,
-      userId: user.id,
-      action: 'MATCH_SCORE_SUBMITTED',
-      metadata: { score: input.score, aiReviewStatus },
+      userId: submittingUserId,
+      action: 'score_submitted',
+      metadata: {
+        submittedBy: user.id,
+        score: score.score,
+        scoreType: normalizedScoreType,
+        evidenceUrl: Boolean(evidenceUrl),
+      },
     });
 
     ok(res, { score, data: score });
+  }));
+
+  router.post('/matches/:matchId/review-score', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required to review scores' });
+
+    const input = reviewScoreSchema.parse(req.body || {});
+    const scoreId = input.scoreId || input.score_id;
+    if (!scoreId) return res.status(400).json({ success: false, error: 'Score ID is required' });
+
+    const match = await findMatch(store, req.params.matchId);
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+    const matchId = publicMatchId(match);
+    const score = await store.findOne('match_scores', { id: scoreId });
+    if (!score || String(score.matchId || score.match_id) !== String(matchId)) {
+      return res.status(404).json({ success: false, error: 'Score not found for this match' });
+    }
+
+    const patch = {
+      verificationStatus: input.verificationStatus || input.verification_status || score.verificationStatus || 'pending',
+      aiReviewStatus: input.aiReviewStatus || input.ai_review_status || score.aiReviewStatus || 'not_reviewed',
+      reviewNotes: input.reviewNotes || input.review_notes || '',
+      reviewedBy: input.reviewedBy || input.reviewed_by || user.id,
+      reviewedAt: now(),
+    };
+    const reviewed = await store.update('match_scores', score.id, patch);
+
+    await createAuditEvent(store, {
+      entityType: 'MatchScore',
+      entityId: score.id,
+      matchId,
+      userId: user.id,
+      action: 'score_reviewed',
+      metadata: patch,
+    });
+
+    ok(res, { score: reviewed, data: reviewed });
   }));
 
   router.post('/matches/:matchId/verify-winner', asyncHandler(async (req, res) => {
@@ -401,8 +585,16 @@ export function createMatchFlowRouter({ store }) {
       entityId: null,
       matchId: recommendation.matchId,
       userId: user.id,
-      action: 'WINNER_VERIFICATION_RECOMMENDED',
-      metadata: { recommendedWinner: recommendation.recommendedWinner, warnings: recommendation.warnings },
+      action: 'winner_recommended',
+      metadata: {
+        recommendedWinnerUserId: recommendation.recommendedWinnerUserId,
+        winningScore: recommendation.winningScore,
+        scoreType: recommendation.scoreType,
+        confidence: recommendation.confidence,
+        canLockWinner: recommendation.canLockWinner,
+        warnings: recommendation.warnings,
+        auditSummary: recommendation.auditSummary,
+      },
     });
 
     ok(res, { ...recommendation, data: recommendation });
@@ -411,23 +603,38 @@ export function createMatchFlowRouter({ store }) {
   router.post('/matches/:matchId/lock-winner', asyncHandler(async (req, res) => {
     const user = await requireUser(req, res, store);
     if (!user) return;
-    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required to approve winners' });
 
     const input = lockWinnerSchema.parse(req.body || {});
     const match = await findMatch(store, req.params.matchId);
     if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
-    if (match.winner_locked_at && !isAdmin(user)) {
-      return res.status(409).json({ success: false, error: 'Winner is already locked. Use admin dispute flow to change it.' });
+    const matchId = publicMatchId(match);
+    const existingLocked = await store.findOne('winner_verifications', { matchId, status: 'locked' });
+    const adminOverride = input.adminOverride === true || input.admin_override === true;
+    if ((match.winner_locked_at || existingLocked) && (!isAdmin(user) || !adminOverride)) {
+      const locked = existingLocked || {
+        matchId,
+        winnerUserId: match.winner_user_id || match.winner_id,
+        status: 'locked',
+        lockedAt: match.winner_locked_at,
+      };
+      return ok(res, { verification: locked, data: locked, alreadyLocked: true });
     }
 
     const recommendation = await recommendWinner(store, match);
-    const requestedWinner = input.winnerUserId || input.winner_user_id || recommendation.recommendedWinner?.userId;
+    const requestedWinner = input.winnerUserId || input.winner_user_id || recommendation.recommendedWinnerUserId;
     if (!requestedWinner) return res.status(400).json({ success: false, error: 'No winner can be locked until scores are submitted' });
-    if (requestedWinner !== recommendation.recommendedWinner?.userId && !isAdmin(user)) {
-      return res.status(403).json({ success: false, error: 'Only admins can override the deterministic winner recommendation' });
+    const lockedBy = input.lockedBy || input.locked_by || user.id;
+    const manualLock = isAdmin(user) && ['admin', 'manual_review', user.id].includes(String(lockedBy));
+    if (!manualLock) {
+      if (!recommendation.canLockWinner) {
+        return res.status(409).json({ success: false, error: 'Winner cannot be locked until verification warnings are resolved', recommendation });
+      }
+      if (String(requestedWinner) !== String(recommendation.recommendedWinnerUserId)) {
+        return res.status(403).json({ success: false, error: 'Requested winner does not match the deterministic recommendation' });
+      }
     }
 
-    const winningScore = input.winningScore ?? input.winning_score ?? recommendation.recommendedWinner?.score ?? null;
+    const winningScore = input.winningScore ?? input.winning_score ?? recommendation.winningScore ?? null;
     const verificationMethod = input.verificationMethod || input.verification_method || (recommendation.warnings.length ? 'admin_review' : 'automatic');
     const verification = await store.create('winner_verifications', {
       matchId: recommendation.matchId,
@@ -435,13 +642,16 @@ export function createMatchFlowRouter({ store }) {
       winningScore,
       verificationMethod,
       status: 'locked',
+      lockedBy,
+      lockedAt: now(),
       auditNotes: input.auditNotes || input.audit_notes || [
         recommendation.deterministicRule,
         recommendation.warnings.length ? `Warnings: ${recommendation.warnings.join(', ')}` : 'No warnings.',
       ].join(' '),
       recommendedWinner: recommendation.recommendedWinner,
       warnings: recommendation.warnings,
-      rankedScores: recommendation.rankedScores,
+      scoresConsidered: recommendation.scoresConsidered,
+      auditSummary: recommendation.auditSummary,
     });
 
     if (matchRowId(match)) {
@@ -461,11 +671,136 @@ export function createMatchFlowRouter({ store }) {
       entityId: verification.id,
       matchId: recommendation.matchId,
       userId: user.id,
-      action: 'WINNER_LOCKED',
-      metadata: { winnerUserId: requestedWinner, winningScore, verificationMethod },
+      action: 'winner_locked',
+      metadata: { winnerUserId: requestedWinner, winningScore, verificationMethod, lockedBy, manualLock },
     });
 
     ok(res, { verification, data: verification });
+  }));
+
+  router.post('/matches/:matchId/dispute-winner', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+
+    const input = disputeWinnerSchema.parse(req.body || {});
+    const match = await findMatch(store, req.params.matchId);
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+    const matchId = publicMatchId(match);
+    const disputingUserId = input.userId || input.user_id || user.id;
+    if (String(disputingUserId) !== String(user.id) && !isAdmin(user)) {
+      return res.status(403).json({ success: false, error: 'Only admins can open a dispute for another user' });
+    }
+
+    const lockedVerification = await store.findOne('winner_verifications', { matchId, status: 'locked' });
+    const disputedVerification = lockedVerification
+      ? await store.update('winner_verifications', lockedVerification.id, {
+        status: 'disputed',
+        disputeReason: input.reason,
+        disputeEvidenceUrl: input.evidenceUrl || input.evidence_url || '',
+        disputedBy: disputingUserId,
+        disputedAt: now(),
+      })
+      : null;
+
+    const scores = await store.list('match_scores', { matchId });
+    const relatedScores = scores.filter((score) => String(score.userId || score.user_id) === String(disputingUserId)
+      || (lockedVerification?.winnerUserId && String(score.userId || score.user_id) === String(lockedVerification.winnerUserId)));
+    for (const score of relatedScores) {
+      if (score.verificationStatus !== 'rejected') {
+        await store.update('match_scores', score.id, { verificationStatus: 'disputed' }).catch(() => null);
+      }
+    }
+    if (matchRowId(match)) {
+      await store.update('north_pole_matches', matchRowId(match), { status: 'disputed' }).catch(() => null);
+    }
+
+    const dispute = await store.create('match_disputes', {
+      matchId,
+      userId: disputingUserId,
+      winnerVerificationId: lockedVerification?.id || null,
+      reason: input.reason,
+      evidenceUrl: input.evidenceUrl || input.evidence_url || '',
+      status: 'open',
+    });
+
+    await createAuditEvent(store, {
+      entityType: 'WinnerVerification',
+      entityId: lockedVerification?.id || dispute.id,
+      matchId,
+      userId: disputingUserId,
+      action: 'winner_disputed',
+      metadata: { reason: input.reason, evidenceUrl: Boolean(input.evidenceUrl || input.evidence_url), relatedScoreIds: relatedScores.map((score) => score.id) },
+    });
+
+    ok(res, { status: 'disputed', dispute, verification: disputedVerification, data: dispute });
+  }));
+
+  router.post('/matches/:matchId/admin-override-winner', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required to override winners' });
+
+    const input = adminOverrideWinnerSchema.parse(req.body || {});
+    const newWinnerUserId = input.newWinnerUserId || input.new_winner_user_id;
+    if (!newWinnerUserId) return res.status(400).json({ success: false, error: 'New winner user ID is required' });
+
+    const match = await findMatch(store, req.params.matchId);
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+    const matchId = publicMatchId(match);
+    const previousLocked = await store.findOne('winner_verifications', { matchId, status: 'locked' });
+    if (previousLocked) {
+      await store.update('winner_verifications', previousLocked.id, {
+        status: 'overturned',
+        overturnedBy: input.adminUserId || input.admin_user_id || user.id,
+        overturnedAt: now(),
+        overrideReason: input.reason,
+      });
+    }
+
+    const recommendation = await recommendWinner(store, match);
+    const override = await store.create('winner_verifications', {
+      matchId,
+      winnerUserId: newWinnerUserId,
+      winningScore: null,
+      verificationMethod: 'admin_review',
+      status: 'locked',
+      lockedBy: input.adminUserId || input.admin_user_id || user.id,
+      lockedAt: now(),
+      auditNotes: input.reason,
+      overrideEvidenceUrl: input.evidenceUrl || input.evidence_url || '',
+      previousWinnerVerificationId: previousLocked?.id || null,
+      recommendedWinner: recommendation.recommendedWinner,
+      warnings: [...new Set([...(recommendation.warnings || []), 'admin_override_applied'])],
+      auditSummary: recommendation.auditSummary,
+    });
+
+    if (matchRowId(match)) {
+      await store.update('north_pole_matches', matchRowId(match), {
+        status: 'fulfillment_pending',
+        winner_id: newWinnerUserId,
+        winner_user_id: newWinnerUserId,
+        verified_at: now(),
+        verified_by: user.id,
+        winner_locked_at: now(),
+        winner_verification_id: override.id,
+      }).catch(() => null);
+    }
+
+    await createAuditEvent(store, {
+      entityType: 'WinnerVerification',
+      entityId: override.id,
+      matchId,
+      userId: user.id,
+      action: 'winner_overridden',
+      metadata: {
+        previousWinnerUserId: previousLocked?.winnerUserId || null,
+        newWinnerUserId,
+        reason: input.reason,
+        evidenceUrl: Boolean(input.evidenceUrl || input.evidence_url),
+      },
+    });
+
+    ok(res, { verification: override, previousVerification: previousLocked, data: override });
   }));
 
   router.post('/fulfillment/:matchId/create', asyncHandler(async (req, res) => {

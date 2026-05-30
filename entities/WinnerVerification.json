@@ -16,6 +16,21 @@
       "default": "pending"
     },
     "auditNotes": { "type": "string" }
+    ,
+    "lockedBy": { "type": "string" },
+    "lockedAt": { "type": "string" },
+    "recommendedWinner": { "type": "object" },
+    "warnings": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "scoresConsidered": { "type": "array", "items": { "type": "object" }, "default": [] },
+    "auditSummary": { "type": "object", "default": {} },
+    "disputeReason": { "type": "string" },
+    "disputeEvidenceUrl": { "type": "string" },
+    "disputedBy": { "type": "string" },
+    "disputedAt": { "type": "string" },
+    "overturnedBy": { "type": "string" },
+    "overturnedAt": { "type": "string" },
+    "overrideReason": { "type": "string" },
+    "previousWinnerVerificationId": { "type": "string" }
   },
   "required": ["matchId", "winnerUserId", "verificationMethod", "status"]
 }
