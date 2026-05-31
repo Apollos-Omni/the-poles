@@ -224,6 +224,13 @@ export async function verifyWinner({ matchId }) {
   });
 }
 
+export async function aiVerifyWinner({ matchId }) {
+  return apiRequest(`/api/matches/${encodeURIComponent(matchId)}/ai-verify`, {
+    method: 'POST',
+    body: {},
+  });
+}
+
 export async function lockWinner({
   matchId,
   winnerUserId,
@@ -276,7 +283,7 @@ export async function adminOverrideWinner({ matchId, adminUserId, newWinnerUserI
 }
 
 export async function createFulfillmentOrder({ matchId }) {
-  const response = await apiRequest(`/api/fulfillment/${encodeURIComponent(matchId)}/create`, {
+  const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/create-fulfillment`, {
     method: 'POST',
     body: {},
   });
@@ -285,13 +292,30 @@ export async function createFulfillmentOrder({ matchId }) {
 }
 
 export async function updateFulfillmentOrderStatus({ fulfillmentId, status, trackingNumber = '', carrier = '' }) {
-  const response = await apiRequest(`/api/fulfillment/${encodeURIComponent(fulfillmentId)}/status`, {
+  const response = await apiRequest(`/api/admin/fulfillment/${encodeURIComponent(fulfillmentId)}`, {
     method: 'PATCH',
     body: {
       status,
       trackingNumber,
       carrier,
     },
+  });
+
+  return response.fulfillment || response.data;
+}
+
+export async function listPrizeFulfillmentQueue() {
+  const response = await apiRequest('/api/admin/fulfillment');
+  return response.data || {
+    fulfillments: response.fulfillments || [],
+    readyMatches: response.readyMatches || [],
+  };
+}
+
+export async function updatePrizeFulfillment({ fulfillmentId, patch }) {
+  const response = await apiRequest(`/api/admin/fulfillment/${encodeURIComponent(fulfillmentId)}`, {
+    method: 'PATCH',
+    body: patch,
   });
 
   return response.fulfillment || response.data;

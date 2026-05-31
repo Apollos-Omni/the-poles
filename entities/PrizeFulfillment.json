@@ -1,0 +1,55 @@
+{
+  "name": "PrizeFulfillment",
+  "type": "object",
+  "properties": {
+    "match_id": { "type": "string" },
+    "winner_id": { "type": "string" },
+    "winner_name": { "type": "string" },
+    "winner_email": { "type": "string" },
+    "prize_title": { "type": "string" },
+    "prize_url": { "type": "string" },
+    "prize_image": { "type": "string" },
+    "prize_source": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_verification",
+        "pending_address",
+        "pending_admin_approval",
+        "ready_to_order",
+        "ordered",
+        "shipped",
+        "delivered",
+        "cancelled"
+      ],
+      "default": "pending_admin_approval"
+    },
+    "shipping_status": {
+      "type": "string",
+      "enum": [
+        "pending_verification",
+        "pending_address",
+        "pending_admin_approval",
+        "ready_to_order",
+        "ordered",
+        "shipped",
+        "delivered",
+        "cancelled"
+      ],
+      "default": "pending_address"
+    },
+    "admin_approved": { "type": "boolean", "default": false },
+    "retailer_order_id": { "type": "string" },
+    "tracking_number": { "type": "string" },
+    "created_at": { "type": "string" },
+    "updated_at": { "type": "string" }
+  },
+  "required": [
+    "match_id",
+    "winner_id",
+    "prize_title",
+    "status",
+    "shipping_status",
+    "admin_approved"
+  ]
+}

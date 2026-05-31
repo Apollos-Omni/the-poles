@@ -16,6 +16,7 @@ const FLEXIBLE_ENTITY_TABLES = new Set([
   'scores',
   'fulfillments',
   'fulfillment_orders',
+  'prize_fulfillments',
   'fulfillment_events',
   'affiliate_merchants',
   'affiliate_offers',

@@ -115,6 +115,7 @@ const ENTITY_TABLE_ALIASES = {
   MatchDispute: 'match_disputes',
   FulfillmentIntent: 'fulfillment_intents',
   FulfillmentOrder: 'fulfillment_orders',
+  PrizeFulfillment: 'prize_fulfillments',
   PurchaseIntent: 'purchase_intents',
   MatchEvent: 'match_events',
   UserMatch: 'user_match_entities',

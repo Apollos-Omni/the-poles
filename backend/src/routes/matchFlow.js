@@ -12,7 +12,16 @@ const now = () => new Date().toISOString();
 const makeId = (prefix) => `${prefix}_${crypto.randomUUID()}`;
 
 const scoreTypes = ['highest_score', 'lowest_time', 'bracket_result', 'manual_review', 'manual'];
-const fulfillmentStatuses = ['ordered', 'shipped', 'delivered', 'cancelled'];
+const fulfillmentStatuses = [
+  'pending_verification',
+  'pending_address',
+  'pending_admin_approval',
+  'ready_to_order',
+  'ordered',
+  'shipped',
+  'delivered',
+  'cancelled',
+];
 const cancellableMatchStatuses = new Set(['draft', 'open', 'waiting_for_players']);
 const verificationStatuses = ['pending', 'verified', 'rejected', 'disputed'];
 const aiReviewStatuses = ['not_reviewed', 'clean', 'suspicious', 'flagged'];
@@ -137,7 +146,13 @@ const refereeReportSchema = z.object({
 }).passthrough();
 
 const updateFulfillmentStatusSchema = z.object({
-  status: z.enum(fulfillmentStatuses),
+  status: z.enum(fulfillmentStatuses).optional(),
+  shippingStatus: z.enum(fulfillmentStatuses).optional(),
+  shipping_status: z.enum(fulfillmentStatuses).optional(),
+  adminApproved: z.boolean().optional(),
+  admin_approved: z.boolean().optional(),
+  retailerOrderId: z.string().max(160).optional(),
+  retailer_order_id: z.string().max(160).optional(),
   trackingNumber: z.string().max(120).optional(),
   tracking_number: z.string().max(120).optional(),
   carrier: z.string().max(120).optional(),
@@ -223,12 +238,112 @@ function normalizePrize(match) {
     prizeId: match?.prize_id || match?.product_id || snapshot.id || null,
     productSource,
     productUrl: snapshot.product_url || snapshot.source_url || snapshot.url || bestOffer.product_url || null,
+    image: snapshot.image || snapshot.image_url || snapshot.thumbnail || snapshot.thumbnail_url || bestOffer.image || '',
     itemId: snapshot.item_id || snapshot.itemId || snapshot.id || match?.prize_id || null,
     title: snapshot.title || 'Selected prize',
     price: Number(snapshot.price_cents || snapshot.price || bestOffer.price_cents || 0),
     currency: snapshot.currency || bestOffer.currency || 'USD',
     shippingCost: Number(snapshot.estimated_shipping_cents || snapshot.shipping_estimate_cents || snapshot.shippingCost || 0),
   };
+}
+
+async function findProfileForUser(store, userId) {
+  if (!userId) return null;
+  return await store.findOne('profiles', { id: String(userId) }).catch(() => null)
+    || await store.findOne('profiles', { auth_user_id: String(userId) }).catch(() => null)
+    || await store.findOne('profiles', { authUserId: String(userId) }).catch(() => null)
+    || await store.findOne('profiles', { email: String(userId) }).catch(() => null);
+}
+
+function profileDisplayName(profile, userId) {
+  const data = profile?.data && typeof profile.data === 'object' ? profile.data : {};
+  return data.displayName || data.full_name || data.name || profile?.displayName || profile?.full_name || profile?.name || profile?.email || userId || '';
+}
+
+function profileEmail(profile) {
+  const data = profile?.data && typeof profile.data === 'object' ? profile.data : {};
+  return profile?.email || data.email || '';
+}
+
+async function buildAiVerification(store, match) {
+  const recommendation = await recommendWinner(store, match);
+  const confidence = normalizeReportConfidence(recommendation.confidence);
+  const recommendedWinner = recommendation.recommendedWinnerUserId || recommendation.recommendedWinner?.userId || null;
+  let result = 'needs_review';
+  const reasons = [];
+
+  if (!recommendedWinner) {
+    result = 'rejected';
+    reasons.push('No eligible winner could be determined from submitted scores, proof, or referee reports.');
+  } else {
+    if (recommendation.lockBlockReasons?.length) reasons.push(`Review blockers: ${recommendation.lockBlockReasons.join(', ')}.`);
+    if (recommendation.warnings?.length) reasons.push(`Warnings: ${recommendation.warnings.join(', ')}.`);
+    if (recommendation.canLockWinner && confidence >= 0.8) result = 'approved';
+    if (!reasons.length) reasons.push('Submitted winner data and proof are consistent with the current match rules.');
+  }
+
+  return {
+    result,
+    confidence,
+    explanation: reasons.join(' '),
+    recommendedWinner,
+    recommendation,
+  };
+}
+
+async function createPrizeFulfillment(store, match, userId) {
+  const matchId = publicMatchId(match);
+  const lockedVerification = await store.findOne('winner_verifications', { matchId, status: 'locked' });
+  const winnerId = match.winner_user_id || match.winner_id || lockedVerification?.winnerUserId || lockedVerification?.winner_user_id;
+  if (!winnerId) {
+    const error = new Error('Winner must be locked before fulfillment is created');
+    error.status = 400;
+    throw error;
+  }
+
+  const existing = await store.findOne('prize_fulfillments', { match_id: matchId });
+  if (existing) return existing;
+
+  const prize = normalizePrize(match);
+  const profile = await findProfileForUser(store, winnerId);
+  const fulfillment = await store.create('prize_fulfillments', {
+    match_id: matchId,
+    winner_id: winnerId,
+    winner_name: profileDisplayName(profile, winnerId),
+    winner_email: profileEmail(profile),
+    prize_title: prize.title,
+    prize_url: prize.productUrl || '',
+    prize_image: prize.image || '',
+    prize_source: prize.productSource,
+    status: 'pending_admin_approval',
+    shipping_status: 'pending_address',
+    admin_approved: false,
+    retailer_order_id: '',
+    tracking_number: '',
+  });
+
+  if (matchRowId(match)) {
+    await store.update('north_pole_matches', matchRowId(match), {
+      status: 'prize_fulfillment',
+      prize_fulfillment_id: fulfillment.id,
+      fulfillment_order_id: fulfillment.id,
+    }).catch(() => null);
+  }
+
+  await createAuditEvent(store, {
+    entityType: 'PrizeFulfillment',
+    entityId: fulfillment.id,
+    matchId,
+    userId,
+    action: 'PRIZE_FULFILLMENT_CREATED',
+    metadata: {
+      prizeSource: fulfillment.prize_source,
+      status: fulfillment.status,
+      autoPurchase: false,
+    },
+  });
+
+  return fulfillment;
 }
 
 function determineScoreType(match, scores) {
@@ -1083,6 +1198,59 @@ export function createMatchFlowRouter({ store }) {
     ok(res, { ...recommendation, data: recommendation });
   }));
 
+  router.post('/matches/:id/ai-verify', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required to run AI referee review' });
+
+    const match = await findMatch(store, req.params.id);
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+
+    const review = await buildAiVerification(store, match);
+    const matchId = publicMatchId(match);
+    const payload = {
+      approved: review.result === 'approved',
+      rejected: review.result === 'rejected',
+      needs_review: review.result === 'needs_review',
+      result: review.result,
+      status: review.result,
+      confidence_score: review.confidence,
+      confidenceScore: review.confidence,
+      explanation: review.explanation,
+      recommended_winner: review.recommendedWinner,
+      recommendedWinner: review.recommendedWinner,
+      reviewed_at: now(),
+      reviewed_by: user.id,
+      auto_purchase: false,
+    };
+
+    if (matchRowId(match)) {
+      await store.update('north_pole_matches', matchRowId(match), {
+        ai_referee_status: review.result,
+        ai_referee_confidence: review.confidence,
+        ai_referee_explanation: review.explanation,
+        ai_referee_recommended_winner: review.recommendedWinner,
+        ai_referee_reviewed_at: payload.reviewed_at,
+        status: review.result === 'approved' ? 'pending_verification' : match.status,
+      }).catch(() => null);
+    }
+
+    await createAuditEvent(store, {
+      entityType: 'AIRefereeReview',
+      entityId: null,
+      matchId,
+      userId: user.id,
+      action: 'AI_REFEREE_REVIEWED_WINNER',
+      metadata: {
+        ...payload,
+        lockBlockReasons: review.recommendation.lockBlockReasons,
+        warnings: review.recommendation.warnings,
+      },
+    });
+
+    ok(res, { ...payload, recommendation: review.recommendation, data: payload });
+  }));
+
   router.post('/matches/:matchId/lock-winner', asyncHandler(async (req, res) => {
     const user = await requireUser(req, res, store);
     if (!user) return;
@@ -1293,6 +1461,79 @@ export function createMatchFlowRouter({ store }) {
     });
 
     ok(res, { verification: override, previousVerification: previousLocked, data: override });
+  }));
+
+  router.get('/admin/fulfillment', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
+
+    const fulfillments = await store.list('prize_fulfillments', {}, { sort: '-created_at' });
+    const matches = await store.list('north_pole_matches', {}, { sort: '-created_at' }).catch(() => []);
+    const fulfillmentMatchIds = new Set(fulfillments.map((row) => String(row.match_id || row.matchId)));
+    const readyMatches = matches
+      .filter((match) => ['fulfillment_pending', 'winner_verified', 'prize_fulfillment'].includes(match.status))
+      .filter((match) => !fulfillmentMatchIds.has(String(publicMatchId(match))))
+      .map((match) => ({
+        id: match.id,
+        match_id: publicMatchId(match),
+        winner_id: match.winner_user_id || match.winner_id || '',
+        prize_title: normalizePrize(match).title,
+        status: match.status,
+      }));
+
+    ok(res, { fulfillments, readyMatches, data: { fulfillments, readyMatches } });
+  }));
+
+  router.post('/matches/:id/create-fulfillment', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
+
+    const match = await findMatch(store, req.params.id);
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+
+    try {
+      const fulfillment = await createPrizeFulfillment(store, match, user.id);
+      ok(res, { fulfillment, data: fulfillment });
+    } catch (error) {
+      res.status(error.status || 500).json({ success: false, error: error.message || 'Could not create fulfillment' });
+    }
+  }));
+
+  router.patch('/admin/fulfillment/:id', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
+
+    const input = updateFulfillmentStatusSchema.parse(req.body || {});
+    const fulfillment = await store.findOne('prize_fulfillments', { id: req.params.id });
+    if (!fulfillment) return res.status(404).json({ success: false, error: 'Prize fulfillment not found' });
+
+    const status = input.status || fulfillment.status;
+    const shippingStatus = input.shippingStatus || input.shipping_status || (status === 'shipped' ? 'shipped' : status === 'delivered' ? 'delivered' : fulfillment.shipping_status);
+    const patch = {
+      status,
+      shipping_status: shippingStatus,
+      admin_approved: input.adminApproved ?? input.admin_approved ?? fulfillment.admin_approved ?? false,
+      retailer_order_id: input.retailerOrderId || input.retailer_order_id || fulfillment.retailer_order_id || '',
+      tracking_number: input.trackingNumber || input.tracking_number || fulfillment.tracking_number || '',
+    };
+    if (patch.admin_approved && status === fulfillment.status && fulfillment.status === 'pending_admin_approval') {
+      patch.status = 'ready_to_order';
+    }
+
+    const updated = await store.update('prize_fulfillments', fulfillment.id, patch);
+    await createAuditEvent(store, {
+      entityType: 'PrizeFulfillment',
+      entityId: fulfillment.id,
+      matchId: fulfillment.match_id,
+      userId: user.id,
+      action: 'PRIZE_FULFILLMENT_UPDATED',
+      metadata: patch,
+    });
+
+    ok(res, { fulfillment: updated, data: updated });
   }));
 
   router.post('/fulfillment/:matchId/create', asyncHandler(async (req, res) => {

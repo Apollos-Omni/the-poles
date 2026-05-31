@@ -14,10 +14,13 @@ import {
   startRefereeSession,
   simulateRefereeReport,
   verifyWinner,
+  aiVerifyWinner,
   lockWinner,
   disputeWinner,
   adminOverrideWinner,
-  updateFulfillmentOrderStatus,
+  createFulfillmentOrder,
+  listPrizeFulfillmentQueue,
+  updatePrizeFulfillment,
 } from '@/lib/northpole/matchEngine';
 import MatchEventLog from './MatchEventLog';
 
@@ -39,7 +42,8 @@ const ORDER_COLORS = {
 export default function AdminDashboard({ currentUser }) {
   const [matches, setMatches] = useState([]);
   const [fulfillments, setFulfillments] = useState([]);
-  const [fulfillmentOrders, setFulfillmentOrders] = useState([]);
+  const [prizeFulfillments, setPrizeFulfillments] = useState([]);
+  const [fulfillmentReadyMatches, setFulfillmentReadyMatches] = useState([]);
   const [matchScores, setMatchScores] = useState([]);
   const [winnerVerifications, setWinnerVerifications] = useState([]);
   const [refereeAccounts, setRefereeAccounts] = useState([]);
@@ -56,10 +60,10 @@ export default function AdminDashboard({ currentUser }) {
 
   const load = async () => {
     setIsLoading(true);
-    const [matchList, fulfillList, fulfillmentOrderList, scoreList, verificationList, refereeAccountList, refereeSessionList, refereeReportList] = await Promise.all([
+    const [matchList, fulfillList, prizeQueue, scoreList, verificationList, refereeAccountList, refereeSessionList, refereeReportList] = await Promise.all([
       base44.entities.NorthPoleMatch.list('-created_date', 50),
       base44.entities.NorthPoleFulfillment.list('-created_date', 50),
-      base44.entities.FulfillmentOrder.list('-created_date', 50),
+      listPrizeFulfillmentQueue().catch(() => ({ fulfillments: [], readyMatches: [] })),
       base44.entities.MatchScore.list('-created_date', 100),
       base44.entities.WinnerVerification.list('-created_date', 50),
       base44.entities.RefereeAccount.list('-created_date', 50).catch(() => []),
@@ -68,7 +72,8 @@ export default function AdminDashboard({ currentUser }) {
     ]);
     setMatches(matchList);
     setFulfillments(fulfillList);
-    setFulfillmentOrders(fulfillmentOrderList);
+    setPrizeFulfillments(prizeQueue.fulfillments || []);
+    setFulfillmentReadyMatches(prizeQueue.readyMatches || []);
     setMatchScores(scoreList);
     setWinnerVerifications(verificationList);
     setRefereeAccounts(refereeAccountList);
@@ -139,11 +144,11 @@ export default function AdminDashboard({ currentUser }) {
     setActionLoading(prev => ({ ...prev, [key]: false }));
   };
 
-  const verifiedMatches = matches.filter(m => ['verified', 'fulfillment_pending', 'fulfilled'].includes(m.status));
+  const verifiedMatches = matches.filter(m => ['verified', 'winner_verified', 'fulfillment_pending', 'prize_fulfillment', 'fulfilled'].includes(m.status));
   const pendingFulfillments = fulfillments.filter(f => f.admin_status === 'pending_review');
   const pendingScoreReviews = matchScores.filter(score => score.verificationStatus === 'pending');
   const disputedScores = matchScores.filter(score => score.verificationStatus === 'disputed' || ['suspicious', 'flagged'].includes(score.aiReviewStatus));
-  const fulfillmentReady = fulfillmentOrders.filter(order => ['pending', 'ready_to_order'].includes(order.status));
+  const fulfillmentReady = prizeFulfillments.filter(order => !['delivered', 'cancelled'].includes(order.status));
 
   const updateTrackingDraft = (fulfillmentId, patch) => {
     setTrackingDrafts(prev => ({
@@ -157,18 +162,27 @@ export default function AdminDashboard({ currentUser }) {
     }));
   };
 
-  const handleFulfillmentOrderStatus = async (order, status) => {
-    const key = `${order.id}_${status}`;
+  const handleCreatePrizeFulfillment = async (matchId) => {
+    const key = `${matchId}_create_fulfillment`;
     setActionLoading(prev => ({ ...prev, [key]: true }));
-    const draft = trackingDrafts[order.id] || {};
-    await updateFulfillmentOrderStatus({
-      fulfillmentId: order.id,
-      status,
-      trackingNumber: draft.trackingNumber || order.trackingNumber || '',
-      carrier: draft.carrier || order.carrier || '',
-    });
+    await createFulfillmentOrder({ matchId });
     await load();
     setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const handlePrizeFulfillmentPatch = async (fulfillment, patch, keySuffix) => {
+    const key = `${fulfillment.id}_${keySuffix}`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    await updatePrizeFulfillment({ fulfillmentId: fulfillment.id, patch });
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const handleAddTracking = async (fulfillment) => {
+    const draft = trackingDrafts[fulfillment.id] || {};
+    await handlePrizeFulfillmentPatch(fulfillment, {
+      trackingNumber: draft.trackingNumber || fulfillment.tracking_number || '',
+    }, 'tracking');
   };
 
   const handleScoreReview = async (score, verificationStatus, aiReviewStatus = score.aiReviewStatus || 'not_reviewed') => {
@@ -223,6 +237,15 @@ export default function AdminDashboard({ currentUser }) {
     setActionLoading(prev => ({ ...prev, [key]: true }));
     const recommendation = await verifyWinner({ matchId });
     setWinnerActions(prev => ({ ...prev, [matchId]: { ...(prev[matchId] || {}), recommendation } }));
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const handleAiVerifyWinner = async (matchId) => {
+    const key = `${matchId}_ai_verify`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    const review = await aiVerifyWinner({ matchId });
+    setWinnerActions(prev => ({ ...prev, [matchId]: { ...(prev[matchId] || {}), aiReview: review, recommendation: review.recommendation || prev[matchId]?.recommendation } }));
     await load();
     setActionLoading(prev => ({ ...prev, [key]: false }));
   };
@@ -425,6 +448,7 @@ export default function AdminDashboard({ currentUser }) {
             const matchId = match.match_id || match.id;
             const draft = winnerActions[matchId] || {};
             const recommendation = draft.recommendation;
+            const aiReview = draft.aiReview;
             const refereeSession = draft.referee?.session || getRefereeSession(matchId);
             const refereeReport = draft.referee?.report || recommendation?.refereeReport || getRefereeReport(matchId);
             const refereeAccount = draft.referee?.refereeAccount || getRefereeAccount(refereeSession);
@@ -437,6 +461,15 @@ export default function AdminDashboard({ currentUser }) {
                     <div className="text-xs text-purple-300">Locked winner: {match.winner_user_id || 'None'}</div>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAiVerifyWinner(matchId)}
+                      disabled={actionLoading[`${matchId}_ai_verify`]}
+                      className="border-cyan-700/50 text-cyan-200 hover:bg-cyan-950/40"
+                    >
+                      AI Referee Review
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"
@@ -456,6 +489,19 @@ export default function AdminDashboard({ currentUser }) {
                     </Button>
                   </div>
                 </div>
+                {aiReview && (
+                  <div className="mt-2 rounded border border-cyan-800/30 bg-cyan-950/10 p-2 text-xs text-purple-100">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-white">AI Referee:</span>
+                      <Badge className={aiReview.result === 'approved' ? 'bg-green-600/20 text-green-200' : aiReview.result === 'rejected' ? 'bg-red-600/20 text-red-200' : 'bg-yellow-600/20 text-yellow-200'}>
+                        {aiReview.result}
+                      </Badge>
+                      <span>Confidence: {aiReview.confidenceScore ?? aiReview.confidence_score}</span>
+                      <span>Recommended winner: <strong className="font-mono text-yellow-200">{aiReview.recommendedWinner || aiReview.recommended_winner || '-'}</strong></span>
+                    </div>
+                    <div className="mt-1 text-purple-200">{aiReview.explanation}</div>
+                  </div>
+                )}
                 <div className="mt-3 rounded border border-cyan-800/30 bg-cyan-950/10 p-3 text-xs text-purple-100">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                     <div className="font-semibold text-white">Ghost Referee / Referee Engine</div>
@@ -579,62 +625,113 @@ export default function AdminDashboard({ currentUser }) {
 
       <Card className="bg-black/30 border border-purple-800/30">
         <CardHeader>
-          <CardTitle className="text-lg text-white">Fulfillment Orders Ready to Purchase</CardTitle>
+          <CardTitle className="text-lg text-white">Prize Fulfillment</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {fulfillmentOrders.map(order => (
-            <div key={order.id} className="rounded-lg border border-purple-800/30 bg-purple-950/20 p-3">
+          {fulfillmentReadyMatches.map(match => (
+            <div key={match.match_id} className="rounded-lg border border-purple-800/30 bg-purple-950/20 p-3">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-white">{order.title}</span>
-                    <Badge className="bg-blue-600/20 text-blue-200">{order.status}</Badge>
-                    <Badge className="bg-purple-600/20 text-purple-200">{order.productSource}</Badge>
+                    <span className="font-semibold text-white">{match.prize_title || 'Selected prize'}</span>
+                    <Badge className="bg-yellow-600/20 text-yellow-200">{match.status}</Badge>
                   </div>
                   <div className="mt-1 text-xs text-purple-300">
-                    Match {order.matchId} - Winner {order.winnerUserId}
+                    Match {match.match_id} - Winner {match.winner_id || 'locked winner pending sync'}
                   </div>
-                  {order.productUrl && (
-                    <a href={order.productUrl} target="_blank" rel="noreferrer" className="mt-1 block truncate text-xs text-cyan-300">
-                      {order.productUrl}
+                </div>
+                <Button
+                  size="sm"
+                  onClick={() => handleCreatePrizeFulfillment(match.match_id)}
+                  disabled={actionLoading[`${match.match_id}_create_fulfillment`]}
+                  className="bg-purple-700 text-white hover:bg-purple-600"
+                >
+                  Create Fulfillment
+                </Button>
+              </div>
+            </div>
+          ))}
+
+          {fulfillmentReady.map(fulfillment => (
+            <div key={fulfillment.id} className="rounded-lg border border-purple-800/30 bg-purple-950/20 p-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-white">{fulfillment.prize_title}</span>
+                    <Badge className="bg-blue-600/20 text-blue-200">{fulfillment.status}</Badge>
+                    <Badge className="bg-purple-600/20 text-purple-200">{fulfillment.prize_source || 'manual'}</Badge>
+                    {fulfillment.admin_approved && <Badge className="bg-green-600/20 text-green-200">admin approved</Badge>}
+                  </div>
+                  <div className="mt-1 text-xs text-purple-300">
+                    Match {fulfillment.match_id} - Winner {fulfillment.winner_name || fulfillment.winner_id}
+                  </div>
+                  {fulfillment.winner_email && <div className="text-xs text-purple-400">{fulfillment.winner_email}</div>}
+                  {fulfillment.prize_url && (
+                    <a href={fulfillment.prize_url} target="_blank" rel="noreferrer" className="mt-1 block truncate text-xs text-cyan-300">
+                      {fulfillment.prize_url}
                     </a>
                   )}
                 </div>
                 <div className="grid min-w-64 gap-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      value={trackingDrafts[order.id]?.carrier || order.carrier || ''}
-                      onChange={event => updateTrackingDraft(order.id, { carrier: event.target.value })}
-                      placeholder="Carrier"
-                      className="border-purple-700/40 bg-black/30 text-white placeholder:text-purple-400/60"
-                    />
-                    <Input
-                      value={trackingDrafts[order.id]?.trackingNumber || order.trackingNumber || ''}
-                      onChange={event => updateTrackingDraft(order.id, { trackingNumber: event.target.value })}
-                      placeholder="Tracking number"
-                      className="border-purple-700/40 bg-black/30 text-white placeholder:text-purple-400/60"
-                    />
-                  </div>
+                  <Input
+                    value={trackingDrafts[fulfillment.id]?.trackingNumber || fulfillment.tracking_number || ''}
+                    onChange={event => updateTrackingDraft(fulfillment.id, { trackingNumber: event.target.value })}
+                    placeholder="Tracking number"
+                    className="border-purple-700/40 bg-black/30 text-white placeholder:text-purple-400/60"
+                  />
                   <div className="flex flex-wrap gap-2">
-                    {['ordered', 'shipped', 'delivered', 'cancelled'].map(status => (
-                      <Button
-                        key={status}
-                        size="sm"
-                        variant={status === 'cancelled' ? 'destructive' : 'outline'}
-                        onClick={() => handleFulfillmentOrderStatus(order, status)}
-                        disabled={actionLoading[`${order.id}_${status}`]}
-                        className={status === 'cancelled' ? '' : 'border-purple-700/50 text-purple-200 hover:bg-purple-900/40'}
-                      >
-                        {status}
-                      </Button>
-                    ))}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handlePrizeFulfillmentPatch(fulfillment, { adminApproved: true }, 'approve')}
+                      disabled={actionLoading[`${fulfillment.id}_approve`]}
+                      className="border-green-700/50 text-green-200 hover:bg-green-950/40"
+                    >
+                      Approve Order
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handlePrizeFulfillmentPatch(fulfillment, { status: 'ordered', shippingStatus: 'ordered' }, 'ordered')}
+                      disabled={actionLoading[`${fulfillment.id}_ordered`]}
+                      className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40"
+                    >
+                      Mark Ordered
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAddTracking(fulfillment)}
+                      disabled={actionLoading[`${fulfillment.id}_tracking`]}
+                      className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40"
+                    >
+                      Add Tracking
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handlePrizeFulfillmentPatch(fulfillment, { status: 'shipped', shippingStatus: 'shipped' }, 'shipped')}
+                      disabled={actionLoading[`${fulfillment.id}_shipped`]}
+                      className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40"
+                    >
+                      Mark Shipped
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handlePrizeFulfillmentPatch(fulfillment, { status: 'delivered', shippingStatus: 'delivered' }, 'delivered')}
+                      disabled={actionLoading[`${fulfillment.id}_delivered`]}
+                      className="border-purple-700/50 text-purple-200 hover:bg-purple-900/40"
+                    >
+                      Mark Delivered
+                    </Button>
                   </div>
                 </div>
               </div>
             </div>
           ))}
-          {fulfillmentOrders.length === 0 && (
-            <p className="py-4 text-center text-sm text-purple-400">No fulfillment orders have been created yet.</p>
+          {fulfillmentReadyMatches.length === 0 && fulfillmentReady.length === 0 && (
+            <p className="py-4 text-center text-sm text-purple-400">No verified winners are waiting for prize fulfillment.</p>
           )}
         </CardContent>
       </Card>
