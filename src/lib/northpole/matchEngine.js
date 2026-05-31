@@ -141,6 +141,82 @@ export async function reviewScore({
   return response.score || response.data;
 }
 
+export async function assignReferee({
+  matchId,
+  refereeAccountId = '',
+  joinMethod = 'spectator_mode',
+  externalLobbyId = '',
+  streamUrl = '',
+}) {
+  const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/assign-referee`, {
+    method: 'POST',
+    body: {
+      refereeAccountId,
+      joinMethod,
+      externalLobbyId,
+      streamUrl,
+    },
+  });
+
+  return response;
+}
+
+export async function startRefereeSession({ matchId, refereeSessionId }) {
+  const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/start-referee-session`, {
+    method: 'POST',
+    body: {
+      refereeSessionId,
+    },
+  });
+
+  return response.session || response.data;
+}
+
+export async function submitRefereeReport({
+  matchId,
+  refereeSessionId,
+  source = 'spectator_bot',
+  providerName = '',
+  winnerUserId,
+  loserUserIds = [],
+  winningScore,
+  scoreType = 'highest_score',
+  confidence = 1,
+  evidenceUrls = [],
+  rawReport = {},
+  warnings = [],
+  signedPayload = '',
+}) {
+  const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/referee-report`, {
+    method: 'POST',
+    body: {
+      refereeSessionId,
+      source,
+      providerName,
+      winnerUserId,
+      loserUserIds,
+      winningScore,
+      scoreType,
+      confidence,
+      evidenceUrls,
+      rawReport,
+      warnings,
+      signedPayload,
+    },
+  });
+
+  return response.report || response.data;
+}
+
+export async function simulateRefereeReport({ matchId }) {
+  const response = await apiRequest(`/api/matches/${encodeURIComponent(matchId)}/simulate-referee-report`, {
+    method: 'POST',
+    body: {},
+  });
+
+  return response;
+}
+
 export async function verifyWinner({ matchId }) {
   return apiRequest(`/api/matches/${encodeURIComponent(matchId)}/verify-winner`, {
     method: 'POST',

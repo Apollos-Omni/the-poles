@@ -1,0 +1,31 @@
+{
+  "name": "RefereeAccount",
+  "type": "object",
+  "properties": {
+    "displayName": { "type": "string" },
+    "accountType": {
+      "type": "string",
+      "enum": ["ai_referee", "human_referee", "game_api_referee"],
+      "default": "ai_referee"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["available", "assigned", "offline", "disabled"],
+      "default": "available"
+    },
+    "providerName": { "type": "string" },
+    "supportedModes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["manual_evidence", "vision_review", "game_api", "spectator_bot", "native_game_sdk"]
+      },
+      "default": []
+    },
+    "refereeUserId": { "type": "string" },
+    "role": { "type": "string", "default": "referee_bot" },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" }
+  },
+  "required": ["displayName", "accountType", "status", "providerName"]
+}

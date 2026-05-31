@@ -45,6 +45,9 @@ import {
   leaveNorthPoleMatch,
   cancelNorthPoleMatch,
   submitScore as submitMatchScore,
+  assignReferee,
+  startRefereeSession,
+  simulateRefereeReport,
   verifyWinner,
   lockWinner,
   disputeWinner,
@@ -102,6 +105,7 @@ function statusClass(status) {
   if (status === 'open') return 'bg-blue-600/20 text-blue-300 border-blue-600/30';
   if (status === 'waiting_for_players') return 'bg-indigo-600/20 text-indigo-300 border-indigo-600/30';
   if (status === 'in_progress') return 'bg-cyan-600/20 text-cyan-300 border-cyan-600/30';
+  if (['referee_assigned', 'waiting_for_referee', 'referee_observing'].includes(status)) return 'bg-cyan-600/20 text-cyan-300 border-cyan-600/30';
   if (status === 'pending_verification') return 'bg-yellow-600/20 text-yellow-300 border-yellow-600/30';
   if (['winner_verified', 'fulfillment_pending', 'fulfilled'].includes(status)) return 'bg-green-600/20 text-green-300 border-green-600/30';
   if (status === 'disputed') return 'bg-orange-600/20 text-orange-300 border-orange-600/30';
@@ -111,7 +115,7 @@ function statusClass(status) {
 
 const MATCH_STATUS_STEPS = [
   { id: 'scores', label: 'Scores submitted', statuses: ['draft', 'open', 'waiting_for_players', 'in_progress'] },
-  { id: 'review', label: 'Scores under review', statuses: ['pending_verification'] },
+  { id: 'review', label: 'Scores under review', statuses: ['pending_verification', 'referee_assigned', 'waiting_for_referee', 'referee_observing'] },
   { id: 'recommended', label: 'Winner recommended', statuses: ['winner_recommended'] },
   { id: 'locked', label: 'Winner locked', statuses: ['winner_verified', 'fulfillment_pending'] },
   { id: 'dispute', label: 'Dispute opened', statuses: ['disputed'] },
@@ -300,6 +304,9 @@ function NorthPoleMatchCard({
   scoreDraft,
   onScoreDraftChange,
   onSubmitScore,
+  onAssignGhostReferee,
+  onStartRefereeSession,
+  onSimulateRefereeReport,
   onVerifyWinner,
   onLockWinner,
   onDisputeWinner,
@@ -309,6 +316,7 @@ function NorthPoleMatchCard({
   onCancelMatch,
   isAdmin,
   verificationRecommendation,
+  refereeAction,
   disputeDraft,
   onDisputeDraftChange,
   overrideDraft,
@@ -325,6 +333,10 @@ function NorthPoleMatchCard({
   const canLeave = Boolean(isParticipant && !isCreator && ['open', 'waiting_for_players'].includes(match.status));
   const canCancel = Boolean((isCreator || isAdmin) && ['draft', 'open', 'waiting_for_players'].includes(match.status));
   const plan = match.match_plan || match.prize_snapshot?.match_plan || {};
+  const refereeContext = verificationRecommendation?.refereeContext || {};
+  const refereeSession = refereeAction?.session || refereeContext.sessions?.[0] || null;
+  const refereeAccount = refereeAction?.refereeAccount || refereeContext.accounts?.[0] || null;
+  const refereeReport = refereeAction?.report || verificationRecommendation?.refereeReport || refereeContext.reports?.[0] || null;
 
   return (
     <Card className="border border-purple-700/30 bg-black/35">
@@ -420,6 +432,65 @@ function NorthPoleMatchCard({
         )}
         {(isParticipant || isCreator) && (
           <div className="mt-4 rounded-xl border border-purple-800/30 bg-black/25 p-4">
+            <div className="mb-4 rounded-lg border border-cyan-800/30 bg-cyan-950/10 p-3">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h4 className="flex items-center gap-2 text-sm font-bold text-white">
+                  <ShieldCheck className="h-4 w-4 text-cyan-300" />
+                  Ghost Referee
+                </h4>
+                <Badge className="border border-cyan-700/30 bg-cyan-900/35 text-cyan-200">
+                  AI Referee Account
+                </Badge>
+              </div>
+              <div className="grid gap-2 text-xs text-purple-100 sm:grid-cols-2 lg:grid-cols-4">
+                <span>Assigned referee: <strong className="text-white">{refereeAccount?.displayName || 'None'}</strong></span>
+                <span>Session: <strong className="text-white">{refereeSession?.status || 'not assigned'}</strong></span>
+                <span>Join method: <strong className="text-white">{refereeSession?.joinMethod || '-'}</strong></span>
+                <span>Report: <strong className="text-white">{refereeReport?.reportStatus || 'none'}</strong></span>
+                <span>Confidence: <strong className="text-white">{refereeReport?.confidence ?? '-'}</strong></span>
+                <span>Recommended winner: <strong className="font-mono text-yellow-200">{refereeReport?.winnerUserId || verificationRecommendation?.recommendedWinnerUserId || '-'}</strong></span>
+              </div>
+              {refereeReport?.warnings?.length > 0 && (
+                <div className="mt-2 text-xs text-yellow-200">Warnings: {refereeReport.warnings.join(', ')}</div>
+              )}
+              {refereeReport?.evidenceUrls?.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                  {refereeReport.evidenceUrls.map((url) => (
+                    <a key={url} href={url} target="_blank" rel="noreferrer" className="text-cyan-300 hover:underline">Evidence</a>
+                  ))}
+                </div>
+              )}
+              {isAdmin && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onAssignGhostReferee(match)}
+                    disabled={actionLoading === `referee-assign-${match.id}`}
+                    className="border-cyan-700/50 text-cyan-200 hover:bg-cyan-950/40"
+                  >
+                    Assign Ghost Referee
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onStartRefereeSession(match)}
+                    disabled={actionLoading === `referee-start-${match.id}` || !refereeSession?.id}
+                    className="border-cyan-700/50 text-cyan-200 hover:bg-cyan-950/40"
+                  >
+                    Start Referee Session
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => onSimulateRefereeReport(match)}
+                    disabled={actionLoading === `referee-sim-${match.id}`}
+                    className="bg-cyan-700 text-white hover:bg-cyan-600"
+                  >
+                    Create Simulated Referee Report
+                  </Button>
+                </div>
+              )}
+            </div>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h4 className="flex items-center gap-2 text-sm font-bold text-white">
                 <ClipboardList className="h-4 w-4 text-cyan-300" />
@@ -630,6 +701,7 @@ function RealNorthPoleFlow({ user }) {
   const [joinAgreementAccepted, setJoinAgreementAccepted] = useState(false);
   const [scoreDrafts, setScoreDrafts] = useState({});
   const [verificationRecommendations, setVerificationRecommendations] = useState({});
+  const [refereeActions, setRefereeActions] = useState({});
   const [disputeDrafts, setDisputeDrafts] = useState({});
   const [overrideDrafts, setOverrideDrafts] = useState({});
   const [flowActionLoading, setFlowActionLoading] = useState('');
@@ -668,7 +740,7 @@ function RealNorthPoleFlow({ user }) {
 
   const visibleMatches = useMemo(() => {
     const userIds = currentUserMatchIds(user);
-    const activeStatuses = new Set(['draft', 'open', 'waiting_for_players', 'in_progress', 'pending_verification', 'winner_verified', 'fulfillment_pending', 'disputed']);
+    const activeStatuses = new Set(['draft', 'open', 'waiting_for_players', 'in_progress', 'referee_assigned', 'waiting_for_referee', 'referee_observing', 'pending_verification', 'winner_verified', 'fulfillment_pending', 'disputed']);
     return matches.filter((match) => {
       if (matchView === 'mine') {
         return matchIncludesUserId([match.creator_user_id, match.created_by, ...(Array.isArray(match.player_ids) ? match.player_ids : [])], userIds);
@@ -1052,6 +1124,66 @@ function RealNorthPoleFlow({ user }) {
       await loadMatches();
     } catch (err) {
       setError(err.message || 'Could not submit score.');
+    } finally {
+      setFlowActionLoading('');
+    }
+  };
+
+  const assignGhostRefereeForMatch = async (match) => {
+    setFlowActionLoading(`referee-assign-${match.id}`);
+    setError('');
+    setMessage('');
+    try {
+      const result = await assignReferee({
+        matchId: match.match_id || match.id,
+        joinMethod: 'spectator_mode',
+      });
+      setRefereeActions((prev) => ({ ...prev, [match.id]: result }));
+      setMessage('Ghost Referee assigned as an observer.');
+      await loadMatches();
+    } catch (err) {
+      setError(err.message || 'Could not assign Ghost Referee.');
+    } finally {
+      setFlowActionLoading('');
+    }
+  };
+
+  const startRefereeSessionForMatch = async (match) => {
+    const refereeSessionId = refereeActions[match.id]?.session?.id || verificationRecommendations[match.id]?.refereeContext?.sessions?.[0]?.id;
+    if (!refereeSessionId) {
+      setError('Assign a Ghost Referee before starting the referee session.');
+      return;
+    }
+
+    setFlowActionLoading(`referee-start-${match.id}`);
+    setError('');
+    setMessage('');
+    try {
+      const session = await startRefereeSession({
+        matchId: match.match_id || match.id,
+        refereeSessionId,
+      });
+      setRefereeActions((prev) => ({ ...prev, [match.id]: { ...(prev[match.id] || {}), session } }));
+      setMessage('Ghost Referee session started.');
+      await loadMatches();
+    } catch (err) {
+      setError(err.message || 'Could not start Ghost Referee session.');
+    } finally {
+      setFlowActionLoading('');
+    }
+  };
+
+  const simulateRefereeReportForMatch = async (match) => {
+    setFlowActionLoading(`referee-sim-${match.id}`);
+    setError('');
+    setMessage('');
+    try {
+      const result = await simulateRefereeReport({ matchId: match.match_id || match.id });
+      setRefereeActions((prev) => ({ ...prev, [match.id]: result }));
+      setMessage('Simulated Ghost Referee report created.');
+      await loadMatches();
+    } catch (err) {
+      setError(err.message || 'Could not create simulated Ghost Referee report.');
     } finally {
       setFlowActionLoading('');
     }
@@ -1582,6 +1714,9 @@ function RealNorthPoleFlow({ user }) {
                 scoreDraft={scoreDrafts[match.id]}
                 onScoreDraftChange={updateScoreDraft}
                 onSubmitScore={submitMatchScoreForMatch}
+                onAssignGhostReferee={assignGhostRefereeForMatch}
+                onStartRefereeSession={startRefereeSessionForMatch}
+                onSimulateRefereeReport={simulateRefereeReportForMatch}
                 onVerifyWinner={verifyWinnerForMatch}
                 onLockWinner={lockWinnerForMatch}
                 onDisputeWinner={disputeWinnerForMatch}
@@ -1591,6 +1726,7 @@ function RealNorthPoleFlow({ user }) {
                 onCancelMatch={cancelMatch}
                 isAdmin={isAdmin}
                 verificationRecommendation={verificationRecommendations[match.id]}
+                refereeAction={refereeActions[match.id]}
                 disputeDraft={disputeDrafts[match.id]}
                 onDisputeDraftChange={updateDisputeDraft}
                 overrideDraft={overrideDrafts[match.id]}

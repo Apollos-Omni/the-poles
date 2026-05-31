@@ -1,0 +1,36 @@
+{
+  "name": "RefereeReport",
+  "type": "object",
+  "properties": {
+    "matchId": { "type": "string" },
+    "refereeSessionId": { "type": "string" },
+    "refereeAccountId": { "type": "string" },
+    "refereeUserId": { "type": "string" },
+    "source": {
+      "type": "string",
+      "enum": ["game_api", "spectator_bot", "native_game_sdk", "vision_review", "stream_review", "manual_evidence", "player_evidence"]
+    },
+    "providerName": { "type": "string" },
+    "winnerUserId": { "type": "string" },
+    "loserUserIds": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "winningScore": { "type": "number" },
+    "scoreType": {
+      "type": "string",
+      "enum": ["highest_score", "lowest_time", "bracket_result", "manual_review", "manual"],
+      "default": "highest_score"
+    },
+    "confidence": { "type": "number" },
+    "evidenceUrls": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "rawReport": { "type": "object", "default": {} },
+    "warnings": { "type": "array", "items": { "type": "string" }, "default": [] },
+    "signedPayload": { "type": "string" },
+    "reportStatus": {
+      "type": "string",
+      "enum": ["pending", "accepted", "rejected", "disputed"],
+      "default": "accepted"
+    },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" }
+  },
+  "required": ["matchId", "refereeSessionId", "source", "winnerUserId", "confidence", "reportStatus"]
+}

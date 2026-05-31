@@ -10,6 +10,9 @@ import { format } from 'date-fns';
 import {
   logEvent,
   reviewScore,
+  assignReferee,
+  startRefereeSession,
+  simulateRefereeReport,
   verifyWinner,
   lockWinner,
   disputeWinner,
@@ -39,6 +42,9 @@ export default function AdminDashboard({ currentUser }) {
   const [fulfillmentOrders, setFulfillmentOrders] = useState([]);
   const [matchScores, setMatchScores] = useState([]);
   const [winnerVerifications, setWinnerVerifications] = useState([]);
+  const [refereeAccounts, setRefereeAccounts] = useState([]);
+  const [refereeSessions, setRefereeSessions] = useState([]);
+  const [refereeReports, setRefereeReports] = useState([]);
   const [events, setEvents] = useState({});
   const [expandedMatch, setExpandedMatch] = useState(null);
   const [adminNotes, setAdminNotes] = useState({});
@@ -50,18 +56,24 @@ export default function AdminDashboard({ currentUser }) {
 
   const load = async () => {
     setIsLoading(true);
-    const [matchList, fulfillList, fulfillmentOrderList, scoreList, verificationList] = await Promise.all([
+    const [matchList, fulfillList, fulfillmentOrderList, scoreList, verificationList, refereeAccountList, refereeSessionList, refereeReportList] = await Promise.all([
       base44.entities.NorthPoleMatch.list('-created_date', 50),
       base44.entities.NorthPoleFulfillment.list('-created_date', 50),
       base44.entities.FulfillmentOrder.list('-created_date', 50),
       base44.entities.MatchScore.list('-created_date', 100),
       base44.entities.WinnerVerification.list('-created_date', 50),
+      base44.entities.RefereeAccount.list('-created_date', 50).catch(() => []),
+      base44.entities.MatchRefereeSession.list('-created_date', 100).catch(() => []),
+      base44.entities.RefereeReport.list('-created_date', 100).catch(() => []),
     ]);
     setMatches(matchList);
     setFulfillments(fulfillList);
     setFulfillmentOrders(fulfillmentOrderList);
     setMatchScores(scoreList);
     setWinnerVerifications(verificationList);
+    setRefereeAccounts(refereeAccountList);
+    setRefereeSessions(refereeSessionList);
+    setRefereeReports(refereeReportList);
     setIsLoading(false);
   };
 
@@ -170,6 +182,38 @@ export default function AdminDashboard({ currentUser }) {
       reviewNotes: scoreReviewNotes[score.id] || '',
       reviewedBy: currentUser?.id || currentUser?.email || 'admin',
     });
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const getRefereeSession = (matchId) => refereeSessions.find(session => session.matchId === matchId);
+  const getRefereeReport = (matchId) => refereeReports.find(report => report.matchId === matchId);
+  const getRefereeAccount = (session) => refereeAccounts.find(account => account.id === session?.refereeAccountId);
+
+  const handleAssignGhostReferee = async (matchId) => {
+    const key = `${matchId}_ghost_assign`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    const result = await assignReferee({ matchId, joinMethod: 'spectator_mode' });
+    setWinnerActions(prev => ({ ...prev, [matchId]: { ...(prev[matchId] || {}), referee: result } }));
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const handleStartRefereeSession = async (matchId) => {
+    const session = winnerActions[matchId]?.referee?.session || getRefereeSession(matchId);
+    if (!session?.id) return;
+    const key = `${matchId}_ghost_start`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    await startRefereeSession({ matchId, refereeSessionId: session.id });
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const handleSimulateRefereeReport = async (matchId) => {
+    const key = `${matchId}_ghost_sim`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    const result = await simulateRefereeReport({ matchId });
+    setWinnerActions(prev => ({ ...prev, [matchId]: { ...(prev[matchId] || {}), referee: result } }));
     await load();
     setActionLoading(prev => ({ ...prev, [key]: false }));
   };
@@ -377,10 +421,13 @@ export default function AdminDashboard({ currentUser }) {
           <CardTitle className="text-lg text-white">Winner Verification Controls</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {matches.filter(match => ['pending_verification', 'disputed', 'winner_verified', 'fulfillment_pending'].includes(match.status)).slice(0, 8).map(match => {
+          {matches.filter(match => ['referee_assigned', 'waiting_for_referee', 'referee_observing', 'pending_verification', 'disputed', 'winner_verified', 'fulfillment_pending'].includes(match.status)).slice(0, 8).map(match => {
             const matchId = match.match_id || match.id;
             const draft = winnerActions[matchId] || {};
             const recommendation = draft.recommendation;
+            const refereeSession = draft.referee?.session || getRefereeSession(matchId);
+            const refereeReport = draft.referee?.report || recommendation?.refereeReport || getRefereeReport(matchId);
+            const refereeAccount = draft.referee?.refereeAccount || getRefereeAccount(refereeSession);
             const recommendedWinnerUserId = recommendation?.recommendedWinnerUserId || recommendation?.recommendedWinner?.userId;
             return (
               <div key={match.id} className="rounded-lg border border-purple-800/30 bg-purple-950/20 p-3">
@@ -409,11 +456,64 @@ export default function AdminDashboard({ currentUser }) {
                     </Button>
                   </div>
                 </div>
+                <div className="mt-3 rounded border border-cyan-800/30 bg-cyan-950/10 p-3 text-xs text-purple-100">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <div className="font-semibold text-white">Ghost Referee / Referee Engine</div>
+                    <Badge className="bg-cyan-900/40 text-cyan-200">AI-assisted referee report</Badge>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                    <span>Assigned referee: <strong className="text-white">{refereeAccount?.displayName || 'None'}</strong></span>
+                    <span>Session: <strong className="text-white">{refereeSession?.status || 'not assigned'}</strong></span>
+                    <span>Join method: <strong className="text-white">{refereeSession?.joinMethod || '-'}</strong></span>
+                    <span>Report: <strong className="text-white">{refereeReport?.reportStatus || 'none'}</strong></span>
+                    <span>Confidence: <strong className="text-white">{refereeReport?.confidence ?? '-'}</strong></span>
+                    <span>Recommended winner: <strong className="font-mono text-yellow-200">{refereeReport?.winnerUserId || recommendedWinnerUserId || '-'}</strong></span>
+                  </div>
+                  {refereeReport?.warnings?.length > 0 && (
+                    <div className="mt-2 text-yellow-200">Warnings: {refereeReport.warnings.join(', ')}</div>
+                  )}
+                  {refereeReport?.evidenceUrls?.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {refereeReport.evidenceUrls.map(url => (
+                        <a key={url} href={url} target="_blank" rel="noreferrer" className="text-cyan-300 hover:underline">Evidence</a>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleAssignGhostReferee(matchId)}
+                      disabled={actionLoading[`${matchId}_ghost_assign`]}
+                      className="border-cyan-700/50 text-cyan-200 hover:bg-cyan-950/40"
+                    >
+                      Assign Ghost Referee
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleStartRefereeSession(matchId)}
+                      disabled={actionLoading[`${matchId}_ghost_start`] || !refereeSession?.id}
+                      className="border-cyan-700/50 text-cyan-200 hover:bg-cyan-950/40"
+                    >
+                      Start Referee Session
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleSimulateRefereeReport(matchId)}
+                      disabled={actionLoading[`${matchId}_ghost_sim`]}
+                      className="bg-cyan-700 text-white hover:bg-cyan-600"
+                    >
+                      Create Simulated Referee Report
+                    </Button>
+                  </div>
+                </div>
                 {recommendation && (
                   <div className="mt-2 rounded border border-purple-800/30 bg-black/20 p-2 text-xs text-purple-100">
                     <div>Recommended winner: <span className="font-mono text-yellow-200">{recommendedWinnerUserId || 'None'}</span></div>
                     <div>Rule: {recommendation.deterministicRule}</div>
                     <div>AI-assisted review is informational only. Confidence: {recommendation.confidence}. Can lock: {recommendation.canLockWinner ? 'yes' : 'no'}.</div>
+                    {recommendation.lockBlockReasons?.length > 0 && <div className="text-orange-200">Cannot lock: {recommendation.lockBlockReasons.join(', ')}</div>}
                     {recommendation.warnings?.length > 0 && <div className="text-yellow-200">Warnings: {recommendation.warnings.join(', ')}</div>}
                   </div>
                 )}
@@ -471,7 +571,7 @@ export default function AdminDashboard({ currentUser }) {
               </div>
             );
           })}
-          {matches.filter(match => ['pending_verification', 'disputed', 'winner_verified', 'fulfillment_pending'].includes(match.status)).length === 0 && (
+          {matches.filter(match => ['referee_assigned', 'waiting_for_referee', 'referee_observing', 'pending_verification', 'disputed', 'winner_verified', 'fulfillment_pending'].includes(match.status)).length === 0 && (
             <p className="py-4 text-center text-sm text-purple-400">No matches are waiting for winner verification.</p>
           )}
         </CardContent>

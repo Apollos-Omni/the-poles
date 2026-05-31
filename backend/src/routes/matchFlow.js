@@ -16,6 +16,14 @@ const fulfillmentStatuses = ['ordered', 'shipped', 'delivered', 'cancelled'];
 const cancellableMatchStatuses = new Set(['draft', 'open', 'waiting_for_players']);
 const verificationStatuses = ['pending', 'verified', 'rejected', 'disputed'];
 const aiReviewStatuses = ['not_reviewed', 'clean', 'suspicious', 'flagged'];
+const refereeAccountTypes = ['ai_referee', 'human_referee', 'game_api_referee'];
+const refereeAccountStatuses = ['available', 'assigned', 'offline', 'disabled'];
+const refereeSupportedModes = ['manual_evidence', 'vision_review', 'game_api', 'spectator_bot', 'native_game_sdk'];
+const refereeSessionStatuses = ['assigned', 'observing', 'report_submitted', 'failed', 'cancelled'];
+const refereeJoinMethods = ['spectator_mode', 'private_lobby', 'game_api', 'stream_review', 'evidence_review', 'native_game_sdk'];
+const refereeReportSources = ['game_api', 'spectator_bot', 'native_game_sdk', 'vision_review', 'stream_review', 'manual_evidence', 'player_evidence'];
+const autoLockRefereeSources = new Set(['game_api', 'spectator_bot', 'native_game_sdk']);
+const adminReviewRefereeSources = new Set(['vision_review', 'stream_review', 'manual_evidence', 'player_evidence']);
 
 const joinSchema = z.object({
   entryAmount: z.number().int().nonnegative().optional(),
@@ -86,6 +94,48 @@ const adminOverrideWinnerSchema = z.object({
   evidence_url: z.string().url().optional().or(z.literal('')),
 }).passthrough();
 
+const assignRefereeSchema = z.object({
+  refereeAccountId: z.string().min(1).optional(),
+  referee_account_id: z.string().min(1).optional(),
+  joinMethod: z.enum(refereeJoinMethods).optional(),
+  join_method: z.enum(refereeJoinMethods).optional(),
+  externalLobbyId: z.string().max(300).optional(),
+  external_lobby_id: z.string().max(300).optional(),
+  streamUrl: z.string().url().optional().or(z.literal('')),
+  stream_url: z.string().url().optional().or(z.literal('')),
+}).passthrough();
+
+const startRefereeSessionSchema = z.object({
+  refereeSessionId: z.string().min(1).optional(),
+  referee_session_id: z.string().min(1).optional(),
+}).passthrough();
+
+const refereeReportSchema = z.object({
+  refereeSessionId: z.string().min(1).optional(),
+  referee_session_id: z.string().min(1).optional(),
+  source: z.enum(refereeReportSources),
+  providerName: z.string().max(200).optional(),
+  provider_name: z.string().max(200).optional(),
+  winnerUserId: z.string().min(1).optional(),
+  winner_user_id: z.string().min(1).optional(),
+  loserUserIds: z.array(z.string()).optional(),
+  loser_user_ids: z.array(z.string()).optional(),
+  winningScore: z.union([z.number(), z.string()]).optional(),
+  winning_score: z.union([z.number(), z.string()]).optional(),
+  scoreType: z.enum(scoreTypes).optional(),
+  score_type: z.enum(scoreTypes).optional(),
+  confidence: z.union([z.number(), z.string()]).optional(),
+  evidenceUrls: z.array(z.string()).optional(),
+  evidence_urls: z.array(z.string()).optional(),
+  rawReport: z.unknown().optional(),
+  raw_report: z.unknown().optional(),
+  warnings: z.array(z.string()).optional(),
+  signedPayload: z.string().optional(),
+  signed_payload: z.string().optional(),
+  reportStatus: z.enum(['pending', 'accepted', 'rejected', 'disputed']).optional(),
+  report_status: z.enum(['pending', 'accepted', 'rejected', 'disputed']).optional(),
+}).passthrough();
+
 const updateFulfillmentStatusSchema = z.object({
   status: z.enum(fulfillmentStatuses),
   trackingNumber: z.string().max(120).optional(),
@@ -128,6 +178,13 @@ function publicMatchId(match) {
 
 function matchRowId(match) {
   return match?.id;
+}
+
+function isSimulatedMatch(match) {
+  return match?.sandbox_mode === true
+    || match?.sandboxMode === true
+    || String(match?.paymentProvider || match?.payment_provider || '').toLowerCase() === SIMULATED_PROVIDER
+    || String(match?.mode || '').toLowerCase() === 'test';
 }
 
 async function createAuditEvent(store, {
@@ -194,15 +251,144 @@ function compareScores(scoreType) {
   };
 }
 
+async function findRefereeAccount(store, refereeAccountId) {
+  if (!refereeAccountId) return null;
+  return store.findOne('referee_accounts', { id: refereeAccountId });
+}
+
+async function isRefereeUserId(store, userId) {
+  if (!userId) return false;
+  const account = await store.findOne('referee_accounts', { refereeUserId: String(userId) })
+    || await store.findOne('referee_accounts', { referee_user_id: String(userId) });
+  return Boolean(account);
+}
+
+function normalizeReportConfidence(value) {
+  const confidence = Number(value ?? 0);
+  if (!Number.isFinite(confidence)) return 0;
+  return Math.max(0, Math.min(1, confidence));
+}
+
+function normalizeReportScore(value) {
+  const score = Number(value);
+  return Number.isFinite(score) ? score : value ?? null;
+}
+
+function normalizeReportStatus(report) {
+  return report?.reportStatus || report?.report_status || 'pending';
+}
+
+function normalizeRefereeReport(report) {
+  if (!report) return null;
+  return {
+    ...report,
+    refereeSessionId: report.refereeSessionId || report.referee_session_id,
+    winnerUserId: report.winnerUserId || report.winner_user_id,
+    loserUserIds: report.loserUserIds || report.loser_user_ids || [],
+    winningScore: normalizeReportScore(report.winningScore ?? report.winning_score),
+    scoreType: report.scoreType || report.score_type || 'highest_score',
+    providerName: report.providerName || report.provider_name || '',
+    evidenceUrls: report.evidenceUrls || report.evidence_urls || [],
+    rawReport: report.rawReport || report.raw_report || {},
+    signedPayload: report.signedPayload || report.signed_payload || '',
+    reportStatus: normalizeReportStatus(report),
+    confidence: normalizeReportConfidence(report.confidence),
+  };
+}
+
+async function loadRefereeContext(store, matchId) {
+  const sessions = await store.list('match_referee_sessions', { matchId }, { sort: '-created_at' });
+  const reports = (await store.list('referee_reports', { matchId }, { sort: '-created_at' })).map(normalizeRefereeReport);
+  const accounts = [];
+  for (const session of sessions) {
+    const account = await findRefereeAccount(store, session.refereeAccountId || session.referee_account_id);
+    if (account) accounts.push(account);
+  }
+  return { sessions, reports, accounts };
+}
+
+async function getOrCreateGhostRefereeAccount(store) {
+  const existing = await store.findOne('referee_accounts', { displayName: 'Ghost Referee' })
+    || await store.findOne('referee_accounts', { providerName: 'The Poles Ghost Referee' });
+  if (existing) return existing;
+  const timestamp = now();
+  return store.create('referee_accounts', {
+    displayName: 'Ghost Referee',
+    accountType: 'ai_referee',
+    status: 'available',
+    providerName: 'The Poles Ghost Referee',
+    supportedModes: ['manual_evidence', 'vision_review', 'game_api', 'spectator_bot', 'native_game_sdk'],
+    refereeUserId: 'referee_bot',
+    role: 'referee_bot',
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  });
+}
+
 async function recommendWinner(store, match) {
   const matchId = publicMatchId(match);
   const entries = await store.list('match_entries', { matchId });
   const scores = await store.list('match_scores', { matchId });
+  const refereeContext = await loadRefereeContext(store, matchId);
+  const disputes = await store.list('match_disputes', { matchId });
+  const openDispute = disputes.some((dispute) => !['closed', 'resolved', 'rejected'].includes(dispute.status || dispute.dispute_status || 'open'));
+  const acceptedReports = refereeContext.reports.filter((report) => report.reportStatus === 'accepted');
+  const pendingReports = refereeContext.reports.filter((report) => report.reportStatus === 'pending');
+  const topRefereeReport = acceptedReports
+    .filter((report) => report.winnerUserId)
+    .sort((a, b) => b.confidence - a.confidence || String(b.created_at || '').localeCompare(String(a.created_at || '')))[0] || null;
+
+  if (topRefereeReport) {
+    const warnings = [...new Set(topRefereeReport.warnings || [])];
+    const lockBlockReasons = [];
+    const needsAdminReview = adminReviewRefereeSources.has(topRefereeReport.source) && !isSimulatedMatch(match);
+    if (openDispute || topRefereeReport.reportStatus === 'disputed') lockBlockReasons.push('disputed_result');
+    if (topRefereeReport.confidence < 0.8) lockBlockReasons.push('confidence_too_low');
+    if (needsAdminReview) lockBlockReasons.push('admin_review_required');
+    const canLockWinner = topRefereeReport.confidence >= 0.8
+      && !openDispute
+      && (autoLockRefereeSources.has(topRefereeReport.source) || (adminReviewRefereeSources.has(topRefereeReport.source) && isSimulatedMatch(match)));
+
+    return {
+      matchId,
+      recommendedWinnerUserId: topRefereeReport.winnerUserId,
+      winningScore: topRefereeReport.winningScore,
+      scoreType: topRefereeReport.scoreType,
+      confidence: topRefereeReport.confidence,
+      canLockWinner,
+      warnings,
+      lockBlockReasons: [...new Set(lockBlockReasons)],
+      scoresConsidered: scores,
+      refereeReport: topRefereeReport,
+      refereeContext,
+      auditSummary: {
+        entries: entries.length,
+        submittedScores: scores.length,
+        refereeSessions: refereeContext.sessions.length,
+        refereeReports: refereeContext.reports.length,
+        acceptedRefereeReports: acceptedReports.length,
+        pendingRefereeReports: pendingReports.length,
+        openDisputes: disputes.length,
+      },
+      recommendedWinner: {
+        userId: topRefereeReport.winnerUserId,
+        score: topRefereeReport.winningScore,
+        scoreId: null,
+        refereeReportId: topRefereeReport.id,
+      },
+      rankedScores: scores,
+      deterministicRule: `Ghost Referee report from ${topRefereeReport.source} recommends the winner; lock eligibility follows confidence and dispute rules.`,
+    };
+  }
+
   const eligibleUserIds = new Set(entries
     .filter((entry) => !['cancelled', 'refunded', 'rejected'].includes(entry.status))
     .map((entry) => String(entry.userId || entry.user_id))
     .filter(Boolean));
   const warnings = [];
+  const lockBlockReasons = [];
+  if (!refereeContext.reports.length) lockBlockReasons.push('no_referee_report');
+  if (pendingReports.length) lockBlockReasons.push('referee_report_pending');
   const rejectedScores = scores.filter((score) => score.verificationStatus === 'rejected');
   const pendingScores = scores.filter((score) => !score.verificationStatus || score.verificationStatus === 'pending');
   const disputedScores = scores.filter((score) => score.verificationStatus === 'disputed');
@@ -210,6 +396,8 @@ async function recommendWinner(store, match) {
   if (pendingScores.length) warnings.push('pending_scores_require_review');
   if (disputedScores.length) warnings.push('disputed_scores_require_manual_review');
   if (rejectedScores.length) warnings.push('rejected_scores_excluded');
+  if (openDispute || disputedScores.length) lockBlockReasons.push('disputed_result');
+  if (!scores.length) lockBlockReasons.push('no_scores_submitted');
 
   let eligibleScores = scores.filter((score) => {
     const usable = score.verificationStatus !== 'rejected'
@@ -227,6 +415,7 @@ async function recommendWinner(store, match) {
   const manualReview = scoreType === 'manual_review' || scoreType === 'manual';
   if (!hasVerifiedScores && !['bracket_result', 'manual_review', 'manual'].includes(scoreType)) {
     warnings.push('no_verified_scores');
+    lockBlockReasons.push('no_verified_scores');
   }
 
   if (manualReview) {
@@ -238,10 +427,14 @@ async function recommendWinner(store, match) {
       confidence: 'pending_admin_review',
       canLockWinner: false,
       warnings: [...new Set([...warnings, 'manual_review_required'])],
+      lockBlockReasons: [...new Set([...lockBlockReasons, 'admin_review_required'])],
       scoresConsidered: eligibleScores,
+      refereeContext,
       auditSummary: {
         entries: entries.length,
         submittedScores: scores.length,
+        refereeSessions: refereeContext.sessions.length,
+        refereeReports: refereeContext.reports.length,
         verifiedScores: verifiedScores.length,
         pendingScores: pendingScores.length,
         disputedScores: disputedScores.length,
@@ -257,6 +450,7 @@ async function recommendWinner(store, match) {
     const bracketWinner = match.bracket_winner_user_id || match.bracketWinnerUserId || match.match_plan?.bracketWinnerUserId || match.metadata?.bracketWinnerUserId;
     const canLockWinner = Boolean(bracketWinner) && !disputedScores.length && !rejectedScores.length;
     if (!bracketWinner) warnings.push('bracket_winner_missing');
+    if (!canLockWinner && !lockBlockReasons.length) lockBlockReasons.push('admin_review_required');
     return {
       matchId,
       recommendedWinnerUserId: bracketWinner || null,
@@ -265,10 +459,14 @@ async function recommendWinner(store, match) {
       confidence: canLockWinner ? 'high' : 'needs_review',
       canLockWinner,
       warnings: [...new Set(warnings)],
+      lockBlockReasons: [...new Set(lockBlockReasons)],
       scoresConsidered: eligibleScores,
+      refereeContext,
       auditSummary: {
         entries: entries.length,
         submittedScores: scores.length,
+        refereeSessions: refereeContext.sessions.length,
+        refereeReports: refereeContext.reports.length,
         verifiedScores: verifiedScores.length,
         pendingScores: pendingScores.length,
         disputedScores: disputedScores.length,
@@ -295,6 +493,7 @@ async function recommendWinner(store, match) {
     && tied.length <= 1
     && disputedScores.length === 0
     && rejectedScores.length === 0;
+  if (!canLockWinner && winnerScore && !lockBlockReasons.length) lockBlockReasons.push('admin_review_required');
 
   return {
     matchId,
@@ -304,10 +503,14 @@ async function recommendWinner(store, match) {
     confidence: canLockWinner ? 'high' : winnerScore ? 'needs_review' : 'none',
     canLockWinner,
     warnings: [...new Set(warnings)],
+    lockBlockReasons: [...new Set(lockBlockReasons)],
     scoresConsidered: rankedScores,
+    refereeContext,
     auditSummary: {
       entries: entries.length,
       submittedScores: scores.length,
+      refereeSessions: refereeContext.sessions.length,
+      refereeReports: refereeContext.reports.length,
       verifiedScores: verifiedScores.length,
       pendingScores: pendingScores.length,
       disputedScores: disputedScores.length,
@@ -338,6 +541,9 @@ export function createMatchFlowRouter({ store }) {
     }
 
     const matchId = publicMatchId(match);
+    if (await isRefereeUserId(store, user.id)) {
+      return res.status(403).json({ success: false, error: 'Referee accounts cannot join as competing players' });
+    }
     const existing = await store.findOne('match_entries', { matchId, userId: user.id });
     if (existing?.status === 'paid') return res.status(400).json({ success: false, error: 'You have already joined this match' });
 
@@ -464,6 +670,278 @@ export function createMatchFlowRouter({ store }) {
     ok(res, { match: updated, data: updated });
   }));
 
+  router.post('/matches/:matchId/assign-referee', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required to assign a referee' });
+
+    const input = assignRefereeSchema.parse(req.body || {});
+    const match = await findMatch(store, req.params.matchId);
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+
+    const matchId = publicMatchId(match);
+    const requestedAccountId = input.refereeAccountId || input.referee_account_id;
+    const refereeAccount = requestedAccountId
+      ? await findRefereeAccount(store, requestedAccountId)
+      : await getOrCreateGhostRefereeAccount(store);
+    if (!refereeAccount) return res.status(404).json({ success: false, error: 'Referee account not found' });
+    if (refereeAccount.status === 'disabled') return res.status(400).json({ success: false, error: 'Referee account is disabled' });
+
+    const playerIds = Array.isArray(match.player_ids) ? match.player_ids.map(String) : [];
+    const refereeUserId = refereeAccount.refereeUserId || refereeAccount.referee_user_id || refereeAccount.id;
+    if (playerIds.includes(String(refereeUserId))) {
+      return res.status(409).json({ success: false, error: 'Referee account is already listed as a player and cannot be assigned' });
+    }
+
+    const timestamp = now();
+    const session = await store.create('match_referee_sessions', {
+      matchId,
+      refereeAccountId: refereeAccount.id,
+      refereeUserId,
+      status: 'assigned',
+      joinMethod: input.joinMethod || input.join_method || 'spectator_mode',
+      externalLobbyId: input.externalLobbyId || input.external_lobby_id || '',
+      streamUrl: input.streamUrl || input.stream_url || '',
+      startedAt: null,
+      endedAt: null,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    await store.update('referee_accounts', refereeAccount.id, { status: 'assigned', updatedAt: timestamp }).catch(() => null);
+    if (matchRowId(match)) {
+      await store.update('north_pole_matches', matchRowId(match), {
+        status: session.joinMethod ? 'referee_assigned' : 'waiting_for_referee',
+        referee_session_id: session.id,
+        referee_account_id: refereeAccount.id,
+      }).catch(() => null);
+    }
+
+    await createAuditEvent(store, {
+      entityType: 'MatchRefereeSession',
+      entityId: session.id,
+      matchId,
+      userId: user.id,
+      action: 'referee_assigned',
+      metadata: {
+        refereeAccountId: refereeAccount.id,
+        refereeUserId,
+        accountType: refereeAccount.accountType,
+        joinMethod: session.joinMethod,
+      },
+    });
+
+    ok(res, { refereeAccount, session, data: session });
+  }));
+
+  router.post('/matches/:matchId/start-referee-session', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required to start a referee session' });
+
+    const input = startRefereeSessionSchema.parse(req.body || {});
+    const refereeSessionId = input.refereeSessionId || input.referee_session_id;
+    if (!refereeSessionId) return res.status(400).json({ success: false, error: 'Referee session ID is required' });
+
+    const match = await findMatch(store, req.params.matchId);
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+    const matchId = publicMatchId(match);
+    const session = await store.findOne('match_referee_sessions', { id: refereeSessionId });
+    if (!session || String(session.matchId || session.match_id) !== String(matchId)) {
+      return res.status(404).json({ success: false, error: 'Referee session not found for this match' });
+    }
+
+    const updated = await store.update('match_referee_sessions', session.id, {
+      status: 'observing',
+      startedAt: session.startedAt || now(),
+      updatedAt: now(),
+    });
+    if (matchRowId(match)) {
+      await store.update('north_pole_matches', matchRowId(match), { status: 'referee_observing' }).catch(() => null);
+    }
+
+    await createAuditEvent(store, {
+      entityType: 'MatchRefereeSession',
+      entityId: session.id,
+      matchId,
+      userId: user.id,
+      action: 'referee_session_started',
+      metadata: { refereeSessionId: session.id },
+    });
+
+    ok(res, { session: updated, data: updated });
+  }));
+
+  router.post('/matches/:matchId/referee-report', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required to submit a referee report' });
+
+    const input = refereeReportSchema.parse(req.body || {});
+    const refereeSessionId = input.refereeSessionId || input.referee_session_id;
+    if (!refereeSessionId) return res.status(400).json({ success: false, error: 'Referee session ID is required' });
+
+    const match = await findMatch(store, req.params.matchId);
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+    const matchId = publicMatchId(match);
+    const session = await store.findOne('match_referee_sessions', { id: refereeSessionId });
+    if (!session || String(session.matchId || session.match_id) !== String(matchId)) {
+      return res.status(404).json({ success: false, error: 'Referee session not found for this match' });
+    }
+
+    const winnerUserId = input.winnerUserId || input.winner_user_id;
+    if (winnerUserId && await isRefereeUserId(store, winnerUserId)) {
+      return res.status(403).json({ success: false, error: 'Referee accounts cannot be reported as winners' });
+    }
+
+    const report = await store.create('referee_reports', {
+      matchId,
+      refereeSessionId: session.id,
+      refereeAccountId: session.refereeAccountId || session.referee_account_id || null,
+      refereeUserId: session.refereeUserId || session.referee_user_id || null,
+      source: input.source,
+      providerName: input.providerName || input.provider_name || '',
+      winnerUserId,
+      loserUserIds: input.loserUserIds || input.loser_user_ids || [],
+      winningScore: normalizeReportScore(input.winningScore ?? input.winning_score),
+      scoreType: input.scoreType || input.score_type || 'highest_score',
+      confidence: normalizeReportConfidence(input.confidence),
+      evidenceUrls: input.evidenceUrls || input.evidence_urls || [],
+      rawReport: input.rawReport || input.raw_report || {},
+      warnings: input.warnings || [],
+      signedPayload: input.signedPayload || input.signed_payload || '',
+      reportStatus: input.reportStatus || input.report_status || 'accepted',
+      createdAt: now(),
+      updatedAt: now(),
+    });
+    await store.update('match_referee_sessions', session.id, {
+      status: 'report_submitted',
+      endedAt: now(),
+      updatedAt: now(),
+    }).catch(() => null);
+    if (matchRowId(match)) {
+      await store.update('north_pole_matches', matchRowId(match), { status: 'pending_verification' }).catch(() => null);
+    }
+
+    await createAuditEvent(store, {
+      entityType: 'RefereeReport',
+      entityId: report.id,
+      matchId,
+      userId: user.id,
+      action: 'referee_report_submitted',
+      metadata: {
+        refereeSessionId: session.id,
+        source: report.source,
+        providerName: report.providerName,
+        winnerUserId: report.winnerUserId,
+        confidence: report.confidence,
+        reportStatus: report.reportStatus,
+      },
+    });
+
+    ok(res, { report, data: report });
+  }));
+
+  router.post('/matches/:matchId/simulate-referee-report', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required to simulate a Ghost Referee report' });
+
+    const match = await findMatch(store, req.params.matchId);
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+    const matchId = publicMatchId(match);
+    const scores = await store.list('match_scores', { matchId });
+    const rankedScores = scores
+      .filter((score) => score.verificationStatus !== 'rejected' && Number.isFinite(Number(score.score)))
+      .sort(compareScores('highest_score'));
+    const winnerScore = rankedScores[0];
+    if (!winnerScore) return res.status(400).json({ success: false, error: 'No scores submitted for Ghost Referee simulation' });
+
+    const refereeAccount = await getOrCreateGhostRefereeAccount(store);
+    const timestamp = now();
+    const session = await store.create('match_referee_sessions', {
+      matchId,
+      refereeAccountId: refereeAccount.id,
+      refereeUserId: refereeAccount.refereeUserId || 'referee_bot',
+      status: 'report_submitted',
+      joinMethod: 'spectator_mode',
+      externalLobbyId: '',
+      streamUrl: '',
+      startedAt: timestamp,
+      endedAt: timestamp,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    await store.update('referee_accounts', refereeAccount.id, { status: 'assigned', updatedAt: timestamp }).catch(() => null);
+
+    const report = await store.create('referee_reports', {
+      matchId,
+      refereeSessionId: session.id,
+      refereeAccountId: refereeAccount.id,
+      refereeUserId: refereeAccount.refereeUserId || 'referee_bot',
+      source: 'spectator_bot',
+      providerName: 'The Poles Ghost Referee',
+      winnerUserId: String(winnerScore.userId || winnerScore.user_id),
+      loserUserIds: rankedScores.slice(1).map((score) => String(score.userId || score.user_id)),
+      winningScore: Number(winnerScore.score),
+      scoreType: winnerScore.scoreType || winnerScore.score_type || 'highest_score',
+      confidence: 1,
+      evidenceUrls: winnerScore.evidenceUrl ? [winnerScore.evidenceUrl] : [],
+      rawReport: {
+        simulated: true,
+        basis: 'highest_score',
+        scoresConsidered: rankedScores,
+      },
+      warnings: [],
+      signedPayload: '',
+      reportStatus: 'accepted',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+
+    if (matchRowId(match)) {
+      await store.update('north_pole_matches', matchRowId(match), {
+        status: 'pending_verification',
+        referee_session_id: session.id,
+        referee_account_id: refereeAccount.id,
+      }).catch(() => null);
+    }
+
+    await createAuditEvent(store, {
+      entityType: 'MatchRefereeSession',
+      entityId: session.id,
+      matchId,
+      userId: user.id,
+      action: 'referee_assigned',
+      metadata: { refereeAccountId: refereeAccount.id, joinMethod: 'spectator_mode', simulated: true },
+    });
+    await createAuditEvent(store, {
+      entityType: 'MatchRefereeSession',
+      entityId: session.id,
+      matchId,
+      userId: user.id,
+      action: 'referee_session_started',
+      metadata: { refereeSessionId: session.id, simulated: true },
+    });
+    await createAuditEvent(store, {
+      entityType: 'RefereeReport',
+      entityId: report.id,
+      matchId,
+      userId: user.id,
+      action: 'referee_report_submitted',
+      metadata: {
+        refereeSessionId: session.id,
+        source: report.source,
+        providerName: report.providerName,
+        winnerUserId: report.winnerUserId,
+        confidence: report.confidence,
+        reportStatus: report.reportStatus,
+        simulated: true,
+      },
+    });
+
+    ok(res, { refereeAccount, session, report, data: report });
+  }));
+
   router.post('/matches/:matchId/submit-score', asyncHandler(async (req, res) => {
     const user = await requireUser(req, res, store);
     if (!user) return;
@@ -477,6 +955,9 @@ export function createMatchFlowRouter({ store }) {
 
     const matchId = publicMatchId(match);
     const submittingUserId = input.userId || input.user_id || user.id;
+    if (await isRefereeUserId(store, submittingUserId)) {
+      return res.status(403).json({ success: false, error: 'Referee accounts cannot submit competing scores' });
+    }
     if (String(submittingUserId) !== String(user.id) && !isAdmin(user)) {
       return res.status(403).json({ success: false, error: 'Only admins can submit a score for another user' });
     }
@@ -592,7 +1073,9 @@ export function createMatchFlowRouter({ store }) {
         scoreType: recommendation.scoreType,
         confidence: recommendation.confidence,
         canLockWinner: recommendation.canLockWinner,
+        lockBlockReasons: recommendation.lockBlockReasons,
         warnings: recommendation.warnings,
+        refereeReportId: recommendation.refereeReport?.id || null,
         auditSummary: recommendation.auditSummary,
       },
     });
@@ -623,6 +1106,9 @@ export function createMatchFlowRouter({ store }) {
     const recommendation = await recommendWinner(store, match);
     const requestedWinner = input.winnerUserId || input.winner_user_id || recommendation.recommendedWinnerUserId;
     if (!requestedWinner) return res.status(400).json({ success: false, error: 'No winner can be locked until scores are submitted' });
+    if (await isRefereeUserId(store, requestedWinner)) {
+      return res.status(403).json({ success: false, error: 'Referee accounts cannot receive prizes or be locked as winner' });
+    }
     const lockedBy = input.lockedBy || input.locked_by || user.id;
     const manualLock = isAdmin(user) && ['admin', 'manual_review', user.id].includes(String(lockedBy));
     if (!manualLock) {
@@ -649,6 +1135,9 @@ export function createMatchFlowRouter({ store }) {
         recommendation.warnings.length ? `Warnings: ${recommendation.warnings.join(', ')}` : 'No warnings.',
       ].join(' '),
       recommendedWinner: recommendation.recommendedWinner,
+      refereeReport: recommendation.refereeReport || null,
+      refereeContext: recommendation.refereeContext || null,
+      lockBlockReasons: recommendation.lockBlockReasons || [],
       warnings: recommendation.warnings,
       scoresConsidered: recommendation.scoresConsidered,
       auditSummary: recommendation.auditSummary,
@@ -743,6 +1232,9 @@ export function createMatchFlowRouter({ store }) {
     const input = adminOverrideWinnerSchema.parse(req.body || {});
     const newWinnerUserId = input.newWinnerUserId || input.new_winner_user_id;
     if (!newWinnerUserId) return res.status(400).json({ success: false, error: 'New winner user ID is required' });
+    if (await isRefereeUserId(store, newWinnerUserId)) {
+      return res.status(403).json({ success: false, error: 'Referee accounts cannot receive prizes or be locked as winner' });
+    }
 
     const match = await findMatch(store, req.params.matchId);
     if (!match) return res.status(404).json({ success: false, error: 'Match not found' });

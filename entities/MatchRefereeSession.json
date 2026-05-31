@@ -1,0 +1,26 @@
+{
+  "name": "MatchRefereeSession",
+  "type": "object",
+  "properties": {
+    "matchId": { "type": "string" },
+    "refereeAccountId": { "type": "string" },
+    "refereeUserId": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["assigned", "observing", "report_submitted", "failed", "cancelled"],
+      "default": "assigned"
+    },
+    "joinMethod": {
+      "type": "string",
+      "enum": ["spectator_mode", "private_lobby", "game_api", "stream_review", "evidence_review", "native_game_sdk"],
+      "default": "spectator_mode"
+    },
+    "externalLobbyId": { "type": "string" },
+    "streamUrl": { "type": "string" },
+    "startedAt": { "type": "string" },
+    "endedAt": { "type": "string" },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" }
+  },
+  "required": ["matchId", "refereeAccountId", "status", "joinMethod"]
+}
