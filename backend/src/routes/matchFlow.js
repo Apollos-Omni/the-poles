@@ -13,14 +13,14 @@ const makeId = (prefix) => `${prefix}_${crypto.randomUUID()}`;
 
 const scoreTypes = ['highest_score', 'lowest_time', 'bracket_result', 'manual_review', 'manual'];
 const fulfillmentStatuses = [
-  'pending_verification',
   'pending_address',
-  'pending_admin_approval',
   'ready_to_order',
   'ordered',
   'shipped',
   'delivered',
   'cancelled',
+  'pending_verification',
+  'pending_admin_approval',
 ];
 const cancellableMatchStatuses = new Set(['draft', 'open', 'waiting_for_players']);
 const verificationStatuses = ['pending', 'verified', 'rejected', 'disputed'];
@@ -151,10 +151,38 @@ const updateFulfillmentStatusSchema = z.object({
   shipping_status: z.enum(fulfillmentStatuses).optional(),
   adminApproved: z.boolean().optional(),
   admin_approved: z.boolean().optional(),
+  winnerName: z.string().max(240).optional(),
+  winner_name: z.string().max(240).optional(),
+  winnerEmail: z.string().email().optional().or(z.literal('')),
+  winner_email: z.string().email().optional().or(z.literal('')),
+  prizeTitle: z.string().max(300).optional(),
+  prize_title: z.string().max(300).optional(),
+  prizeSource: z.string().max(120).optional(),
+  prize_source: z.string().max(120).optional(),
+  prizeUrl: z.string().url().optional().or(z.literal('')),
+  prize_url: z.string().url().optional().or(z.literal('')),
+  prizeImage: z.string().url().optional().or(z.literal('')),
+  prize_image: z.string().url().optional().or(z.literal('')),
+  shippingName: z.string().max(240).optional(),
+  shipping_name: z.string().max(240).optional(),
+  shippingAddressLine1: z.string().max(300).optional(),
+  shipping_address_line1: z.string().max(300).optional(),
+  shippingAddressLine2: z.string().max(300).optional(),
+  shipping_address_line2: z.string().max(300).optional(),
+  shippingCity: z.string().max(160).optional(),
+  shipping_city: z.string().max(160).optional(),
+  shippingState: z.string().max(120).optional(),
+  shipping_state: z.string().max(120).optional(),
+  shippingZip: z.string().max(40).optional(),
+  shipping_zip: z.string().max(40).optional(),
+  shippingCountry: z.string().max(120).optional(),
+  shipping_country: z.string().max(120).optional(),
   retailerOrderId: z.string().max(160).optional(),
   retailer_order_id: z.string().max(160).optional(),
   trackingNumber: z.string().max(120).optional(),
   tracking_number: z.string().max(120).optional(),
+  adminNotes: z.string().max(8000).optional(),
+  admin_notes: z.string().max(8000).optional(),
   carrier: z.string().max(120).optional(),
 }).passthrough();
 
@@ -315,11 +343,19 @@ async function createPrizeFulfillment(store, match, userId) {
     prize_url: prize.productUrl || '',
     prize_image: prize.image || '',
     prize_source: prize.productSource,
-    status: 'pending_admin_approval',
+    status: 'pending_address',
     shipping_status: 'pending_address',
     admin_approved: false,
+    shipping_name: '',
+    shipping_address_line1: '',
+    shipping_address_line2: '',
+    shipping_city: '',
+    shipping_state: '',
+    shipping_zip: '',
+    shipping_country: 'US',
     retailer_order_id: '',
     tracking_number: '',
+    admin_notes: '',
   });
 
   if (matchRowId(match)) {
@@ -1477,12 +1513,24 @@ export function createMatchFlowRouter({ store }) {
       .map((match) => ({
         id: match.id,
         match_id: publicMatchId(match),
+        match_title: match.title || match.name || match.game_snapshot?.title || match.game_id || publicMatchId(match),
         winner_id: match.winner_user_id || match.winner_id || '',
         prize_title: normalizePrize(match).title,
         status: match.status,
       }));
 
     ok(res, { fulfillments, readyMatches, data: { fulfillments, readyMatches } });
+  }));
+
+  router.get('/admin/fulfillment/:id', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
+
+    const fulfillment = await store.findOne('prize_fulfillments', { id: req.params.id });
+    if (!fulfillment) return res.status(404).json({ success: false, error: 'Prize fulfillment not found' });
+
+    ok(res, { fulfillment, data: fulfillment });
   }));
 
   router.post('/matches/:id/create-fulfillment', asyncHandler(async (req, res) => {
@@ -1510,16 +1558,37 @@ export function createMatchFlowRouter({ store }) {
     const fulfillment = await store.findOne('prize_fulfillments', { id: req.params.id });
     if (!fulfillment) return res.status(404).json({ success: false, error: 'Prize fulfillment not found' });
 
-    const status = input.status || fulfillment.status;
-    const shippingStatus = input.shippingStatus || input.shipping_status || (status === 'shipped' ? 'shipped' : status === 'delivered' ? 'delivered' : fulfillment.shipping_status);
+    const pick = (...keys) => {
+      for (const key of keys) {
+        if (Object.prototype.hasOwnProperty.call(input, key)) return input[key];
+      }
+      return undefined;
+    };
+    const status = pick('status') ?? fulfillment.status;
+    const shippingStatus = pick('shippingStatus', 'shipping_status')
+      ?? (status === 'shipped' ? 'shipped' : status === 'delivered' ? 'delivered' : status === 'cancelled' ? 'cancelled' : fulfillment.shipping_status);
     const patch = {
       status,
       shipping_status: shippingStatus,
-      admin_approved: input.adminApproved ?? input.admin_approved ?? fulfillment.admin_approved ?? false,
-      retailer_order_id: input.retailerOrderId || input.retailer_order_id || fulfillment.retailer_order_id || '',
-      tracking_number: input.trackingNumber || input.tracking_number || fulfillment.tracking_number || '',
+      admin_approved: pick('adminApproved', 'admin_approved') ?? fulfillment.admin_approved ?? false,
+      winner_name: pick('winnerName', 'winner_name') ?? fulfillment.winner_name ?? '',
+      winner_email: pick('winnerEmail', 'winner_email') ?? fulfillment.winner_email ?? '',
+      prize_title: pick('prizeTitle', 'prize_title') ?? fulfillment.prize_title ?? '',
+      prize_source: pick('prizeSource', 'prize_source') ?? fulfillment.prize_source ?? '',
+      prize_url: pick('prizeUrl', 'prize_url') ?? fulfillment.prize_url ?? '',
+      prize_image: pick('prizeImage', 'prize_image') ?? fulfillment.prize_image ?? '',
+      shipping_name: pick('shippingName', 'shipping_name') ?? fulfillment.shipping_name ?? '',
+      shipping_address_line1: pick('shippingAddressLine1', 'shipping_address_line1') ?? fulfillment.shipping_address_line1 ?? '',
+      shipping_address_line2: pick('shippingAddressLine2', 'shipping_address_line2') ?? fulfillment.shipping_address_line2 ?? '',
+      shipping_city: pick('shippingCity', 'shipping_city') ?? fulfillment.shipping_city ?? '',
+      shipping_state: pick('shippingState', 'shipping_state') ?? fulfillment.shipping_state ?? '',
+      shipping_zip: pick('shippingZip', 'shipping_zip') ?? fulfillment.shipping_zip ?? '',
+      shipping_country: pick('shippingCountry', 'shipping_country') ?? fulfillment.shipping_country ?? '',
+      retailer_order_id: pick('retailerOrderId', 'retailer_order_id') ?? fulfillment.retailer_order_id ?? '',
+      tracking_number: pick('trackingNumber', 'tracking_number') ?? fulfillment.tracking_number ?? '',
+      admin_notes: pick('adminNotes', 'admin_notes') ?? fulfillment.admin_notes ?? '',
     };
-    if (patch.admin_approved && status === fulfillment.status && fulfillment.status === 'pending_admin_approval') {
+    if (patch.admin_approved && status === fulfillment.status && ['pending_admin_approval', 'pending_address'].includes(fulfillment.status)) {
       patch.status = 'ready_to_order';
     }
 

@@ -312,6 +312,11 @@ export async function listPrizeFulfillmentQueue() {
   };
 }
 
+export async function getPrizeFulfillment({ fulfillmentId }) {
+  const response = await apiRequest(`/api/admin/fulfillment/${encodeURIComponent(fulfillmentId)}`);
+  return response.fulfillment || response.data;
+}
+
 export async function updatePrizeFulfillment({ fulfillmentId, patch }) {
   const response = await apiRequest(`/api/admin/fulfillment/${encodeURIComponent(fulfillmentId)}`, {
     method: 'PATCH',

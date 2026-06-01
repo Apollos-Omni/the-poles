@@ -13,34 +13,42 @@
     "status": {
       "type": "string",
       "enum": [
-        "pending_verification",
         "pending_address",
-        "pending_admin_approval",
         "ready_to_order",
         "ordered",
         "shipped",
         "delivered",
-        "cancelled"
+        "cancelled",
+        "pending_verification",
+        "pending_admin_approval"
       ],
-      "default": "pending_admin_approval"
+      "default": "pending_address"
     },
     "shipping_status": {
       "type": "string",
       "enum": [
-        "pending_verification",
         "pending_address",
-        "pending_admin_approval",
         "ready_to_order",
         "ordered",
         "shipped",
         "delivered",
-        "cancelled"
+        "cancelled",
+        "pending_verification",
+        "pending_admin_approval"
       ],
       "default": "pending_address"
     },
     "admin_approved": { "type": "boolean", "default": false },
+    "shipping_name": { "type": "string" },
+    "shipping_address_line1": { "type": "string" },
+    "shipping_address_line2": { "type": "string" },
+    "shipping_city": { "type": "string" },
+    "shipping_state": { "type": "string" },
+    "shipping_zip": { "type": "string" },
+    "shipping_country": { "type": "string" },
     "retailer_order_id": { "type": "string" },
     "tracking_number": { "type": "string" },
+    "admin_notes": { "type": "string" },
     "created_at": { "type": "string" },
     "updated_at": { "type": "string" }
   },
