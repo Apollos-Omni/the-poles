@@ -104,6 +104,11 @@ const adminOverrideWinnerSchema = z.object({
   evidence_url: z.string().url().optional().or(z.literal('')),
 }).passthrough();
 
+const demoFulfillmentOrderSchema = z.object({
+  matchId: z.string().min(1).optional(),
+  match_id: z.string().min(1).optional(),
+}).passthrough();
+
 const assignRefereeSchema = z.object({
   refereeAccountId: z.string().min(1).optional(),
   referee_account_id: z.string().min(1).optional(),
@@ -357,6 +362,8 @@ async function createPrizeFulfillment(store, match, userId) {
     retailer_order_id: '',
     tracking_number: '',
     admin_notes: '',
+    demo_mode: match.demo_mode === true,
+    test_order: match.test_order === true,
   });
 
   if (matchRowId(match)) {
@@ -383,17 +390,18 @@ async function createPrizeFulfillment(store, match, userId) {
   return fulfillment;
 }
 
-function createFulfillmentEngine(store) {
+function createFulfillmentEngine(store, env = process.env) {
   return new FulfillmentEngine({
     store,
+    env,
     createFulfillment: createPrizeFulfillment,
     normalizePrize,
     audit: (event) => createAuditEvent(store, event),
   });
 }
 
-async function autoFulfillVerifiedWinner(store, match, userId) {
-  const engine = createFulfillmentEngine(store);
+async function autoFulfillVerifiedWinner(store, match, userId, env = process.env) {
+  const engine = createFulfillmentEngine(store, env);
   return engine.fulfillVerifiedWinner({ match, userId });
 }
 
@@ -416,6 +424,80 @@ async function tryAutoFulfillVerifiedWinner(store, match, userId) {
     }).catch(() => null);
     return { fulfillment: null, error };
   }
+}
+
+function demoPrizeSnapshot() {
+  return {
+    id: 'demo-prize',
+    title: 'Demo North Pole Prize',
+    source: 'mock',
+    product_url: 'https://example.com/demo-prize',
+    image: '',
+    price_cents: 2500,
+    currency: 'USD',
+  };
+}
+
+async function createDemoFulfillmentMatch(store, userId) {
+  const matchId = `DEMO-${Date.now().toString(36).toUpperCase()}`;
+  const winnerId = `demo_winner_${Date.now().toString(36)}`;
+  return store.create('north_pole_matches', {
+    match_id: matchId,
+    title: 'Demo Fulfillment Test Match',
+    game_id: 'demo-fulfillment-game',
+    prize_id: 'demo-prize',
+    prize_snapshot: demoPrizeSnapshot(),
+    status: 'fulfillment_pending',
+    sandbox_mode: true,
+    demo_mode: true,
+    test_order: true,
+    winner_id: winnerId,
+    winner_user_id: winnerId,
+    verified_at: now(),
+    verified_by: userId,
+    winner_locked_at: now(),
+  });
+}
+
+async function prepareDemoFulfillmentMatch(store, selectedMatchId, userId) {
+  const existing = selectedMatchId ? await findMatch(store, selectedMatchId) : null;
+  const match = existing || await createDemoFulfillmentMatch(store, userId);
+  const matchId = publicMatchId(match);
+  const winnerId = match.winner_user_id || match.winner_id || `demo_winner_${Date.now().toString(36)}`;
+  const patch = {
+    status: 'fulfillment_pending',
+    winner_id: winnerId,
+    winner_user_id: winnerId,
+    verified_at: match.verified_at || now(),
+    verified_by: userId,
+    winner_locked_at: match.winner_locked_at || now(),
+    demo_mode: true,
+    test_order: true,
+    sandbox_mode: true,
+  };
+  const updatedMatch = matchRowId(match)
+    ? await store.update('north_pole_matches', matchRowId(match), patch).catch(() => null)
+    : null;
+  const fulfillmentMatch = { ...match, ...patch, ...(updatedMatch || {}) };
+
+  const existingLocked = await store.findOne('winner_verifications', { matchId, status: 'locked' });
+  if (!existingLocked) {
+    await store.create('winner_verifications', {
+      matchId,
+      winnerUserId: winnerId,
+      winningScore: null,
+      verificationMethod: 'admin_review',
+      status: 'locked',
+      lockedBy: userId,
+      lockedAt: now(),
+      auditNotes: 'Demo fulfillment order test. No real players and no real purchase.',
+      demo_mode: true,
+      test_order: true,
+      warnings: ['demo_test_order'],
+    });
+  }
+
+  return fulfillmentMatch;
 }
 
 function determineScoreType(match, scores) {
@@ -1582,6 +1664,48 @@ export function createMatchFlowRouter({ store }) {
     if (!fulfillment) return res.status(404).json({ success: false, error: 'Prize fulfillment not found' });
 
     ok(res, { fulfillment, data: fulfillment });
+  }));
+
+  router.post('/admin/fulfillment/demo-order', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
+
+    const input = demoFulfillmentOrderSchema.parse(req.body || {});
+    const match = await prepareDemoFulfillmentMatch(store, input.matchId || input.match_id, user.id);
+    const engine = createFulfillmentEngine(store, {
+      ...process.env,
+      FULFILLMENT_PROVIDER: 'mock',
+      FULFILLMENT_MODE: process.env.FULFILLMENT_MODE || 'ai_assisted',
+    });
+    const fulfillment = await engine.fulfillVerifiedWinner({ match, userId: user.id });
+    const marked = await store.update('prize_fulfillments', fulfillment.id, {
+      demo_mode: true,
+      test_order: true,
+      provider: 'mock',
+      admin_notes: [
+        fulfillment.admin_notes,
+        'DEMO ORDER - NO REAL PURCHASE.',
+      ].filter(Boolean).join('\n'),
+    });
+
+    await createAuditEvent(store, {
+      entityType: 'PrizeFulfillment',
+      entityId: marked.id,
+      matchId: marked.match_id,
+      userId: user.id,
+      action: 'PRIZE_FULFILLMENT_DEMO_ORDER_CREATED',
+      metadata: {
+        demoMode: true,
+        testOrder: true,
+        provider: 'mock',
+        retailerOrderId: marked.retailer_order_id,
+        trackingNumber: marked.tracking_number,
+        autoPurchase: false,
+      },
+    });
+
+    ok(res, { fulfillment: marked, data: marked });
   }));
 
   router.post('/matches/:id/create-fulfillment', asyncHandler(async (req, res) => {

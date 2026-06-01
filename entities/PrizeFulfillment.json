@@ -53,6 +53,8 @@
     "provider_reference": { "type": "string" },
     "fulfillment_mode": { "type": "string" },
     "estimated_delivery": { "type": "string" },
+    "demo_mode": { "type": "boolean", "default": false },
+    "test_order": { "type": "boolean", "default": false },
     "reviewed_at": { "type": "string" },
     "reviewed_by": { "type": "string" },
     "order_prepared_at": { "type": "string" },

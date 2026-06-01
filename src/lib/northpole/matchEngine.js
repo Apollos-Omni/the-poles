@@ -312,6 +312,15 @@ export async function listPrizeFulfillmentQueue() {
   };
 }
 
+export async function createDemoFulfillmentOrder({ matchId = '' } = {}) {
+  const response = await apiRequest('/api/admin/fulfillment/demo-order', {
+    method: 'POST',
+    body: matchId ? { matchId } : {},
+  });
+
+  return response.fulfillment || response.data;
+}
+
 export async function getPrizeFulfillment({ fulfillmentId }) {
   const response = await apiRequest(`/api/admin/fulfillment/${encodeURIComponent(fulfillmentId)}`);
   return response.fulfillment || response.data;

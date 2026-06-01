@@ -19,6 +19,7 @@ import {
   disputeWinner,
   adminOverrideWinner,
   createFulfillmentOrder,
+  createDemoFulfillmentOrder,
   listPrizeFulfillmentQueue,
   updatePrizeFulfillment,
 } from '@/lib/northpole/matchEngine';
@@ -200,6 +201,14 @@ export default function AdminDashboard({ currentUser }) {
     const key = `${matchId}_create_fulfillment`;
     setActionLoading(prev => ({ ...prev, [key]: true }));
     await createFulfillmentOrder({ matchId });
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const handleCreateDemoFulfillmentOrder = async () => {
+    const key = 'demo_fulfillment_order';
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    await createDemoFulfillmentOrder();
     await load();
     setActionLoading(prev => ({ ...prev, [key]: false }));
   };
@@ -671,8 +680,16 @@ export default function AdminDashboard({ currentUser }) {
       </Card>
 
       <Card className="bg-black/30 border border-purple-800/30">
-        <CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <CardTitle className="text-lg text-white">Prize Fulfillment Queue</CardTitle>
+          <Button
+            size="sm"
+            onClick={handleCreateDemoFulfillmentOrder}
+            disabled={actionLoading.demo_fulfillment_order}
+            className="bg-yellow-700 text-white hover:bg-yellow-600"
+          >
+            Create Demo Fulfillment Order
+          </Button>
         </CardHeader>
         <CardContent className="space-y-3">
           {fulfillmentReadyMatches.map(match => (
@@ -707,6 +724,11 @@ export default function AdminDashboard({ currentUser }) {
                     <span className="font-semibold text-white">{fulfillment.match_title || fulfillment.match_id}</span>
                     <Badge className="bg-blue-600/20 text-blue-200">{fulfillment.status}</Badge>
                     <Badge className="bg-purple-600/20 text-purple-200">{fulfillment.prize_source || 'manual'}</Badge>
+                    {(fulfillment.demo_mode || fulfillment.test_order) && (
+                      <Badge className="bg-yellow-600/20 text-yellow-100 border border-yellow-500/40">
+                        DEMO ORDER  NO REAL PURCHASE
+                      </Badge>
+                    )}
                   </div>
                   <div className="text-xs text-purple-300">
                     Winner {fulfillment.winner_name || fulfillment.winner_id || 'Unknown'} - Prize {fulfillment.prize_title || 'Selected prize'}
