@@ -2,6 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { getRequestUser, ROLES } from '../lib/auth.js';
+import { FulfillmentEngine } from '../services/fulfillment/FulfillmentEngine.js';
 
 const ADMIN_ROLES = new Set([ROLES.OWNER, ROLES.ADMIN]);
 const SIMULATED_PROVIDER = 'simulated';
@@ -380,6 +381,41 @@ async function createPrizeFulfillment(store, match, userId) {
   });
 
   return fulfillment;
+}
+
+function createFulfillmentEngine(store) {
+  return new FulfillmentEngine({
+    store,
+    createFulfillment: createPrizeFulfillment,
+    normalizePrize,
+    audit: (event) => createAuditEvent(store, event),
+  });
+}
+
+async function autoFulfillVerifiedWinner(store, match, userId) {
+  const engine = createFulfillmentEngine(store);
+  return engine.fulfillVerifiedWinner({ match, userId });
+}
+
+async function tryAutoFulfillVerifiedWinner(store, match, userId) {
+  try {
+    return { fulfillment: await autoFulfillVerifiedWinner(store, match, userId), error: null };
+  } catch (error) {
+    const matchId = publicMatchId(match);
+    await createAuditEvent(store, {
+      entityType: 'PrizeFulfillment',
+      entityId: null,
+      matchId,
+      userId,
+      action: 'PRIZE_FULFILLMENT_AUTO_FAILED',
+      metadata: {
+        error: error.message || 'Auto fulfillment failed',
+        provider: process.env.FULFILLMENT_PROVIDER || 'mock',
+        mode: process.env.FULFILLMENT_MODE || 'ai_assisted',
+      },
+    }).catch(() => null);
+    return { fulfillment: null, error };
+  }
 }
 
 function determineScoreType(match, scores) {
@@ -1368,7 +1404,14 @@ export function createMatchFlowRouter({ store }) {
       metadata: { winnerUserId: requestedWinner, winningScore, verificationMethod, lockedBy, manualLock },
     });
 
-    ok(res, { verification, data: verification });
+    const fulfillmentResult = await tryAutoFulfillVerifiedWinner(store, match, user.id);
+
+    ok(res, {
+      verification,
+      fulfillment: fulfillmentResult.fulfillment,
+      fulfillmentError: fulfillmentResult.error?.message || null,
+      data: verification,
+    });
   }));
 
   router.post('/matches/:matchId/dispute-winner', asyncHandler(async (req, res) => {
@@ -1496,7 +1539,15 @@ export function createMatchFlowRouter({ store }) {
       },
     });
 
-    ok(res, { verification: override, previousVerification: previousLocked, data: override });
+    const fulfillmentResult = await tryAutoFulfillVerifiedWinner(store, match, user.id);
+
+    ok(res, {
+      verification: override,
+      previousVerification: previousLocked,
+      fulfillment: fulfillmentResult.fulfillment,
+      fulfillmentError: fulfillmentResult.error?.message || null,
+      data: override,
+    });
   }));
 
   router.get('/admin/fulfillment', asyncHandler(async (req, res) => {
