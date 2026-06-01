@@ -57,31 +57,38 @@ export default function AdminDashboard({ currentUser }) {
   const [winnerActions, setWinnerActions] = useState({});
   const [trackingDrafts, setTrackingDrafts] = useState({});
   const [fulfillmentDrafts, setFulfillmentDrafts] = useState({});
+  const [fulfillmentError, setFulfillmentError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState({});
 
   const load = async () => {
     setIsLoading(true);
-    const [matchList, fulfillList, prizeQueue, scoreList, verificationList, refereeAccountList, refereeSessionList, refereeReportList] = await Promise.all([
-      base44.entities.NorthPoleMatch.list('-created_date', 50),
-      base44.entities.NorthPoleFulfillment.list('-created_date', 50),
-      listPrizeFulfillmentQueue().catch(() => ({ fulfillments: [], readyMatches: [] })),
-      base44.entities.MatchScore.list('-created_date', 100),
-      base44.entities.WinnerVerification.list('-created_date', 50),
-      base44.entities.RefereeAccount.list('-created_date', 50).catch(() => []),
-      base44.entities.MatchRefereeSession.list('-created_date', 100).catch(() => []),
-      base44.entities.RefereeReport.list('-created_date', 100).catch(() => []),
-    ]);
-    setMatches(matchList);
-    setFulfillments(fulfillList);
-    setPrizeFulfillments(prizeQueue.fulfillments || []);
-    setFulfillmentReadyMatches(prizeQueue.readyMatches || []);
-    setMatchScores(scoreList);
-    setWinnerVerifications(verificationList);
-    setRefereeAccounts(refereeAccountList);
-    setRefereeSessions(refereeSessionList);
-    setRefereeReports(refereeReportList);
-    setIsLoading(false);
+    try {
+      const [matchList, fulfillList, prizeQueue, scoreList, verificationList, refereeAccountList, refereeSessionList, refereeReportList] = await Promise.all([
+        base44.entities.NorthPoleMatch.list('-created_date', 50),
+        base44.entities.NorthPoleFulfillment.list('-created_date', 50),
+        listPrizeFulfillmentQueue(),
+        base44.entities.MatchScore.list('-created_date', 100),
+        base44.entities.WinnerVerification.list('-created_date', 50),
+        base44.entities.RefereeAccount.list('-created_date', 50).catch(() => []),
+        base44.entities.MatchRefereeSession.list('-created_date', 100).catch(() => []),
+        base44.entities.RefereeReport.list('-created_date', 100).catch(() => []),
+      ]);
+      setFulfillmentError('');
+      setMatches(matchList);
+      setFulfillments(fulfillList);
+      setPrizeFulfillments(prizeQueue.fulfillments || []);
+      setFulfillmentReadyMatches(prizeQueue.readyMatches || []);
+      setMatchScores(scoreList);
+      setWinnerVerifications(verificationList);
+      setRefereeAccounts(refereeAccountList);
+      setRefereeSessions(refereeSessionList);
+      setRefereeReports(refereeReportList);
+    } catch (error) {
+      setFulfillmentError(error.message || 'Could not load prize fulfillment queue.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -151,6 +158,7 @@ export default function AdminDashboard({ currentUser }) {
   const pendingScoreReviews = matchScores.filter(score => score.verificationStatus === 'pending');
   const disputedScores = matchScores.filter(score => score.verificationStatus === 'disputed' || ['suspicious', 'flagged'].includes(score.aiReviewStatus));
   const fulfillmentQueue = prizeFulfillments;
+  const totalFulfillmentCount = fulfillments.length + prizeFulfillments.length;
 
   const updateTrackingDraft = (fulfillmentId, patch) => {
     setTrackingDrafts(prev => ({
@@ -208,9 +216,18 @@ export default function AdminDashboard({ currentUser }) {
   const handleCreateDemoFulfillmentOrder = async () => {
     const key = 'demo_fulfillment_order';
     setActionLoading(prev => ({ ...prev, [key]: true }));
-    await createDemoFulfillmentOrder();
-    await load();
-    setActionLoading(prev => ({ ...prev, [key]: false }));
+    setFulfillmentError('');
+    try {
+      const fulfillment = await createDemoFulfillmentOrder();
+      if (!fulfillment?.id) {
+        throw new Error('Demo fulfillment endpoint did not return a fulfillment record.');
+      }
+      await load();
+    } catch (error) {
+      setFulfillmentError(error.message || 'Demo fulfillment order failed.');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [key]: false }));
+    }
   };
 
   const handlePrizeFulfillmentPatch = async (fulfillment, patch, keySuffix) => {
@@ -386,7 +403,7 @@ export default function AdminDashboard({ currentUser }) {
           { label: 'Total Matches', value: matches.length, icon: '🎮', color: 'text-purple-300' },
           { label: 'Verified Winners', value: verifiedMatches.length, icon: '✅', color: 'text-green-300' },
           { label: 'Pending Review', value: pendingFulfillments.length, icon: '⏳', color: 'text-yellow-300' },
-          { label: 'Total Fulfillments', value: fulfillments.length, icon: '📦', color: 'text-blue-300' },
+          { label: 'Total Fulfillments', value: totalFulfillmentCount, icon: '📦', color: 'text-blue-300' },
         ].map(stat => (
           <Card key={stat.label} className="bg-purple-900/30 border-purple-700/30">
             <CardContent className="p-4 text-center">
@@ -692,6 +709,12 @@ export default function AdminDashboard({ currentUser }) {
           </Button>
         </CardHeader>
         <CardContent className="space-y-3">
+          {fulfillmentError && (
+            <div className="rounded-lg border border-red-700/50 bg-red-950/30 p-3 text-sm text-red-100">
+              {fulfillmentError}
+            </div>
+          )}
+
           {fulfillmentReadyMatches.map(match => (
             <div key={match.match_id} className="rounded-lg border border-purple-800/30 bg-purple-950/20 p-3">
               <div className="flex flex-wrap items-start justify-between gap-3">

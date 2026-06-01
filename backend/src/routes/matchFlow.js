@@ -327,6 +327,16 @@ async function buildAiVerification(store, match) {
 
 async function createPrizeFulfillment(store, match, userId) {
   const matchId = publicMatchId(match);
+  console.log('[fulfillment] createPrizeFulfillment:start', {
+    matchId,
+    rowId: matchRowId(match),
+    userId,
+    winnerUserId: match?.winner_user_id,
+    winnerId: match?.winner_id,
+    demoMode: match?.demo_mode === true,
+    testOrder: match?.test_order === true,
+  });
+
   const lockedVerification = await store.findOne('winner_verifications', { matchId, status: 'locked' });
   const winnerId = match.winner_user_id || match.winner_id || lockedVerification?.winnerUserId || lockedVerification?.winner_user_id;
   if (!winnerId) {
@@ -336,11 +346,20 @@ async function createPrizeFulfillment(store, match, userId) {
   }
 
   const existing = await store.findOne('prize_fulfillments', { match_id: matchId });
-  if (existing) return existing;
+  if (existing) {
+    console.log('[fulfillment] createPrizeFulfillment:existing', {
+      fulfillmentId: existing.id,
+      matchId,
+      status: existing.status,
+      retailerOrderId: existing.retailer_order_id,
+      trackingNumber: existing.tracking_number,
+    });
+    return existing;
+  }
 
   const prize = normalizePrize(match);
   const profile = await findProfileForUser(store, winnerId);
-  const fulfillment = await store.create('prize_fulfillments', {
+  const payload = {
     match_id: matchId,
     winner_id: winnerId,
     winner_name: profileDisplayName(profile, winnerId),
@@ -364,6 +383,23 @@ async function createPrizeFulfillment(store, match, userId) {
     admin_notes: '',
     demo_mode: match.demo_mode === true,
     test_order: match.test_order === true,
+  };
+
+  console.log('[fulfillment] store.create prize_fulfillments:start', {
+    matchId,
+    winnerId,
+    prizeTitle: payload.prize_title,
+    status: payload.status,
+    demoMode: payload.demo_mode,
+    testOrder: payload.test_order,
+  });
+  const fulfillment = await store.create('prize_fulfillments', payload);
+  console.log('[fulfillment] store.create prize_fulfillments:success', {
+    fulfillmentId: fulfillment?.id,
+    matchId: fulfillment?.match_id,
+    status: fulfillment?.status,
+    demoMode: fulfillment?.demo_mode,
+    testOrder: fulfillment?.test_order,
   });
 
   if (matchRowId(match)) {
@@ -441,7 +477,13 @@ function demoPrizeSnapshot() {
 async function createDemoFulfillmentMatch(store, userId) {
   const matchId = `DEMO-${Date.now().toString(36).toUpperCase()}`;
   const winnerId = `demo_winner_${Date.now().toString(36)}`;
-  return store.create('north_pole_matches', {
+  console.log('[fulfillment:demo] createDemoFulfillmentMatch:start', {
+    matchId,
+    winnerId,
+    userId,
+  });
+
+  const match = await store.create('north_pole_matches', {
     match_id: matchId,
     title: 'Demo Fulfillment Test Match',
     game_id: 'demo-fulfillment-game',
@@ -457,13 +499,33 @@ async function createDemoFulfillmentMatch(store, userId) {
     verified_by: userId,
     winner_locked_at: now(),
   });
+
+  console.log('[fulfillment:demo] createDemoFulfillmentMatch:success', {
+    matchId: publicMatchId(match),
+    rowId: matchRowId(match),
+    winnerId: match.winner_user_id || match.winner_id,
+  });
+
+  return match;
 }
 
 async function prepareDemoFulfillmentMatch(store, selectedMatchId, userId) {
+  console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:start', {
+    selectedMatchId: selectedMatchId || null,
+    userId,
+  });
+
   const existing = selectedMatchId ? await findMatch(store, selectedMatchId) : null;
   const match = existing || await createDemoFulfillmentMatch(store, userId);
   const matchId = publicMatchId(match);
   const winnerId = match.winner_user_id || match.winner_id || `demo_winner_${Date.now().toString(36)}`;
+  console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:match_loaded', {
+    matchId,
+    rowId: matchRowId(match),
+    hadExistingMatch: Boolean(existing),
+    winnerId,
+  });
+
   const patch = {
     status: 'fulfillment_pending',
     winner_id: winnerId,
@@ -479,10 +541,17 @@ async function prepareDemoFulfillmentMatch(store, selectedMatchId, userId) {
     ? await store.update('north_pole_matches', matchRowId(match), patch).catch(() => null)
     : null;
   const fulfillmentMatch = { ...match, ...patch, ...(updatedMatch || {}) };
+  console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:match_marked_demo', {
+    matchId: publicMatchId(fulfillmentMatch),
+    rowId: matchRowId(fulfillmentMatch),
+    winnerId: fulfillmentMatch.winner_user_id || fulfillmentMatch.winner_id,
+    demoMode: fulfillmentMatch.demo_mode,
+    testOrder: fulfillmentMatch.test_order,
+  });
 
   const existingLocked = await store.findOne('winner_verifications', { matchId, status: 'locked' });
   if (!existingLocked) {
-    await store.create('winner_verifications', {
+    const verification = await store.create('winner_verifications', {
       matchId,
       winnerUserId: winnerId,
       winningScore: null,
@@ -495,7 +564,23 @@ async function prepareDemoFulfillmentMatch(store, selectedMatchId, userId) {
       test_order: true,
       warnings: ['demo_test_order'],
     });
+    console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:winner_verification_created', {
+      verificationId: verification?.id,
+      matchId,
+      winnerId,
+    });
+  } else {
+    console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:winner_verification_existing', {
+      verificationId: existingLocked.id,
+      matchId,
+      winnerId: existingLocked.winnerUserId || existingLocked.winner_user_id,
+    });
   }
+
+  console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:success', {
+    matchId: publicMatchId(fulfillmentMatch),
+    winnerId: fulfillmentMatch.winner_user_id || fulfillmentMatch.winner_id,
+  });
 
   return fulfillmentMatch;
 }
@@ -1672,40 +1757,100 @@ export function createMatchFlowRouter({ store }) {
     if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
 
     const input = demoFulfillmentOrderSchema.parse(req.body || {});
-    const match = await prepareDemoFulfillmentMatch(store, input.matchId || input.match_id, user.id);
-    const engine = createFulfillmentEngine(store, {
-      ...process.env,
-      FULFILLMENT_PROVIDER: 'mock',
-      FULFILLMENT_MODE: process.env.FULFILLMENT_MODE || 'ai_assisted',
-    });
-    const fulfillment = await engine.fulfillVerifiedWinner({ match, userId: user.id });
-    const marked = await store.update('prize_fulfillments', fulfillment.id, {
-      demo_mode: true,
-      test_order: true,
-      provider: 'mock',
-      admin_notes: [
-        fulfillment.admin_notes,
-        'DEMO ORDER - NO REAL PURCHASE.',
-      ].filter(Boolean).join('\n'),
-    });
+    let match = null;
+    try {
+      console.log('[fulfillment:demo] route:start', {
+        selectedMatchId: input.matchId || input.match_id || null,
+        userId: user.id,
+      });
+      match = await prepareDemoFulfillmentMatch(store, input.matchId || input.match_id, user.id);
+      const engine = createFulfillmentEngine(store, {
+        ...process.env,
+        FULFILLMENT_PROVIDER: 'mock',
+        FULFILLMENT_MODE: process.env.FULFILLMENT_MODE || 'ai_assisted',
+      });
+      const fulfillment = await engine.fulfillVerifiedWinner({ match, userId: user.id });
+      if (!fulfillment?.id) {
+        throw new Error('FulfillmentEngine completed without returning a PrizeFulfillment record');
+      }
 
-    await createAuditEvent(store, {
-      entityType: 'PrizeFulfillment',
-      entityId: marked.id,
-      matchId: marked.match_id,
-      userId: user.id,
-      action: 'PRIZE_FULFILLMENT_DEMO_ORDER_CREATED',
-      metadata: {
+      console.log('[fulfillment:demo] store.update prize_fulfillments:start', {
+        fulfillmentId: fulfillment.id,
         demoMode: true,
         testOrder: true,
+      });
+      const marked = await store.update('prize_fulfillments', fulfillment.id, {
+        demo_mode: true,
+        test_order: true,
         provider: 'mock',
+        admin_notes: [
+          fulfillment.admin_notes,
+          'DEMO ORDER - NO REAL PURCHASE.',
+        ].filter(Boolean).join('\n'),
+      });
+      if (!marked?.id) {
+        throw new Error(`Could not mark demo fulfillment ${fulfillment.id}`);
+      }
+      console.log('[fulfillment:demo] store.update prize_fulfillments:success', {
+        fulfillmentId: marked.id,
+        status: marked.status,
         retailerOrderId: marked.retailer_order_id,
         trackingNumber: marked.tracking_number,
-        autoPurchase: false,
-      },
-    });
+      });
 
-    ok(res, { fulfillment: marked, data: marked });
+      await createAuditEvent(store, {
+        entityType: 'PrizeFulfillment',
+        entityId: marked.id,
+        matchId: marked.match_id,
+        userId: user.id,
+        action: 'PRIZE_FULFILLMENT_DEMO_ORDER_CREATED',
+        metadata: {
+          demoMode: true,
+          testOrder: true,
+          provider: 'mock',
+          retailerOrderId: marked.retailer_order_id,
+          trackingNumber: marked.tracking_number,
+          autoPurchase: false,
+        },
+      });
+
+      console.log('[fulfillment:demo] route:success', {
+        matchId: publicMatchId(match),
+        fulfillmentId: marked.id,
+        retailerOrderId: marked.retailer_order_id,
+        trackingNumber: marked.tracking_number,
+      });
+      ok(res, { match, fulfillment: marked, data: marked });
+    } catch (error) {
+      console.error('[fulfillment:demo] route:failed', {
+        matchId: match ? publicMatchId(match) : null,
+        error: error.message,
+        stack: error.stack,
+      });
+      await createAuditEvent(store, {
+        entityType: 'PrizeFulfillment',
+        entityId: null,
+        matchId: match ? publicMatchId(match) : null,
+        userId: user.id,
+        action: 'PRIZE_FULFILLMENT_DEMO_ORDER_FAILED',
+        metadata: {
+          demoMode: true,
+          testOrder: true,
+          provider: 'mock',
+          error: error.message,
+        },
+      }).catch(() => null);
+
+      res.status(error.status || 500).json({
+        success: false,
+        error: error.message || 'Demo fulfillment order failed',
+        match: match ? {
+          id: match.id,
+          match_id: publicMatchId(match),
+          winner_id: match.winner_user_id || match.winner_id || null,
+        } : null,
+      });
+    }
   }));
 
   router.post('/matches/:id/create-fulfillment', asyncHandler(async (req, res) => {
