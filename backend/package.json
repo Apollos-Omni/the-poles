@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
-    "check": "node --check src/server.js && node --check src/routes/functions.js && node --check src/routes/matchFlow.js && node --check src/lib/store.js"
+    "check": "node --check src/server.js && node --check src/routes/functions.js && node --check src/routes/matchFlow.js && node --check src/routes/payments.js && node --check src/lib/store.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
