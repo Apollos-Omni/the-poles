@@ -321,6 +321,19 @@ export async function createDemoFulfillmentOrder({ matchId = '' } = {}) {
   return response.fulfillment || response.data;
 }
 
+export async function repairDemoFulfillmentOrders() {
+  const response = await apiRequest('/api/admin/fulfillment/repair-demo-orders', {
+    method: 'POST',
+    body: {},
+  });
+
+  return response.data || {
+    created: response.created || [],
+    existing: response.existing || [],
+    errors: response.errors || [],
+  };
+}
+
 export async function getPrizeFulfillment({ fulfillmentId }) {
   const response = await apiRequest(`/api/admin/fulfillment/${encodeURIComponent(fulfillmentId)}`);
   return response.fulfillment || response.data;
@@ -333,6 +346,111 @@ export async function updatePrizeFulfillment({ fulfillmentId, patch }) {
   });
 
   return response.fulfillment || response.data;
+}
+
+export async function calculatePrizeRoomCheckout({ prizeSnapshot, playerCount, maxPlayers, foundationRate } = {}) {
+  const response = await apiRequest('/api/prize-rooms/calculate', {
+    method: 'POST',
+    body: {
+      prizeSnapshot,
+      playerCount,
+      maxPlayers,
+      foundationRate,
+    },
+  });
+
+  return response.costBreakdown || response.data;
+}
+
+export async function listPrizeRoomTemplates() {
+  const response = await apiRequest('/api/prize-room-templates');
+  return response.templates || response.data || [];
+}
+
+export async function listPrizeRooms() {
+  const response = await apiRequest('/api/prize-rooms');
+  return response.rooms || response.data || [];
+}
+
+export async function createPrizeRoom(payload) {
+  const response = await apiRequest('/api/prize-rooms', {
+    method: 'POST',
+    body: payload,
+  });
+
+  return response.room || response.data;
+}
+
+export async function joinPrizeRoom({ roomId, displayName = '', userEmail = '', paymentMode = 'pilot_manual' }) {
+  const response = await apiRequest(`/api/prize-rooms/${encodeURIComponent(roomId)}/join`, {
+    method: 'POST',
+    body: {
+      displayName,
+      userEmail,
+      paymentMode,
+    },
+  });
+
+  return response.data || { room: response.room, contribution: response.contribution };
+}
+
+export async function markPrizeRoomContributionPaid({ roomId, contributionId }) {
+  const response = await apiRequest(`/api/admin/prize-rooms/${encodeURIComponent(roomId)}/contributions/${encodeURIComponent(contributionId)}/mark-paid`, {
+    method: 'POST',
+    body: {},
+  });
+
+  return response.data || { room: response.room, contribution: response.contribution };
+}
+
+export async function markPrizeRoomFunded({ roomId }) {
+  const response = await apiRequest(`/api/admin/prize-rooms/${encodeURIComponent(roomId)}/mark-funded`, {
+    method: 'POST',
+    body: {},
+  });
+
+  return response.room || response.data;
+}
+
+export async function startPrizeRoomMatch({ roomId }) {
+  const response = await apiRequest(`/api/admin/prize-rooms/${encodeURIComponent(roomId)}/start-match`, {
+    method: 'POST',
+    body: {},
+  });
+
+  return response.room || response.data;
+}
+
+export async function createPrizeRoomFulfillment({ roomId }) {
+  const response = await apiRequest(`/api/admin/prize-rooms/${encodeURIComponent(roomId)}/create-fulfillment`, {
+    method: 'POST',
+    body: {},
+  });
+
+  return response.data || { room: response.room, fulfillment: response.fulfillment };
+}
+
+function pilotPrizeCostBreakdown(prizeSnapshot = {}) {
+  const number = (value, fallback = 0) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : fallback;
+  };
+  const itemCost = number(prizeSnapshot.item_cost_cents ?? prizeSnapshot.price_cents ?? prizeSnapshot.price, 0);
+  const estimatedTax = number(prizeSnapshot.estimated_tax_cents ?? prizeSnapshot.tax_cents, Math.round(itemCost * 0.0825));
+  const estimatedShipping = number(prizeSnapshot.estimated_shipping_cents ?? prizeSnapshot.shipping_estimate_cents ?? prizeSnapshot.shipping_cost_cents, 599);
+  const reserve = 300;
+  const platformAmount = number(prizeSnapshot.platform_or_foundation_amount_cents ?? prizeSnapshot.foundation_amount_cents, 500);
+  return {
+    item_cost_cents: itemCost,
+    estimated_tax_cents: estimatedTax,
+    estimated_shipping_cents: estimatedShipping,
+    fulfillment_reserve_cents: reserve,
+    platform_or_foundation_amount_cents: platformAmount,
+    total_required_cents: itemCost + estimatedTax + estimatedShipping + reserve + platformAmount,
+    estimate_label: 'Pilot estimate',
+    purchase_automation_status: 'No real purchase made automatically',
+    fulfillment_requirement: 'Manual purchase required',
+  };
 }
 
 export async function finalizeAndVerify({ matchDbId, matchId, resultPayload }) {
@@ -357,11 +475,19 @@ export async function approveWinnerVerification({ verificationId, winnerUserId, 
 }
 
 export async function createFulfillmentRecord({ matchId, winnerUserId, prizeId, prizeSnapshot }) {
+  const prizeCostBreakdown = pilotPrizeCostBreakdown(prizeSnapshot);
   return {
     match_id: matchId,
     winner_user_id: winnerUserId,
     prize_id: prizeId,
     prize_snapshot: prizeSnapshot,
+    prize_cost_breakdown: prizeCostBreakdown,
+    item_cost_cents: prizeCostBreakdown.item_cost_cents,
+    estimated_tax_cents: prizeCostBreakdown.estimated_tax_cents,
+    estimated_shipping_cents: prizeCostBreakdown.estimated_shipping_cents,
+    fulfillment_reserve_cents: prizeCostBreakdown.fulfillment_reserve_cents,
+    platform_or_foundation_amount_cents: prizeCostBreakdown.platform_or_foundation_amount_cents,
+    total_required_cents: prizeCostBreakdown.total_required_cents,
     shipping_status: 'pending_admin_review',
     fulfillment_status: 'pending',
     purchase_mode: 'sandbox',

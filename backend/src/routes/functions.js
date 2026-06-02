@@ -26,6 +26,10 @@ const T = {
   pushSubscriptions: 'push_subscriptions',
   affiliateOffers: 'affiliate_offers',
   hingeCommands: 'hinge_commands',
+  prizeRoomTemplates: 'prize_room_templates',
+  prizeRooms: 'prize_rooms',
+  playerContributions: 'player_contributions',
+  prizeRoomLedgerEntries: 'prize_room_ledger_entries',
 };
 
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -35,6 +39,10 @@ const ADMIN_ROLES = [ROLES.OWNER, ROLES.ADMIN];
 const AFFILIATE_ADMIN_ROLES = [ROLES.OWNER, ROLES.ADMIN, ROLES.AFFILIATE_MANAGER];
 const SKILL_COMPETITION_AGREEMENT_VERSION = 'skill_competition_agreement_v1';
 const SKILL_AGREEMENT_REQUIRED_ERROR = 'Skill-based competition agreement must be accepted before entering this match.';
+const PILOT_TAX_RATE = 0.0825;
+const DEFAULT_SHIPPING_CENTS = 599;
+const FULFILLMENT_RESERVE_CENTS = 300;
+const DEFAULT_PLATFORM_OR_FOUNDATION_AMOUNT_CENTS = 500;
 const NORTH_POLE_VISIBLE_STATUSES = [
   'draft',
   'open',
@@ -59,6 +67,10 @@ const WRITE_POLICIES = {
   fulfillment_events: ADMIN_ROLES,
   north_pole_fulfillments: ADMIN_ROLES,
   north_pole_matches: ADMIN_ROLES,
+  prize_room_templates: ADMIN_ROLES,
+  prize_rooms: ADMIN_ROLES,
+  player_contributions: ADMIN_ROLES,
+  prize_room_ledger_entries: ADMIN_ROLES,
   match_events: ADMIN_ROLES,
 };
 
@@ -68,6 +80,10 @@ const PROTECTED_READ_TABLES = new Set([
   'users',
   'north_pole_matches',
   'north_pole_fulfillments',
+  'prize_room_templates',
+  'prize_rooms',
+  'player_contributions',
+  'prize_room_ledger_entries',
   'match_events',
   'fulfillments',
   'fulfillment_events',
@@ -83,6 +99,10 @@ const ADMIN_READ_TABLES = new Set([
   'users',
   'north_pole_matches',
   'north_pole_fulfillments',
+  'prize_room_templates',
+  'prize_rooms',
+  'player_contributions',
+  'prize_room_ledger_entries',
   'match_events',
   'fulfillments',
   'fulfillment_events',
@@ -116,6 +136,10 @@ const ENTITY_TABLE_ALIASES = {
   FulfillmentIntent: 'fulfillment_intents',
   FulfillmentOrder: 'fulfillment_orders',
   PrizeFulfillment: 'prize_fulfillments',
+  PrizeRoomTemplate: 'prize_room_templates',
+  PrizeRoom: 'prize_rooms',
+  PlayerContribution: 'player_contributions',
+  PrizeRoomLedgerEntry: 'prize_room_ledger_entries',
   PurchaseIntent: 'purchase_intents',
   MatchEvent: 'match_events',
   UserMatch: 'user_match_entities',
@@ -451,6 +475,78 @@ function sanitizeSnapshot(value) {
   return value;
 }
 
+function firstFiniteNumber(...values) {
+  for (const value of values) {
+    if (value === null || value === undefined || value === '') continue;
+    const number = Number(value);
+    if (Number.isFinite(number)) return number;
+  }
+  return null;
+}
+
+function normalizeCents(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.round(number)) : fallback;
+}
+
+function buildPilotPrizeCostBreakdown(match = {}, env = process.env) {
+  const snapshot = match.prize_snapshot || match.product_offer || {};
+  const bestOffer = Array.isArray(snapshot.offers) ? snapshot.offers[0] || {} : {};
+  const itemCostCents = normalizeCents(firstFiniteNumber(
+    snapshot.item_cost_cents,
+    snapshot.price_cents,
+    bestOffer.price_cents,
+    match.match_plan?.priceCents,
+    match.match_plan?.prizeCostCents,
+    match.total_prize_path_cents,
+    snapshot.price,
+    bestOffer.price,
+  ), 0);
+  const snapshotTax = firstFiniteNumber(
+    snapshot.estimated_tax_cents,
+    snapshot.tax_cents,
+    snapshot.sales_tax_cents,
+    bestOffer.estimated_tax_cents,
+    bestOffer.tax_cents,
+  );
+  const shippingEstimate = firstFiniteNumber(
+    snapshot.estimated_shipping_cents,
+    snapshot.shipping_estimate_cents,
+    snapshot.shipping_cost_cents,
+    snapshot.shippingCost,
+    bestOffer.estimated_shipping_cents,
+    bestOffer.shipping_estimate_cents,
+    bestOffer.shipping_cost_cents,
+  );
+  const platformAmount = firstFiniteNumber(
+    match.platform_or_foundation_amount_cents,
+    match.match_plan?.platformOrFoundationAmountCents,
+    match.match_plan?.foundationAmountCents,
+    snapshot.platform_or_foundation_amount_cents,
+    snapshot.foundation_amount_cents,
+    env.PILOT_PLATFORM_OR_FOUNDATION_AMOUNT_CENTS,
+  );
+  const estimatedTaxCents = normalizeCents(snapshotTax ?? itemCostCents * PILOT_TAX_RATE);
+  const estimatedShippingCents = normalizeCents(shippingEstimate ?? DEFAULT_SHIPPING_CENTS);
+  const fulfillmentReserveCents = FULFILLMENT_RESERVE_CENTS;
+  const platformOrFoundationAmountCents = normalizeCents(platformAmount ?? DEFAULT_PLATFORM_OR_FOUNDATION_AMOUNT_CENTS);
+
+  return {
+    item_cost_cents: itemCostCents,
+    estimated_tax_cents: estimatedTaxCents,
+    estimated_shipping_cents: estimatedShippingCents,
+    fulfillment_reserve_cents: fulfillmentReserveCents,
+    platform_or_foundation_amount_cents: platformOrFoundationAmountCents,
+    total_required_cents: itemCostCents + estimatedTaxCents + estimatedShippingCents + fulfillmentReserveCents + platformOrFoundationAmountCents,
+    estimate_label: 'Pilot estimate',
+    purchase_automation_status: 'No real purchase made automatically',
+    fulfillment_requirement: 'Manual purchase required',
+    tax_basis: snapshotTax === null ? '8.25% pilot estimate' : 'prize snapshot tax',
+    shipping_basis: shippingEstimate === null ? '$5.99 pilot estimate' : 'prize snapshot shipping estimate',
+    currency: snapshot.currency || bestOffer.currency || 'USD',
+  };
+}
+
 function getNorthPoleMatchId(input = {}) {
   return input.id || input.matchDbId || input.matchId || input.match_id;
 }
@@ -559,6 +655,14 @@ async function createNorthPoleMatchRecord({ store, user, input, sandboxMode = fa
 
   const matchId = generateNorthPoleMatchId();
   const nowIso = new Date().toISOString();
+  const gameSnapshot = sanitizeSnapshot(input.gameSnapshot || input.game_snapshot);
+  const prizeSnapshot = sanitizeSnapshot(input.prizeSnapshot || input.prize_snapshot);
+  const matchPlan = sanitizeSnapshot(input.matchPlan || input.match_plan);
+  const prizeCostBreakdown = buildPilotPrizeCostBreakdown({
+    prize_snapshot: prizeSnapshot,
+    match_plan: matchPlan,
+    total_prize_path_cents: matchPlan?.totalPrizeCostCents || prizeSnapshot?.total_prize_cost_cents || prizeSnapshot?.price_cents || 0,
+  });
   const agreementFields = skillAgreementVersion ? {
     skill_agreement_required: true,
     skill_agreement_version: skillAgreementVersion,
@@ -578,9 +682,9 @@ async function createNorthPoleMatchRecord({ store, user, input, sandboxMode = fa
     creator_user_id: user.id,
     creator_display_name: user.full_name || user.name || user.email || 'Creator',
     game_id: gameId,
-    game_snapshot: sanitizeSnapshot(input.gameSnapshot || input.game_snapshot),
+    game_snapshot: gameSnapshot,
     prize_id: prizeId,
-    prize_snapshot: sanitizeSnapshot(input.prizeSnapshot || input.prize_snapshot),
+    prize_snapshot: prizeSnapshot,
     player_ids: [user.id],
     scores: {},
     status: input.status || (sandboxMode ? 'active' : 'open'),
@@ -590,15 +694,22 @@ async function createNorthPoleMatchRecord({ store, user, input, sandboxMode = fa
     mission_player_number: maxPlayers + 1,
     player_slots: maxPlayers,
     entry_amount_cents: buyInCents,
-    total_prize_path_cents: sanitizeSnapshot(input.matchPlan || input.match_plan)?.totalPrizeCostCents
-      || sanitizeSnapshot(input.prizeSnapshot || input.prize_snapshot)?.total_prize_cost_cents
-      || sanitizeSnapshot(input.prizeSnapshot || input.prize_snapshot)?.price_cents
+    total_prize_path_cents: matchPlan?.totalPrizeCostCents
+      || prizeSnapshot?.total_prize_cost_cents
+      || prizeSnapshot?.price_cents
       || 0,
+    prize_cost_breakdown: prizeCostBreakdown,
+    item_cost_cents: prizeCostBreakdown.item_cost_cents,
+    estimated_tax_cents: prizeCostBreakdown.estimated_tax_cents,
+    estimated_shipping_cents: prizeCostBreakdown.estimated_shipping_cents,
+    fulfillment_reserve_cents: prizeCostBreakdown.fulfillment_reserve_cents,
+    platform_or_foundation_amount_cents: prizeCostBreakdown.platform_or_foundation_amount_cents,
+    total_required_cents: prizeCostBreakdown.total_required_cents,
     prize_locked_at: nowIso,
     started_at: nowIso,
     buy_in_cents: buyInCents,
     max_players: maxPlayers,
-    match_plan: sanitizeSnapshot(input.matchPlan || input.match_plan),
+    match_plan: matchPlan,
     ...agreementFields,
   });
 
@@ -1163,6 +1274,7 @@ export function createFunctionRouter({ store }) {
     let updatedMatch = match;
     let fulfillmentIntent = null;
     if (approve && match) {
+      const prizeCostBreakdown = match.prize_cost_breakdown || buildPilotPrizeCostBreakdown(match);
       updatedMatch = await store.update('north_pole_matches', match.id, {
         status: 'fulfillment_pending',
         winner_id: winnerUserId,
@@ -1170,11 +1282,25 @@ export function createFunctionRouter({ store }) {
         verified_at: nowIso,
         verified_by: user.id,
         winner_locked_at: nowIso,
+        prize_cost_breakdown: prizeCostBreakdown,
+        item_cost_cents: prizeCostBreakdown.item_cost_cents,
+        estimated_tax_cents: prizeCostBreakdown.estimated_tax_cents,
+        estimated_shipping_cents: prizeCostBreakdown.estimated_shipping_cents,
+        fulfillment_reserve_cents: prizeCostBreakdown.fulfillment_reserve_cents,
+        platform_or_foundation_amount_cents: prizeCostBreakdown.platform_or_foundation_amount_cents,
+        total_required_cents: prizeCostBreakdown.total_required_cents,
       });
       fulfillmentIntent = await store.create(T.fulfillmentIntents, {
         match_id: match.match_id,
         winner_user_id: winnerUserId,
         prize_snapshot: match.prize_snapshot || {},
+        prize_cost_breakdown: prizeCostBreakdown,
+        item_cost_cents: prizeCostBreakdown.item_cost_cents,
+        estimated_tax_cents: prizeCostBreakdown.estimated_tax_cents,
+        estimated_shipping_cents: prizeCostBreakdown.estimated_shipping_cents,
+        fulfillment_reserve_cents: prizeCostBreakdown.fulfillment_reserve_cents,
+        platform_or_foundation_amount_cents: prizeCostBreakdown.platform_or_foundation_amount_cents,
+        total_required_cents: prizeCostBreakdown.total_required_cents,
         shipping_status: 'pending_admin_review',
         fulfillment_status: 'pending',
         purchase_mode: 'sandbox',
@@ -1185,6 +1311,13 @@ export function createFunctionRouter({ store }) {
         match_id: match.match_id,
         winner_user_id: winnerUserId,
         prize_snapshot: match.prize_snapshot || {},
+        prize_cost_breakdown: prizeCostBreakdown,
+        item_cost_cents: prizeCostBreakdown.item_cost_cents,
+        estimated_tax_cents: prizeCostBreakdown.estimated_tax_cents,
+        estimated_shipping_cents: prizeCostBreakdown.estimated_shipping_cents,
+        fulfillment_reserve_cents: prizeCostBreakdown.fulfillment_reserve_cents,
+        platform_or_foundation_amount_cents: prizeCostBreakdown.platform_or_foundation_amount_cents,
+        total_required_cents: prizeCostBreakdown.total_required_cents,
         purchase_mode: 'sandbox',
         purchase_status: 'pending_admin_review',
         admin_approval_required: true,

@@ -1,0 +1,26 @@
+{
+  "name": "PrizeRoomTemplate",
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "description": { "type": "string" },
+    "room_type": { "type": "string" },
+    "game_id": { "type": "string" },
+    "game_title": { "type": "string" },
+    "game_image": { "type": "string" },
+    "game_platform": { "type": "string" },
+    "prize_id": { "type": "string" },
+    "prize_title": { "type": "string" },
+    "prize_image": { "type": "string" },
+    "prize_source": { "type": "string" },
+    "prize_url": { "type": "string" },
+    "max_players": { "type": "number" },
+    "min_players": { "type": "number" },
+    "winning_rule": { "type": "string" },
+    "verification_method": { "type": "string" },
+    "foundation_rate": { "type": "number" },
+    "is_featured": { "type": "boolean" },
+    "status": { "type": "string" }
+  },
+  "required": ["title", "game_id", "prize_id", "max_players", "status"]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "PrizeRoomLedgerEntry",
+  "type": "object",
+  "properties": {
+    "room_id": { "type": "string" },
+    "match_id": { "type": "string" },
+    "type": { "type": "string" },
+    "amount_cents": { "type": "number" },
+    "currency": { "type": "string" },
+    "description": { "type": "string" },
+    "status": { "type": "string" }
+  },
+  "required": ["room_id", "type", "amount_cents", "status"]
+}

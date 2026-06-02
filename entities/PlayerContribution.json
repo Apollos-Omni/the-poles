@@ -1,0 +1,19 @@
+{
+  "name": "PlayerContribution",
+  "type": "object",
+  "properties": {
+    "room_id": { "type": "string" },
+    "match_id": { "type": "string" },
+    "user_id": { "type": "string" },
+    "user_email": { "type": "string" },
+    "display_name": { "type": "string" },
+    "amount_cents": { "type": "number" },
+    "currency": { "type": "string" },
+    "status": { "type": "string" },
+    "payment_mode": { "type": "string" },
+    "payment_provider": { "type": "string" },
+    "payment_reference": { "type": "string" },
+    "paid_at": { "type": "string" }
+  },
+  "required": ["room_id", "user_id", "amount_cents", "status", "payment_mode"]
+}

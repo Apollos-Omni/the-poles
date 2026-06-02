@@ -34,6 +34,26 @@ const refereeJoinMethods = ['spectator_mode', 'private_lobby', 'game_api', 'stre
 const refereeReportSources = ['game_api', 'spectator_bot', 'native_game_sdk', 'vision_review', 'stream_review', 'manual_evidence', 'player_evidence'];
 const autoLockRefereeSources = new Set(['game_api', 'spectator_bot', 'native_game_sdk']);
 const adminReviewRefereeSources = new Set(['vision_review', 'stream_review', 'manual_evidence', 'player_evidence']);
+const PILOT_TAX_RATE = 0.0825;
+const DEFAULT_SHIPPING_CENTS = 599;
+const FULFILLMENT_RESERVE_CENTS = 300;
+const DEFAULT_PLATFORM_OR_FOUNDATION_AMOUNT_CENTS = 500;
+const DEFAULT_FOUNDATION_RATE = 0.10;
+const PAYMENT_PROCESSING_RATE = 0.03;
+const PAYMENT_PROCESSING_PER_PLAYER_CENTS = 30;
+const PRIZE_ROOM_STATUSES = [
+  'draft',
+  'open',
+  'awaiting_contributions',
+  'funded',
+  'in_progress',
+  'pending_verification',
+  'winner_verified',
+  'fulfillment_pending',
+  'prize_fulfillment',
+  'fulfilled',
+  'cancelled',
+];
 
 const joinSchema = z.object({
   entryAmount: z.number().int().nonnegative().optional(),
@@ -107,6 +127,74 @@ const adminOverrideWinnerSchema = z.object({
 const demoFulfillmentOrderSchema = z.object({
   matchId: z.string().min(1).optional(),
   match_id: z.string().min(1).optional(),
+}).passthrough();
+
+const prizeRoomSnapshotSchema = z.record(z.unknown()).optional().nullable();
+
+const calculatePrizeRoomCheckoutSchema = z.object({
+  prizeSnapshot: prizeRoomSnapshotSchema,
+  prize_snapshot: prizeRoomSnapshotSchema,
+  playerCount: z.number().int().min(2).max(100).optional(),
+  player_count: z.number().int().min(2).max(100).optional(),
+  maxPlayers: z.number().int().min(2).max(100).optional(),
+  max_players: z.number().int().min(2).max(100).optional(),
+  foundationRate: z.number().min(0).max(1).optional(),
+  foundation_rate: z.number().min(0).max(1).optional(),
+}).passthrough();
+
+const createPrizeRoomSchema = z.object({
+  templateId: z.string().min(1).optional(),
+  template_id: z.string().min(1).optional(),
+  roomType: z.enum(['platform_supported', 'user_created', 'template_based']).optional(),
+  room_type: z.enum(['platform_supported', 'user_created', 'template_based']).optional(),
+  title: z.string().min(1).max(240).optional(),
+  description: z.string().max(1200).optional(),
+  gameId: z.string().min(1).optional(),
+  game_id: z.string().min(1).optional(),
+  gameTitle: z.string().max(240).optional(),
+  game_title: z.string().max(240).optional(),
+  gameImage: z.string().url().optional().or(z.literal('')),
+  game_image: z.string().url().optional().or(z.literal('')),
+  gamePlatform: z.string().max(120).optional(),
+  game_platform: z.string().max(120).optional(),
+  prizeId: z.string().min(1).optional(),
+  prize_id: z.string().min(1).optional(),
+  prizeTitle: z.string().max(300).optional(),
+  prize_title: z.string().max(300).optional(),
+  prizeImage: z.string().url().optional().or(z.literal('')),
+  prize_image: z.string().url().optional().or(z.literal('')),
+  prizeSource: z.string().max(120).optional(),
+  prize_source: z.string().max(120).optional(),
+  prizeUrl: z.string().url().optional().or(z.literal('')),
+  prize_url: z.string().url().optional().or(z.literal('')),
+  prizeSnapshot: prizeRoomSnapshotSchema,
+  prize_snapshot: prizeRoomSnapshotSchema,
+  minPlayers: z.number().int().min(1).max(100).optional(),
+  min_players: z.number().int().min(1).max(100).optional(),
+  maxPlayers: z.number().int().min(2).max(100).optional(),
+  max_players: z.number().int().min(2).max(100).optional(),
+  winningRule: z.string().max(240).optional(),
+  winning_rule: z.string().max(240).optional(),
+  verificationMethod: z.string().max(120).optional(),
+  verification_method: z.string().max(120).optional(),
+  foundationRate: z.number().min(0).max(1).optional(),
+  foundation_rate: z.number().min(0).max(1).optional(),
+  paymentMode: z.enum(['pilot_manual', 'stripe_test', 'stripe_live']).optional(),
+  payment_mode: z.enum(['pilot_manual', 'stripe_test', 'stripe_live']).optional(),
+}).passthrough();
+
+const joinPrizeRoomSchema = z.object({
+  displayName: z.string().max(160).optional(),
+  display_name: z.string().max(160).optional(),
+  userEmail: z.string().email().optional().or(z.literal('')),
+  user_email: z.string().email().optional().or(z.literal('')),
+  paymentMode: z.enum(['pilot_manual', 'stripe_test', 'stripe_live']).optional(),
+  payment_mode: z.enum(['pilot_manual', 'stripe_test', 'stripe_live']).optional(),
+}).passthrough();
+
+const markContributionPaidSchema = z.object({
+  contributionId: z.string().min(1).optional(),
+  contribution_id: z.string().min(1).optional(),
 }).passthrough();
 
 const assignRefereeSchema = z.object({
@@ -278,7 +366,357 @@ function normalizePrize(match) {
     price: Number(snapshot.price_cents || snapshot.price || bestOffer.price_cents || 0),
     currency: snapshot.currency || bestOffer.currency || 'USD',
     shippingCost: Number(snapshot.estimated_shipping_cents || snapshot.shipping_estimate_cents || snapshot.shippingCost || 0),
+    taxCost: Number(snapshot.estimated_tax_cents || snapshot.tax_cents || snapshot.sales_tax_cents || bestOffer.estimated_tax_cents || 0),
   };
+}
+
+function firstFiniteNumber(...values) {
+  for (const value of values) {
+    if (value === null || value === undefined || value === '') continue;
+    const number = Number(value);
+    if (Number.isFinite(number)) return number;
+  }
+  return null;
+}
+
+function normalizeCents(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.round(number)) : fallback;
+}
+
+function buildPrizeCostBreakdown(match, env = process.env) {
+  const snapshot = match?.prize_snapshot || match?.product_offer || {};
+  const bestOffer = Array.isArray(snapshot.offers) ? snapshot.offers[0] || {} : {};
+  const itemCostCents = normalizeCents(firstFiniteNumber(
+    snapshot.item_cost_cents,
+    snapshot.price_cents,
+    bestOffer.price_cents,
+    match?.match_plan?.priceCents,
+    match?.match_plan?.prizeCostCents,
+    match?.total_prize_path_cents,
+    snapshot.price,
+    bestOffer.price,
+  ), 0);
+  const snapshotTax = firstFiniteNumber(
+    snapshot.estimated_tax_cents,
+    snapshot.tax_cents,
+    snapshot.sales_tax_cents,
+    bestOffer.estimated_tax_cents,
+    bestOffer.tax_cents,
+  );
+  const shippingEstimate = firstFiniteNumber(
+    snapshot.estimated_shipping_cents,
+    snapshot.shipping_estimate_cents,
+    snapshot.shipping_cost_cents,
+    snapshot.shippingCost,
+    bestOffer.estimated_shipping_cents,
+    bestOffer.shipping_estimate_cents,
+    bestOffer.shipping_cost_cents,
+  );
+  const platformAmount = firstFiniteNumber(
+    match?.platform_or_foundation_amount_cents,
+    match?.match_plan?.platformOrFoundationAmountCents,
+    match?.match_plan?.foundationAmountCents,
+    snapshot.platform_or_foundation_amount_cents,
+    snapshot.foundation_amount_cents,
+    env.PILOT_PLATFORM_OR_FOUNDATION_AMOUNT_CENTS,
+  );
+  const estimatedTaxCents = normalizeCents(snapshotTax ?? itemCostCents * PILOT_TAX_RATE);
+  const estimatedShippingCents = normalizeCents(shippingEstimate ?? DEFAULT_SHIPPING_CENTS);
+  const fulfillmentReserveCents = FULFILLMENT_RESERVE_CENTS;
+  const platformOrFoundationAmountCents = normalizeCents(platformAmount ?? DEFAULT_PLATFORM_OR_FOUNDATION_AMOUNT_CENTS);
+  const totalRequiredCents = itemCostCents
+    + estimatedTaxCents
+    + estimatedShippingCents
+    + fulfillmentReserveCents
+    + platformOrFoundationAmountCents;
+
+  return {
+    item_cost_cents: itemCostCents,
+    estimated_tax_cents: estimatedTaxCents,
+    estimated_shipping_cents: estimatedShippingCents,
+    fulfillment_reserve_cents: fulfillmentReserveCents,
+    platform_or_foundation_amount_cents: platformOrFoundationAmountCents,
+    total_required_cents: totalRequiredCents,
+    estimate_label: 'Pilot estimate',
+    purchase_automation_status: 'No real purchase made automatically',
+    fulfillment_requirement: 'Manual purchase required',
+    tax_basis: snapshotTax === null ? '8.25% pilot estimate' : 'prize snapshot tax',
+    shipping_basis: shippingEstimate === null ? '$5.99 pilot estimate' : 'prize snapshot shipping estimate',
+    currency: snapshot.currency || bestOffer.currency || 'USD',
+  };
+}
+
+function buildPrizeRoomCostBreakdown({ prizeSnapshot = {}, playerCount = 2, foundationRate = DEFAULT_FOUNDATION_RATE, env = process.env } = {}) {
+  const snapshot = prizeSnapshot && typeof prizeSnapshot === 'object' ? prizeSnapshot : {};
+  const bestOffer = Array.isArray(snapshot.offers) ? snapshot.offers[0] || {} : {};
+  const players = Math.max(2, normalizeCents(playerCount, 2));
+  const itemCostCents = normalizeCents(firstFiniteNumber(
+    snapshot.item_cost_cents,
+    snapshot.price_cents,
+    bestOffer.price_cents,
+    snapshot.price,
+    bestOffer.price,
+  ), 0);
+  const snapshotTax = firstFiniteNumber(
+    snapshot.estimated_tax_cents,
+    snapshot.tax_cents,
+    snapshot.sales_tax_cents,
+    bestOffer.estimated_tax_cents,
+    bestOffer.tax_cents,
+  );
+  const snapshotShipping = firstFiniteNumber(
+    snapshot.estimated_shipping_cents,
+    snapshot.shipping_estimate_cents,
+    snapshot.shipping_cost_cents,
+    snapshot.shippingCost,
+    bestOffer.estimated_shipping_cents,
+    bestOffer.shipping_estimate_cents,
+    bestOffer.shipping_cost_cents,
+  );
+  const configuredFoundationRate = firstFiniteNumber(foundationRate, env.PRIZE_ROOM_FOUNDATION_RATE, DEFAULT_FOUNDATION_RATE);
+  const safeFoundationRate = Number.isFinite(configuredFoundationRate) ? Math.min(1, Math.max(0, configuredFoundationRate)) : DEFAULT_FOUNDATION_RATE;
+  const estimatedTaxCents = normalizeCents(snapshotTax ?? itemCostCents * PILOT_TAX_RATE);
+  const estimatedShippingCents = normalizeCents(snapshotShipping ?? DEFAULT_SHIPPING_CENTS);
+  const fulfillmentReserveCents = normalizeCents(env.PRIZE_ROOM_FULFILLMENT_RESERVE_CENTS ?? FULFILLMENT_RESERVE_CENTS, FULFILLMENT_RESERVE_CENTS);
+  const prizeSubtotalCents = itemCostCents + estimatedTaxCents + estimatedShippingCents;
+  const processingBaseCents = prizeSubtotalCents + fulfillmentReserveCents;
+  const paymentProcessingReserveCents = normalizeCents(
+    processingBaseCents * PAYMENT_PROCESSING_RATE + players * PAYMENT_PROCESSING_PER_PLAYER_CENTS,
+  );
+  const foundationAmountCents = normalizeCents(prizeSubtotalCents * safeFoundationRate);
+  const totalRoomCostCents = prizeSubtotalCents
+    + fulfillmentReserveCents
+    + paymentProcessingReserveCents
+    + foundationAmountCents;
+
+  return {
+    item_cost_cents: itemCostCents,
+    estimated_tax_cents: estimatedTaxCents,
+    estimated_shipping_cents: estimatedShippingCents,
+    fulfillment_reserve_cents: fulfillmentReserveCents,
+    payment_processing_reserve_cents: paymentProcessingReserveCents,
+    foundation_rate: safeFoundationRate,
+    foundation_amount_cents: foundationAmountCents,
+    total_room_cost_cents: totalRoomCostCents,
+    per_player_contribution_cents: normalizeCents(Math.ceil(totalRoomCostCents / players)),
+    currency: snapshot.currency || bestOffer.currency || 'USD',
+    estimate_label: 'Pilot estimate',
+    payment_mode_label: 'Pilot Payment Mode',
+    purchase_automation_status: 'No real purchase made automatically',
+    fulfillment_requirement: 'Manual purchase required',
+    prepared_fulfillment_label: 'Prepared order only',
+  };
+}
+
+const STARTER_PRIZE_ROOM_TEMPLATES = [
+  ['madden-gift-card', 'Madden 1v1 Gift Card Room', 'Madden 1v1 skill match for a pilot gift card prize.', 'Madden NFL', 'console', 'GameStop Gift Card', 4000, 2, 2, 'Highest score wins'],
+  ['nba-2k-gift-card', 'NBA 2K 1v1 Gift Card Room', 'NBA 2K head-to-head family pilot room.', 'NBA 2K', 'console', 'PlayStation Store Gift Card', 4000, 2, 2, 'Highest score wins'],
+  ['mario-kart-family', 'Mario Kart 4 Player Family Room', 'Four-player family race night with manual winner verification.', 'Mario Kart', 'switch', 'Nintendo Gift Card', 4000, 2, 4, 'Best final race placement wins'],
+  ['cod-kill-race', 'Call of Duty Kill Race Room', 'Skill-based kill race using submitted scoreboard proof.', 'Call of Duty', 'console/pc', 'Xbox Gift Card', 5000, 2, 4, 'Highest verified elimination count wins'],
+  ['rocket-league-2v2', 'Rocket League 2v2 Prize Room', 'Team skill room for Rocket League players.', 'Rocket League', 'multi-platform', 'Rocket League Credits Gift Card', 5000, 4, 4, 'Winning team by final score wins'],
+  ['chess-match', 'Chess Match Prize Room', 'Classic chess match with PGN or screenshot proof.', 'Chess', 'web/mobile', 'Amazon Gift Card', 2500, 2, 2, 'Checkmate or agreed final result wins'],
+  ['uno-family', 'Uno Family Game Room', 'Family-friendly Uno room with manual proof.', 'Uno', 'tabletop/mobile', 'Family Game Night Gift Card', 3000, 2, 4, 'First player out wins'],
+  ['fortnite-creative', 'Fortnite Creative Challenge Room', 'Creative challenge room with score/proof URL.', 'Fortnite Creative', 'multi-platform', 'V-Bucks Gift Card', 4000, 2, 4, 'Highest challenge score wins'],
+  ['mortal-kombat-1v1', 'Mortal Kombat 1v1 Room', 'Head-to-head fighting game prize room.', 'Mortal Kombat', 'console/pc', 'Console Store Gift Card', 4000, 2, 2, 'Best-of-three winner wins'],
+  ['family-mystery', 'Family Game Night Mystery Prize Room', 'Pilot mystery prize room for a family game night.', 'Family Game Night', 'tabletop', 'Mystery Family Prize', 3500, 2, 6, 'Manual family challenge winner wins'],
+].map(([id, title, description, gameTitle, gamePlatform, prizeTitle, priceCents, minPlayers, maxPlayers, winningRule], index) => ({
+  id: `tpl_${id}`,
+  title,
+  description,
+  room_type: 'platform_supported',
+  game_id: gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+  game_title: gameTitle,
+  game_image: '',
+  game_platform: gamePlatform,
+  prize_id: `starter_${id}`,
+  prize_title: prizeTitle,
+  prize_image: '',
+  prize_source: 'pilot_demo',
+  prize_url: '',
+  prize_snapshot: {
+    id: `starter_${id}`,
+    title: prizeTitle,
+    source: 'pilot_demo',
+    price_cents: priceCents,
+    currency: 'USD',
+    estimated_shipping_cents: DEFAULT_SHIPPING_CENTS,
+  },
+  max_players: maxPlayers,
+  min_players: minPlayers,
+  winning_rule: winningRule,
+  verification_method: 'manual_score_with_proof',
+  foundation_rate: DEFAULT_FOUNDATION_RATE,
+  is_featured: index < 4,
+  family_friendly: ['mario-kart-family', 'chess-match', 'uno-family', 'family-mystery'].some((slug) => id.includes(slug)),
+  status: 'active',
+}));
+
+async function ensureStarterPrizeRoomTemplates(store) {
+  const created = [];
+  for (const template of STARTER_PRIZE_ROOM_TEMPLATES) {
+    const existing = await store.findOne('prize_room_templates', { id: template.id }).catch(() => null);
+    if (existing) continue;
+    created.push(await store.create('prize_room_templates', template));
+  }
+  return created;
+}
+
+function prizeSnapshotFromRoomInput(input = {}, template = null) {
+  const explicit = input.prizeSnapshot || input.prize_snapshot;
+  if (explicit && typeof explicit === 'object') return explicit;
+  if (template?.prize_snapshot) return template.prize_snapshot;
+  return {
+    id: input.prizeId || input.prize_id || template?.prize_id || `prize_${crypto.randomUUID()}`,
+    title: input.prizeTitle || input.prize_title || template?.prize_title || 'Pilot Prize',
+    image: input.prizeImage || input.prize_image || template?.prize_image || '',
+    source: input.prizeSource || input.prize_source || template?.prize_source || 'manual',
+    product_url: input.prizeUrl || input.prize_url || template?.prize_url || '',
+    price_cents: normalizeCents(input.price_cents || input.item_cost_cents || template?.prize_snapshot?.price_cents || 4000),
+    currency: 'USD',
+  };
+}
+
+function roomPublicId() {
+  return `PR-${Date.now().toString(36).toUpperCase()}-${crypto.randomUUID().slice(0, 4).toUpperCase()}`;
+}
+
+function profileName(user) {
+  return user?.full_name || user?.name || user?.email || user?.id || 'Pilot Player';
+}
+
+async function createLedgerEntriesForRoom(store, room) {
+  const breakdown = room.cost_breakdown || {};
+  const rows = [
+    ['prize_reserve', breakdown.item_cost_cents, `Prize reserve for ${room.prize_title}`],
+    ['estimated_tax', breakdown.estimated_tax_cents, 'Estimated tax reserve'],
+    ['estimated_shipping', breakdown.estimated_shipping_cents, 'Estimated shipping reserve'],
+    ['fulfillment_reserve', breakdown.fulfillment_reserve_cents, 'Manual fulfillment reserve'],
+    ['processing_reserve', breakdown.payment_processing_reserve_cents, 'Pilot payment processing reserve'],
+    ['foundation_amount', breakdown.foundation_amount_cents, 'The Poles/Foundation 10% amount'],
+  ];
+  for (const [type, amount, description] of rows) {
+    await store.create('prize_room_ledger_entries', {
+      room_id: room.id,
+      match_id: room.match_id || '',
+      type,
+      amount_cents: amount || 0,
+      currency: breakdown.currency || 'USD',
+      description,
+      status: 'planned',
+    }).catch(() => null);
+  }
+}
+
+async function createMatchForPrizeRoom(store, room, userId) {
+  const match = await store.create('north_pole_matches', {
+    match_id: room.id,
+    prize_room_id: room.id,
+    title: room.title,
+    created_by: room.created_by || userId || 'platform',
+    creator_user_id: room.created_by || userId || 'platform',
+    game_id: room.game_id,
+    game_snapshot: {
+      id: room.game_id,
+      title: room.game_title,
+      image: room.game_image,
+      platform: room.game_platform,
+      score_type: room.winning_rule,
+    },
+    prize_id: room.prize_id,
+    prize_snapshot: {
+      id: room.prize_id,
+      title: room.prize_title,
+      image: room.prize_image,
+      image_url: room.prize_image,
+      source: room.prize_source,
+      product_url: room.prize_url,
+      price_cents: room.cost_breakdown?.item_cost_cents || 0,
+      estimated_tax_cents: room.cost_breakdown?.estimated_tax_cents || 0,
+      estimated_shipping_cents: room.cost_breakdown?.estimated_shipping_cents || 0,
+      currency: room.cost_breakdown?.currency || 'USD',
+    },
+    min_players: room.min_players,
+    max_players: room.max_players,
+    player_ids: room.player_ids || [],
+    scores: {},
+    status: room.status === 'funded' ? 'waiting_for_players' : room.status,
+    winning_rule: room.winning_rule,
+    verification_method: room.verification_method,
+    cost_breakdown: room.cost_breakdown,
+    prize_cost_breakdown: room.cost_breakdown,
+    foundation_rate: room.foundation_rate,
+    payment_mode: room.payment_mode,
+    fulfillment_mode: room.fulfillment_mode,
+    buy_in_cents: room.cost_breakdown?.per_player_contribution_cents || 0,
+    entry_amount_cents: room.cost_breakdown?.per_player_contribution_cents || 0,
+    sandbox_mode: false,
+    pilot_payment_mode: true,
+  });
+  return match;
+}
+
+async function syncRoomStatusFromContributions(store, room) {
+  const contributions = await store.list('player_contributions', { room_id: room.id }).catch(() => []);
+  const paid = contributions.filter((row) => ['marked_paid', 'paid'].includes(row.status));
+  const playerIds = [...new Set(paid.map((row) => row.user_id).filter(Boolean).map(String))];
+  const targetStatus = paid.length >= Number(room.max_players || 0) ? 'funded' : paid.length > 0 ? 'awaiting_contributions' : 'open';
+  const updated = await store.update('prize_rooms', room.id, {
+    player_ids: playerIds,
+    status: targetStatus,
+    funding_status: targetStatus === 'funded' ? 'funded' : 'collecting_contributions',
+  });
+  if (room.match_id) {
+    await store.update('north_pole_matches', room.match_id, {
+      player_ids: playerIds,
+      status: targetStatus === 'funded' ? 'waiting_for_players' : targetStatus,
+    }).catch(() => null);
+  }
+  return updated;
+}
+
+async function createPrizeRoomRecord(store, input, user) {
+  await ensureStarterPrizeRoomTemplates(store);
+  const templateId = input.templateId || input.template_id;
+  const template = templateId ? await store.findOne('prize_room_templates', { id: templateId }).catch(() => null) : null;
+  const maxPlayers = input.maxPlayers || input.max_players || template?.max_players || 4;
+  const minPlayers = input.minPlayers || input.min_players || template?.min_players || Math.min(2, maxPlayers);
+  const prizeSnapshot = prizeSnapshotFromRoomInput(input, template);
+  const foundationRate = input.foundationRate ?? input.foundation_rate ?? template?.foundation_rate ?? DEFAULT_FOUNDATION_RATE;
+  const costBreakdown = buildPrizeRoomCostBreakdown({ prizeSnapshot, playerCount: maxPlayers, foundationRate });
+  const room = await store.create('prize_rooms', {
+    id: input.id || roomPublicId(),
+    template_id: template?.id || templateId || '',
+    room_type: input.roomType || input.room_type || (template ? 'template_based' : 'user_created'),
+    created_by: user?.id || 'platform',
+    title: input.title || template?.title || `${prizeSnapshot.title || 'Prize'} Skill Match`,
+    description: input.description || template?.description || 'Pilot Prize Room for a skill-based match.',
+    game_id: input.gameId || input.game_id || template?.game_id || 'north-pole-skill-match',
+    game_title: input.gameTitle || input.game_title || template?.game_title || 'Skill Match',
+    game_image: input.gameImage || input.game_image || template?.game_image || '',
+    game_platform: input.gamePlatform || input.game_platform || template?.game_platform || 'manual',
+    prize_id: input.prizeId || input.prize_id || prizeSnapshot.id || template?.prize_id || `prize_${crypto.randomUUID()}`,
+    prize_title: input.prizeTitle || input.prize_title || prizeSnapshot.title || template?.prize_title || 'Pilot Prize',
+    prize_image: input.prizeImage || input.prize_image || prizeSnapshot.image || prizeSnapshot.image_url || template?.prize_image || '',
+    prize_source: input.prizeSource || input.prize_source || prizeSnapshot.source || template?.prize_source || 'manual',
+    prize_url: input.prizeUrl || input.prize_url || prizeSnapshot.product_url || prizeSnapshot.url || template?.prize_url || '',
+    min_players: minPlayers,
+    max_players: maxPlayers,
+    player_ids: [],
+    status: 'open',
+    winning_rule: input.winningRule || input.winning_rule || template?.winning_rule || 'Highest verified score wins',
+    verification_method: input.verificationMethod || input.verification_method || template?.verification_method || 'manual_score_with_proof',
+    cost_breakdown: costBreakdown,
+    foundation_rate: costBreakdown.foundation_rate,
+    payment_mode: input.paymentMode || input.payment_mode || 'pilot_manual',
+    fulfillment_mode: 'manual',
+    pilot_mode_label: 'Pilot Mode: no real charge made.',
+    fulfillment_note: 'Manual fulfillment required. Automatic purchase provider not enabled yet.',
+  });
+  const match = await createMatchForPrizeRoom(store, room, user?.id);
+  const synced = await store.update('prize_rooms', room.id, { match_id: match.id });
+  await createLedgerEntriesForRoom(store, { ...synced, match_id: match.id });
+  return synced;
 }
 
 async function findProfileForUser(store, userId) {
@@ -326,104 +764,147 @@ async function buildAiVerification(store, match) {
 }
 
 async function createPrizeFulfillment(store, match, userId) {
-  const matchId = publicMatchId(match);
-  console.log('[fulfillment] createPrizeFulfillment:start', {
-    matchId,
-    rowId: matchRowId(match),
-    userId,
-    winnerUserId: match?.winner_user_id,
-    winnerId: match?.winner_id,
-    demoMode: match?.demo_mode === true,
-    testOrder: match?.test_order === true,
-  });
+  try {
+    const matchId = publicMatchId(match);
+    console.log('[fulfillment] createPrizeFulfillment:start', {
+      matchId,
+      rowId: matchRowId(match),
+      userId,
+      winnerUserId: match?.winner_user_id,
+      winnerId: match?.winner_id,
+      demoMode: match?.demo_mode === true,
+      testOrder: match?.test_order === true,
+    });
 
-  const lockedVerification = await store.findOne('winner_verifications', { matchId, status: 'locked' });
-  const winnerId = match.winner_user_id || match.winner_id || lockedVerification?.winnerUserId || lockedVerification?.winner_user_id;
-  if (!winnerId) {
-    const error = new Error('Winner must be locked before fulfillment is created');
-    error.status = 400;
+    const lockedVerification = await store.findOne('winner_verifications', { matchId, status: 'locked' });
+    const winnerId = match.winner_user_id || match.winner_id || lockedVerification?.winnerUserId || lockedVerification?.winner_user_id;
+    if (!winnerId) {
+      const error = new Error('Winner must be locked before fulfillment is created');
+      error.status = 400;
+      throw error;
+    }
+
+    const existing = await store.findOne('prize_fulfillments', { match_id: matchId });
+    if (existing) {
+      const existingBreakdown = existing.prize_cost_breakdown || match.cost_breakdown || buildPrizeCostBreakdown(match);
+      if (!existing.prize_cost_breakdown) {
+        await store.update('prize_fulfillments', existing.id, {
+          prize_cost_breakdown: existingBreakdown,
+          item_cost_cents: existingBreakdown.item_cost_cents,
+          estimated_tax_cents: existingBreakdown.estimated_tax_cents,
+          estimated_shipping_cents: existingBreakdown.estimated_shipping_cents,
+          fulfillment_reserve_cents: existingBreakdown.fulfillment_reserve_cents,
+          platform_or_foundation_amount_cents: existingBreakdown.platform_or_foundation_amount_cents,
+          total_required_cents: existingBreakdown.total_required_cents,
+        }).catch(() => null);
+      }
+      console.log('[fulfillment] createPrizeFulfillment:existing', {
+        fulfillmentId: existing.id,
+        matchId,
+        status: existing.status,
+        retailerOrderId: existing.retailer_order_id,
+        trackingNumber: existing.tracking_number,
+      });
+      return { ...existing, prize_cost_breakdown: existingBreakdown };
+    }
+
+    const prize = normalizePrize(match);
+    const prizeCostBreakdown = match.cost_breakdown || match.prize_cost_breakdown || buildPrizeCostBreakdown(match);
+    const profile = await findProfileForUser(store, winnerId);
+    const payload = {
+      match_id: matchId,
+      winner_id: winnerId,
+      winner_name: profileDisplayName(profile, winnerId),
+      winner_email: profileEmail(profile),
+      prize_title: prize.title,
+      prize_url: prize.productUrl || '',
+      prize_image: prize.image || '',
+      prize_source: prize.productSource,
+      status: 'pending_address',
+      shipping_status: 'pending_address',
+      admin_approved: false,
+      shipping_name: '',
+      shipping_address_line1: '',
+      shipping_address_line2: '',
+      shipping_city: '',
+      shipping_state: '',
+      shipping_zip: '',
+      shipping_country: 'US',
+      retailer_order_id: '',
+      tracking_number: '',
+      admin_notes: '',
+      demo_mode: match.demo_mode === true,
+      test_order: match.test_order === true,
+      prize_cost_breakdown: prizeCostBreakdown,
+      cost_breakdown: prizeCostBreakdown,
+      item_cost_cents: prizeCostBreakdown.item_cost_cents,
+      estimated_tax_cents: prizeCostBreakdown.estimated_tax_cents,
+      estimated_shipping_cents: prizeCostBreakdown.estimated_shipping_cents,
+      fulfillment_reserve_cents: prizeCostBreakdown.fulfillment_reserve_cents,
+      payment_processing_reserve_cents: prizeCostBreakdown.payment_processing_reserve_cents || 0,
+      foundation_rate: prizeCostBreakdown.foundation_rate ?? DEFAULT_FOUNDATION_RATE,
+      foundation_amount_cents: prizeCostBreakdown.foundation_amount_cents || prizeCostBreakdown.platform_or_foundation_amount_cents || 0,
+      platform_or_foundation_amount_cents: prizeCostBreakdown.platform_or_foundation_amount_cents || prizeCostBreakdown.foundation_amount_cents || 0,
+      total_required_cents: prizeCostBreakdown.total_required_cents || prizeCostBreakdown.total_room_cost_cents || 0,
+      total_room_cost_cents: prizeCostBreakdown.total_room_cost_cents || prizeCostBreakdown.total_required_cents || 0,
+    };
+
+    console.log('[fulfillment] store.create prize_fulfillments:start', {
+      matchId,
+      winnerId,
+      prizeTitle: payload.prize_title,
+      status: payload.status,
+      demoMode: payload.demo_mode,
+      testOrder: payload.test_order,
+    });
+    const fulfillment = await store.create('prize_fulfillments', payload);
+    console.log('[fulfillment] store.create prize_fulfillments:success', {
+      fulfillmentId: fulfillment?.id,
+      matchId: fulfillment?.match_id,
+      status: fulfillment?.status,
+      demoMode: fulfillment?.demo_mode,
+      testOrder: fulfillment?.test_order,
+    });
+
+    if (matchRowId(match)) {
+      await store.update('north_pole_matches', matchRowId(match), {
+        status: 'prize_fulfillment',
+        prize_fulfillment_id: fulfillment.id,
+        fulfillment_order_id: fulfillment.id,
+        prize_cost_breakdown: prizeCostBreakdown,
+        item_cost_cents: prizeCostBreakdown.item_cost_cents,
+        estimated_tax_cents: prizeCostBreakdown.estimated_tax_cents,
+        estimated_shipping_cents: prizeCostBreakdown.estimated_shipping_cents,
+        fulfillment_reserve_cents: prizeCostBreakdown.fulfillment_reserve_cents,
+        platform_or_foundation_amount_cents: prizeCostBreakdown.platform_or_foundation_amount_cents,
+        total_required_cents: prizeCostBreakdown.total_required_cents,
+      }).catch(() => null);
+    }
+
+    await createAuditEvent(store, {
+      entityType: 'PrizeFulfillment',
+      entityId: fulfillment.id,
+      matchId,
+      userId,
+      action: 'PRIZE_FULFILLMENT_CREATED',
+      metadata: {
+        prizeSource: fulfillment.prize_source,
+        status: fulfillment.status,
+        autoPurchase: false,
+        prizeCostBreakdown,
+      },
+    });
+
+    return fulfillment;
+  } catch (error) {
+    console.error('[fulfillment] createPrizeFulfillment:failed', {
+      matchId: publicMatchId(match),
+      rowId: matchRowId(match),
+      error: error.message,
+      stack: error.stack,
+    });
     throw error;
   }
-
-  const existing = await store.findOne('prize_fulfillments', { match_id: matchId });
-  if (existing) {
-    console.log('[fulfillment] createPrizeFulfillment:existing', {
-      fulfillmentId: existing.id,
-      matchId,
-      status: existing.status,
-      retailerOrderId: existing.retailer_order_id,
-      trackingNumber: existing.tracking_number,
-    });
-    return existing;
-  }
-
-  const prize = normalizePrize(match);
-  const profile = await findProfileForUser(store, winnerId);
-  const payload = {
-    match_id: matchId,
-    winner_id: winnerId,
-    winner_name: profileDisplayName(profile, winnerId),
-    winner_email: profileEmail(profile),
-    prize_title: prize.title,
-    prize_url: prize.productUrl || '',
-    prize_image: prize.image || '',
-    prize_source: prize.productSource,
-    status: 'pending_address',
-    shipping_status: 'pending_address',
-    admin_approved: false,
-    shipping_name: '',
-    shipping_address_line1: '',
-    shipping_address_line2: '',
-    shipping_city: '',
-    shipping_state: '',
-    shipping_zip: '',
-    shipping_country: 'US',
-    retailer_order_id: '',
-    tracking_number: '',
-    admin_notes: '',
-    demo_mode: match.demo_mode === true,
-    test_order: match.test_order === true,
-  };
-
-  console.log('[fulfillment] store.create prize_fulfillments:start', {
-    matchId,
-    winnerId,
-    prizeTitle: payload.prize_title,
-    status: payload.status,
-    demoMode: payload.demo_mode,
-    testOrder: payload.test_order,
-  });
-  const fulfillment = await store.create('prize_fulfillments', payload);
-  console.log('[fulfillment] store.create prize_fulfillments:success', {
-    fulfillmentId: fulfillment?.id,
-    matchId: fulfillment?.match_id,
-    status: fulfillment?.status,
-    demoMode: fulfillment?.demo_mode,
-    testOrder: fulfillment?.test_order,
-  });
-
-  if (matchRowId(match)) {
-    await store.update('north_pole_matches', matchRowId(match), {
-      status: 'prize_fulfillment',
-      prize_fulfillment_id: fulfillment.id,
-      fulfillment_order_id: fulfillment.id,
-    }).catch(() => null);
-  }
-
-  await createAuditEvent(store, {
-    entityType: 'PrizeFulfillment',
-    entityId: fulfillment.id,
-    matchId,
-    userId,
-    action: 'PRIZE_FULFILLMENT_CREATED',
-    metadata: {
-      prizeSource: fulfillment.prize_source,
-      status: fulfillment.status,
-      autoPurchase: false,
-    },
-  });
-
-  return fulfillment;
 }
 
 function createFulfillmentEngine(store, env = process.env) {
@@ -471,118 +952,221 @@ function demoPrizeSnapshot() {
     image: '',
     price_cents: 2500,
     currency: 'USD',
+    estimated_shipping_cents: DEFAULT_SHIPPING_CENTS,
   };
 }
 
 async function createDemoFulfillmentMatch(store, userId) {
-  const matchId = `DEMO-${Date.now().toString(36).toUpperCase()}`;
-  const winnerId = `demo_winner_${Date.now().toString(36)}`;
-  console.log('[fulfillment:demo] createDemoFulfillmentMatch:start', {
-    matchId,
-    winnerId,
-    userId,
-  });
+  try {
+    const matchId = `DEMO-${Date.now().toString(36).toUpperCase()}`;
+    const winnerId = `demo_winner_${Date.now().toString(36)}`;
+    console.log('[fulfillment:demo] createDemoFulfillmentMatch:start', {
+      matchId,
+      winnerId,
+      userId,
+    });
 
-  const match = await store.create('north_pole_matches', {
-    match_id: matchId,
-    title: 'Demo Fulfillment Test Match',
-    game_id: 'demo-fulfillment-game',
-    prize_id: 'demo-prize',
-    prize_snapshot: demoPrizeSnapshot(),
-    status: 'fulfillment_pending',
-    sandbox_mode: true,
-    demo_mode: true,
-    test_order: true,
-    winner_id: winnerId,
-    winner_user_id: winnerId,
-    verified_at: now(),
-    verified_by: userId,
-    winner_locked_at: now(),
-  });
+    const match = await store.create('north_pole_matches', {
+      match_id: matchId,
+      title: 'Demo Fulfillment Test Match',
+      game_id: 'demo-fulfillment-game',
+      prize_id: 'demo-prize',
+      prize_snapshot: demoPrizeSnapshot(),
+      status: 'fulfillment_pending',
+      sandbox_mode: true,
+      demo_mode: true,
+      test_order: true,
+      winner_id: winnerId,
+      winner_user_id: winnerId,
+      verified_at: now(),
+      verified_by: userId,
+      winner_locked_at: now(),
+    });
 
-  console.log('[fulfillment:demo] createDemoFulfillmentMatch:success', {
-    matchId: publicMatchId(match),
-    rowId: matchRowId(match),
-    winnerId: match.winner_user_id || match.winner_id,
-  });
+    console.log('[fulfillment:demo] createDemoFulfillmentMatch:success', {
+      matchId: publicMatchId(match),
+      rowId: matchRowId(match),
+      winnerId: match.winner_user_id || match.winner_id,
+    });
 
-  return match;
+    return match;
+  } catch (error) {
+    console.error('[fulfillment:demo] createDemoFulfillmentMatch:failed', {
+      userId,
+      error: error.message,
+      stack: error.stack,
+    });
+    throw error;
+  }
 }
 
 async function prepareDemoFulfillmentMatch(store, selectedMatchId, userId) {
-  console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:start', {
-    selectedMatchId: selectedMatchId || null,
-    userId,
-  });
-
-  const existing = selectedMatchId ? await findMatch(store, selectedMatchId) : null;
-  const match = existing || await createDemoFulfillmentMatch(store, userId);
-  const matchId = publicMatchId(match);
-  const winnerId = match.winner_user_id || match.winner_id || `demo_winner_${Date.now().toString(36)}`;
-  console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:match_loaded', {
-    matchId,
-    rowId: matchRowId(match),
-    hadExistingMatch: Boolean(existing),
-    winnerId,
-  });
-
-  const patch = {
-    status: 'fulfillment_pending',
-    winner_id: winnerId,
-    winner_user_id: winnerId,
-    verified_at: match.verified_at || now(),
-    verified_by: userId,
-    winner_locked_at: match.winner_locked_at || now(),
-    demo_mode: true,
-    test_order: true,
-    sandbox_mode: true,
-  };
-  const updatedMatch = matchRowId(match)
-    ? await store.update('north_pole_matches', matchRowId(match), patch).catch(() => null)
-    : null;
-  const fulfillmentMatch = { ...match, ...patch, ...(updatedMatch || {}) };
-  console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:match_marked_demo', {
-    matchId: publicMatchId(fulfillmentMatch),
-    rowId: matchRowId(fulfillmentMatch),
-    winnerId: fulfillmentMatch.winner_user_id || fulfillmentMatch.winner_id,
-    demoMode: fulfillmentMatch.demo_mode,
-    testOrder: fulfillmentMatch.test_order,
-  });
-
-  const existingLocked = await store.findOne('winner_verifications', { matchId, status: 'locked' });
-  if (!existingLocked) {
-    const verification = await store.create('winner_verifications', {
-      matchId,
-      winnerUserId: winnerId,
-      winningScore: null,
-      verificationMethod: 'admin_review',
-      status: 'locked',
-      lockedBy: userId,
-      lockedAt: now(),
-      auditNotes: 'Demo fulfillment order test. No real players and no real purchase.',
-      demo_mode: true,
-      test_order: true,
-      warnings: ['demo_test_order'],
+  try {
+    console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:start', {
+      selectedMatchId: selectedMatchId || null,
+      userId,
     });
-    console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:winner_verification_created', {
-      verificationId: verification?.id,
+
+    const existing = selectedMatchId ? await findMatch(store, selectedMatchId) : null;
+    const match = existing || await createDemoFulfillmentMatch(store, userId);
+    const matchId = publicMatchId(match);
+    const winnerId = match.winner_user_id || match.winner_id || `demo_winner_${Date.now().toString(36)}`;
+    console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:match_loaded', {
       matchId,
+      rowId: matchRowId(match),
+      hadExistingMatch: Boolean(existing),
       winnerId,
     });
-  } else {
-    console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:winner_verification_existing', {
-      verificationId: existingLocked.id,
-      matchId,
-      winnerId: existingLocked.winnerUserId || existingLocked.winner_user_id,
+
+    const patch = {
+      status: 'fulfillment_pending',
+      winner_id: winnerId,
+      winner_user_id: winnerId,
+      verified_at: match.verified_at || now(),
+      verified_by: userId,
+      winner_locked_at: match.winner_locked_at || now(),
+      demo_mode: true,
+      test_order: true,
+      sandbox_mode: true,
+    };
+    const prizeCostBreakdown = buildPrizeCostBreakdown({ ...match, ...patch });
+    Object.assign(patch, {
+      prize_cost_breakdown: prizeCostBreakdown,
+      item_cost_cents: prizeCostBreakdown.item_cost_cents,
+      estimated_tax_cents: prizeCostBreakdown.estimated_tax_cents,
+      estimated_shipping_cents: prizeCostBreakdown.estimated_shipping_cents,
+      fulfillment_reserve_cents: prizeCostBreakdown.fulfillment_reserve_cents,
+      platform_or_foundation_amount_cents: prizeCostBreakdown.platform_or_foundation_amount_cents,
+      total_required_cents: prizeCostBreakdown.total_required_cents,
     });
+    const updatedMatch = matchRowId(match)
+      ? await store.update('north_pole_matches', matchRowId(match), patch).catch(() => null)
+      : null;
+    const fulfillmentMatch = { ...match, ...patch, ...(updatedMatch || {}) };
+    console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:match_marked_demo', {
+      matchId: publicMatchId(fulfillmentMatch),
+      rowId: matchRowId(fulfillmentMatch),
+      winnerId: fulfillmentMatch.winner_user_id || fulfillmentMatch.winner_id,
+      demoMode: fulfillmentMatch.demo_mode,
+      testOrder: fulfillmentMatch.test_order,
+    });
+
+    const existingLocked = await store.findOne('winner_verifications', { matchId, status: 'locked' });
+    if (!existingLocked) {
+      const verification = await store.create('winner_verifications', {
+        matchId,
+        winnerUserId: winnerId,
+        winningScore: null,
+        verificationMethod: 'admin_review',
+        status: 'locked',
+        lockedBy: userId,
+        lockedAt: now(),
+        auditNotes: 'Demo fulfillment order test. No real players and no real purchase.',
+        demo_mode: true,
+        test_order: true,
+        warnings: ['demo_test_order'],
+      });
+      console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:winner_verification_created', {
+        verificationId: verification?.id,
+        matchId,
+        winnerId,
+      });
+    } else {
+      console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:winner_verification_existing', {
+        verificationId: existingLocked.id,
+        matchId,
+        winnerId: existingLocked.winnerUserId || existingLocked.winner_user_id,
+      });
+    }
+
+    console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:success', {
+      matchId: publicMatchId(fulfillmentMatch),
+      winnerId: fulfillmentMatch.winner_user_id || fulfillmentMatch.winner_id,
+    });
+
+    return fulfillmentMatch;
+  } catch (error) {
+    console.error('[fulfillment:demo] prepareDemoFulfillmentMatch:failed', {
+      selectedMatchId: selectedMatchId || null,
+      userId,
+      error: error.message,
+      stack: error.stack,
+    });
+    throw error;
   }
+}
 
-  console.log('[fulfillment:demo] prepareDemoFulfillmentMatch:success', {
-    matchId: publicMatchId(fulfillmentMatch),
-    winnerId: fulfillmentMatch.winner_user_id || fulfillmentMatch.winner_id,
+async function markDemoFulfillmentOrdered(store, match, fulfillment) {
+  if (!matchRowId(match)) return null;
+  console.log('[fulfillment:demo] store.update north_pole_matches:start', {
+    matchId: publicMatchId(match),
+    rowId: matchRowId(match),
+    status: 'fulfillment_ordered',
+    fulfillmentId: fulfillment?.id,
   });
+  const updated = await store.update('north_pole_matches', matchRowId(match), {
+    status: 'fulfillment_ordered',
+    prize_fulfillment_id: fulfillment.id,
+    fulfillment_order_id: fulfillment.id,
+    demo_mode: true,
+    test_order: true,
+  });
+  console.log('[fulfillment:demo] store.update north_pole_matches:success', {
+    matchId: publicMatchId(updated || match),
+    rowId: matchRowId(updated || match),
+    status: updated?.status,
+    fulfillmentId: updated?.prize_fulfillment_id || updated?.fulfillment_order_id,
+  });
+  return updated;
+}
 
-  return fulfillmentMatch;
+async function runDemoFulfillment(store, match, userId) {
+  try {
+    const engine = createFulfillmentEngine(store, {
+      ...process.env,
+      FULFILLMENT_PROVIDER: 'mock',
+      FULFILLMENT_MODE: process.env.FULFILLMENT_MODE || 'ai_assisted',
+    });
+    const fulfillment = await engine.fulfillVerifiedWinner({ match, userId });
+    if (!fulfillment?.id) {
+      throw new Error('FulfillmentEngine completed without returning a PrizeFulfillment record');
+    }
+
+    console.log('[fulfillment:demo] store.update prize_fulfillments:start', {
+      fulfillmentId: fulfillment.id,
+      demoMode: true,
+      testOrder: true,
+    });
+    const marked = await store.update('prize_fulfillments', fulfillment.id, {
+      demo_mode: true,
+      test_order: true,
+      provider: 'mock',
+      admin_notes: [
+        fulfillment.admin_notes,
+        'DEMO ORDER - NO REAL PURCHASE.',
+      ].filter(Boolean).join('\n'),
+    });
+    if (!marked?.id) {
+      throw new Error(`Could not mark demo fulfillment ${fulfillment.id}`);
+    }
+    console.log('[fulfillment:demo] store.update prize_fulfillments:success', {
+      fulfillmentId: marked.id,
+      status: marked.status,
+      retailerOrderId: marked.retailer_order_id,
+      trackingNumber: marked.tracking_number,
+    });
+
+    await markDemoFulfillmentOrdered(store, match, marked);
+    return marked;
+  } catch (error) {
+    console.error('[fulfillment:demo] runDemoFulfillment:failed', {
+      matchId: publicMatchId(match),
+      userId,
+      error: error.message,
+      stack: error.stack,
+    });
+    throw error;
+  }
 }
 
 function determineScoreType(match, scores) {
@@ -1551,6 +2135,7 @@ export function createMatchFlowRouter({ store }) {
     });
 
     if (matchRowId(match)) {
+      const prizeCostBreakdown = buildPrizeCostBreakdown(match);
       await store.update('north_pole_matches', matchRowId(match), {
         status: 'fulfillment_pending',
         winner_id: requestedWinner,
@@ -1559,7 +2144,22 @@ export function createMatchFlowRouter({ store }) {
         verified_by: user.id,
         winner_locked_at: now(),
         winner_verification_id: verification.id,
+        prize_cost_breakdown: prizeCostBreakdown,
+        item_cost_cents: prizeCostBreakdown.item_cost_cents,
+        estimated_tax_cents: prizeCostBreakdown.estimated_tax_cents,
+        estimated_shipping_cents: prizeCostBreakdown.estimated_shipping_cents,
+        fulfillment_reserve_cents: prizeCostBreakdown.fulfillment_reserve_cents,
+        platform_or_foundation_amount_cents: prizeCostBreakdown.platform_or_foundation_amount_cents,
+        total_required_cents: prizeCostBreakdown.total_required_cents,
       }).catch(() => null);
+      if (match.prize_room_id) {
+        await store.update('prize_rooms', match.prize_room_id, {
+          status: 'fulfillment_pending',
+          winner_user_id: requestedWinner,
+          winner_verification_id: verification.id,
+          winner_locked_at: now(),
+        }).catch(() => null);
+      }
     }
 
     await createAuditEvent(store, {
@@ -1681,6 +2281,7 @@ export function createMatchFlowRouter({ store }) {
     });
 
     if (matchRowId(match)) {
+      const prizeCostBreakdown = buildPrizeCostBreakdown(match);
       await store.update('north_pole_matches', matchRowId(match), {
         status: 'fulfillment_pending',
         winner_id: newWinnerUserId,
@@ -1689,7 +2290,22 @@ export function createMatchFlowRouter({ store }) {
         verified_by: user.id,
         winner_locked_at: now(),
         winner_verification_id: override.id,
+        prize_cost_breakdown: prizeCostBreakdown,
+        item_cost_cents: prizeCostBreakdown.item_cost_cents,
+        estimated_tax_cents: prizeCostBreakdown.estimated_tax_cents,
+        estimated_shipping_cents: prizeCostBreakdown.estimated_shipping_cents,
+        fulfillment_reserve_cents: prizeCostBreakdown.fulfillment_reserve_cents,
+        platform_or_foundation_amount_cents: prizeCostBreakdown.platform_or_foundation_amount_cents,
+        total_required_cents: prizeCostBreakdown.total_required_cents,
       }).catch(() => null);
+      if (match.prize_room_id) {
+        await store.update('prize_rooms', match.prize_room_id, {
+          status: 'fulfillment_pending',
+          winner_user_id: newWinnerUserId,
+          winner_verification_id: override.id,
+          winner_locked_at: now(),
+        }).catch(() => null);
+      }
     }
 
     await createAuditEvent(store, {
@@ -1717,6 +2333,214 @@ export function createMatchFlowRouter({ store }) {
     });
   }));
 
+  router.post('/prize-rooms/calculate', asyncHandler(async (req, res) => {
+    const input = calculatePrizeRoomCheckoutSchema.parse(req.body || {});
+    const prizeSnapshot = input.prizeSnapshot || input.prize_snapshot || {};
+    const playerCount = input.playerCount || input.player_count || input.maxPlayers || input.max_players || 4;
+    const foundationRate = input.foundationRate ?? input.foundation_rate ?? DEFAULT_FOUNDATION_RATE;
+    const costBreakdown = buildPrizeRoomCostBreakdown({ prizeSnapshot, playerCount, foundationRate });
+    ok(res, { costBreakdown, data: costBreakdown });
+  }));
+
+  router.get('/prize-room-templates', asyncHandler(async (_req, res) => {
+    await ensureStarterPrizeRoomTemplates(store);
+    const templates = await store.list('prize_room_templates', { status: 'active' }, { sort: '-is_featured' }).catch(() => []);
+    ok(res, { templates, data: templates });
+  }));
+
+  router.get('/prize-rooms', asyncHandler(async (_req, res) => {
+    await ensureStarterPrizeRoomTemplates(store);
+    const existingRooms = await store.list('prize_rooms', {}, { sort: '-created_at' }).catch(() => []);
+    if (!existingRooms.length) {
+      const templates = await store.list('prize_room_templates', { status: 'active' }, { sort: '-is_featured' });
+      for (const template of templates.slice(0, 10)) {
+        await createPrizeRoomRecord(store, {
+          template_id: template.id,
+          room_type: 'platform_supported',
+          title: template.title,
+          description: template.description,
+        }, { id: 'platform' }).catch(() => null);
+      }
+    }
+    const rooms = await store.list('prize_rooms', {}, { sort: '-created_at' });
+    const contributions = await store.list('player_contributions', {}, { sort: '-created_at' }).catch(() => []);
+    const roomsWithFunding = rooms.map((room) => {
+      const roomContributions = contributions.filter((row) => row.room_id === room.id);
+      const paidContributions = roomContributions.filter((row) => ['marked_paid', 'paid'].includes(row.status));
+      return {
+        ...room,
+        contributions: roomContributions,
+        paid_contribution_count: paidContributions.length,
+        contribution_status: paidContributions.length >= Number(room.max_players || 0) ? 'funded' : 'collecting',
+      };
+    });
+    ok(res, { rooms: roomsWithFunding, data: roomsWithFunding });
+  }));
+
+  router.post('/prize-rooms', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    const input = createPrizeRoomSchema.parse(req.body || {});
+    const room = await createPrizeRoomRecord(store, input, user);
+    await createAuditEvent(store, {
+      entityType: 'PrizeRoom',
+      entityId: room.id,
+      matchId: room.match_id,
+      userId: user.id,
+      action: 'PRIZE_ROOM_CREATED',
+      metadata: { paymentMode: room.payment_mode, autoPurchase: false },
+    });
+    ok(res, { room, data: room });
+  }));
+
+  router.post('/prize-rooms/:roomId/join', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    const input = joinPrizeRoomSchema.parse(req.body || {});
+    const room = await store.findOne('prize_rooms', { id: req.params.roomId });
+    if (!room) return res.status(404).json({ success: false, error: 'Prize Room not found' });
+    if (!['open', 'awaiting_contributions'].includes(room.status)) {
+      return res.status(400).json({ success: false, error: 'Prize Room is not open for contributions' });
+    }
+    const existing = await store.findOne('player_contributions', { room_id: room.id, user_id: user.id }).catch(() => null);
+    if (existing) return ok(res, { room, contribution: existing, alreadyJoined: true, data: { room, contribution: existing } });
+    const paidContributions = (await store.list('player_contributions', { room_id: room.id }).catch(() => []))
+      .filter((row) => ['marked_paid', 'paid'].includes(row.status));
+    if (paidContributions.length >= Number(room.max_players || 0)) {
+      return res.status(400).json({ success: false, error: 'Prize Room is already full' });
+    }
+
+    const paymentMode = input.paymentMode || input.payment_mode || room.payment_mode || 'pilot_manual';
+    const contribution = await store.create('player_contributions', {
+      room_id: room.id,
+      match_id: room.match_id || '',
+      user_id: user.id,
+      user_email: input.userEmail || input.user_email || user.email || '',
+      display_name: input.displayName || input.display_name || profileName(user),
+      amount_cents: room.cost_breakdown?.per_player_contribution_cents || 0,
+      currency: room.cost_breakdown?.currency || 'USD',
+      status: paymentMode === 'pilot_manual' ? 'marked_paid' : 'pending',
+      payment_mode: paymentMode,
+      payment_provider: paymentMode === 'pilot_manual' ? 'manual_pilot' : 'stripe_test',
+      payment_reference: paymentMode === 'pilot_manual' ? `PILOT-${Date.now().toString(36).toUpperCase()}` : '',
+      paid_at: paymentMode === 'pilot_manual' ? now() : null,
+    });
+    await store.create('prize_room_ledger_entries', {
+      room_id: room.id,
+      match_id: room.match_id || '',
+      type: 'player_contribution',
+      amount_cents: contribution.amount_cents,
+      currency: contribution.currency,
+      description: `Player contribution from ${contribution.display_name}`,
+      status: contribution.status,
+    }).catch(() => null);
+    const updatedRoom = await syncRoomStatusFromContributions(store, room);
+    await createAuditEvent(store, {
+      entityType: 'PrizeRoom',
+      entityId: room.id,
+      matchId: room.match_id,
+      userId: user.id,
+      action: 'PRIZE_ROOM_JOINED',
+      metadata: { contributionId: contribution.id, paymentMode, status: contribution.status, autoCharge: false },
+    });
+    ok(res, { room: updatedRoom, contribution, data: { room: updatedRoom, contribution } });
+  }));
+
+  router.post('/admin/prize-rooms/:roomId/contributions/:contributionId/mark-paid', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
+    const input = markContributionPaidSchema.parse({ ...req.params, ...(req.body || {}) });
+    const room = await store.findOne('prize_rooms', { id: req.params.roomId });
+    if (!room) return res.status(404).json({ success: false, error: 'Prize Room not found' });
+    const contributionId = input.contributionId || input.contribution_id || req.params.contributionId;
+    const contribution = await store.findOne('player_contributions', { id: contributionId });
+    if (!contribution) return res.status(404).json({ success: false, error: 'Contribution not found' });
+    const updatedContribution = await store.update('player_contributions', contribution.id, {
+      status: 'marked_paid',
+      paid_at: contribution.paid_at || now(),
+      payment_mode: contribution.payment_mode || 'pilot_manual',
+      payment_provider: contribution.payment_provider || 'manual_pilot',
+      payment_reference: contribution.payment_reference || `ADMIN-PILOT-${Date.now().toString(36).toUpperCase()}`,
+    });
+    const updatedRoom = await syncRoomStatusFromContributions(store, room);
+    ok(res, { room: updatedRoom, contribution: updatedContribution, data: { room: updatedRoom, contribution: updatedContribution } });
+  }));
+
+  router.post('/admin/prize-rooms/:roomId/mark-funded', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
+    const room = await store.findOne('prize_rooms', { id: req.params.roomId });
+    if (!room) return res.status(404).json({ success: false, error: 'Prize Room not found' });
+    const updatedRoom = await store.update('prize_rooms', room.id, {
+      status: 'funded',
+      funding_status: 'funded',
+      manually_funded_by: user.id,
+      manually_funded_at: now(),
+    });
+    if (room.match_id) {
+      await store.update('north_pole_matches', room.match_id, { status: 'waiting_for_players' }).catch(() => null);
+    }
+    ok(res, { room: updatedRoom, data: updatedRoom });
+  }));
+
+  router.post('/admin/prize-rooms/:roomId/start-match', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
+    const room = await store.findOne('prize_rooms', { id: req.params.roomId });
+    if (!room) return res.status(404).json({ success: false, error: 'Prize Room not found' });
+    const updatedRoom = await store.update('prize_rooms', room.id, { status: 'in_progress', started_at: now() });
+    if (room.match_id) {
+      await store.update('north_pole_matches', room.match_id, { status: 'in_progress', started_at: now() }).catch(() => null);
+    }
+    ok(res, { room: updatedRoom, data: updatedRoom });
+  }));
+
+  router.post('/admin/prize-rooms/:roomId/create-fulfillment', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
+    const room = await store.findOne('prize_rooms', { id: req.params.roomId });
+    if (!room) return res.status(404).json({ success: false, error: 'Prize Room not found' });
+    const match = room.match_id ? await store.findOne('north_pole_matches', { id: room.match_id }) : null;
+    const fulfillmentMatch = {
+      ...(match || {}),
+      id: match?.id || room.match_id,
+      match_id: match?.match_id || room.id,
+      prize_room_id: room.id,
+      prize_id: room.prize_id,
+      prize_snapshot: {
+        id: room.prize_id,
+        title: room.prize_title,
+        image: room.prize_image,
+        image_url: room.prize_image,
+        source: room.prize_source,
+        product_url: room.prize_url,
+        price_cents: room.cost_breakdown?.item_cost_cents || 0,
+        estimated_tax_cents: room.cost_breakdown?.estimated_tax_cents || 0,
+        estimated_shipping_cents: room.cost_breakdown?.estimated_shipping_cents || 0,
+      },
+      winner_user_id: room.winner_user_id || match?.winner_user_id || match?.winner_id,
+      winner_id: room.winner_user_id || match?.winner_user_id || match?.winner_id,
+      cost_breakdown: room.cost_breakdown,
+      prize_cost_breakdown: room.cost_breakdown,
+      payment_mode: room.payment_mode,
+      fulfillment_mode: 'manual',
+    };
+    if (!fulfillmentMatch.winner_user_id) {
+      return res.status(400).json({ success: false, error: 'Winner must be locked before fulfillment is created' });
+    }
+    const fulfillment = await createPrizeFulfillment(store, fulfillmentMatch, user.id);
+    const updatedRoom = await store.update('prize_rooms', room.id, {
+      status: 'prize_fulfillment',
+      prize_fulfillment_id: fulfillment.id,
+      fulfillment_status: 'prepared_order_only',
+    });
+    ok(res, { room: updatedRoom, fulfillment, data: { room: updatedRoom, fulfillment } });
+  }));
+
   router.get('/admin/fulfillment', asyncHandler(async (req, res) => {
     const user = await requireUser(req, res, store);
     if (!user) return;
@@ -1735,6 +2559,7 @@ export function createMatchFlowRouter({ store }) {
         winner_id: match.winner_user_id || match.winner_id || '',
         prize_title: normalizePrize(match).title,
         status: match.status,
+        prize_cost_breakdown: match.prize_cost_breakdown || buildPrizeCostBreakdown(match),
       }));
 
     ok(res, { fulfillments, readyMatches, data: { fulfillments, readyMatches } });
@@ -1764,39 +2589,7 @@ export function createMatchFlowRouter({ store }) {
         userId: user.id,
       });
       match = await prepareDemoFulfillmentMatch(store, input.matchId || input.match_id, user.id);
-      const engine = createFulfillmentEngine(store, {
-        ...process.env,
-        FULFILLMENT_PROVIDER: 'mock',
-        FULFILLMENT_MODE: process.env.FULFILLMENT_MODE || 'ai_assisted',
-      });
-      const fulfillment = await engine.fulfillVerifiedWinner({ match, userId: user.id });
-      if (!fulfillment?.id) {
-        throw new Error('FulfillmentEngine completed without returning a PrizeFulfillment record');
-      }
-
-      console.log('[fulfillment:demo] store.update prize_fulfillments:start', {
-        fulfillmentId: fulfillment.id,
-        demoMode: true,
-        testOrder: true,
-      });
-      const marked = await store.update('prize_fulfillments', fulfillment.id, {
-        demo_mode: true,
-        test_order: true,
-        provider: 'mock',
-        admin_notes: [
-          fulfillment.admin_notes,
-          'DEMO ORDER - NO REAL PURCHASE.',
-        ].filter(Boolean).join('\n'),
-      });
-      if (!marked?.id) {
-        throw new Error(`Could not mark demo fulfillment ${fulfillment.id}`);
-      }
-      console.log('[fulfillment:demo] store.update prize_fulfillments:success', {
-        fulfillmentId: marked.id,
-        status: marked.status,
-        retailerOrderId: marked.retailer_order_id,
-        trackingNumber: marked.tracking_number,
-      });
+      const marked = await runDemoFulfillment(store, match, user.id);
 
       await createAuditEvent(store, {
         entityType: 'PrizeFulfillment',
@@ -1851,6 +2644,70 @@ export function createMatchFlowRouter({ store }) {
         } : null,
       });
     }
+  }));
+
+  router.post('/admin/fulfillment/repair-demo-orders', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
+
+    console.log('[fulfillment:repair-demo] route:start', { userId: user.id });
+    const matches = await store.list('north_pole_matches', {}, { sort: '-created_at' }).catch((error) => {
+      console.error('[fulfillment:repair-demo] list matches failed', { error: error.message, stack: error.stack });
+      throw error;
+    });
+    const demoMatches = matches.filter((match) => (
+      (match.demo_mode === true || match.test_order === true || String(publicMatchId(match) || '').startsWith('DEMO-'))
+      && match.status === 'fulfillment_pending'
+    ));
+    const created = [];
+    const existing = [];
+    const errors = [];
+
+    for (const match of demoMatches) {
+      const matchId = publicMatchId(match);
+      try {
+        console.log('[fulfillment:repair-demo] inspect', {
+          matchId,
+          rowId: matchRowId(match),
+          status: match.status,
+          winnerId: match.winner_user_id || match.winner_id,
+        });
+        const existingFulfillment = await store.findOne('prize_fulfillments', { match_id: matchId });
+        if (existingFulfillment?.id) {
+          existing.push(existingFulfillment);
+          if (existingFulfillment.status === 'ordered' && existingFulfillment.retailer_order_id && existingFulfillment.tracking_number) {
+            await markDemoFulfillmentOrdered(store, match, existingFulfillment).catch(() => null);
+          }
+          continue;
+        }
+
+        const prepared = await prepareDemoFulfillmentMatch(store, matchId, user.id);
+        const fulfillment = await runDemoFulfillment(store, prepared, user.id);
+        created.push(fulfillment);
+      } catch (error) {
+        console.error('[fulfillment:repair-demo] repair failed', {
+          matchId,
+          error: error.message,
+          stack: error.stack,
+        });
+        errors.push({ match_id: matchId, error: error.message });
+      }
+    }
+
+    console.log('[fulfillment:repair-demo] route:complete', {
+      inspected: demoMatches.length,
+      created: created.length,
+      existing: existing.length,
+      errors: errors.length,
+    });
+
+    ok(res, {
+      created,
+      existing,
+      errors,
+      data: { created, existing, errors },
+    });
   }));
 
   router.post('/matches/:id/create-fulfillment', asyncHandler(async (req, res) => {
@@ -1940,6 +2797,7 @@ export function createMatchFlowRouter({ store }) {
     if (existing) return ok(res, { fulfillment: existing, data: existing });
 
     const prize = normalizePrize(match);
+    const prizeCostBreakdown = buildPrizeCostBreakdown(match);
     const fulfillment = await store.create('fulfillment_orders', {
       matchId,
       winnerUserId,
@@ -1951,6 +2809,13 @@ export function createMatchFlowRouter({ store }) {
       price: prize.price,
       currency: prize.currency,
       shippingCost: prize.shippingCost,
+      prizeCostBreakdown,
+      item_cost_cents: prizeCostBreakdown.item_cost_cents,
+      estimated_tax_cents: prizeCostBreakdown.estimated_tax_cents,
+      estimated_shipping_cents: prizeCostBreakdown.estimated_shipping_cents,
+      fulfillment_reserve_cents: prizeCostBreakdown.fulfillment_reserve_cents,
+      platform_or_foundation_amount_cents: prizeCostBreakdown.platform_or_foundation_amount_cents,
+      total_required_cents: prizeCostBreakdown.total_required_cents,
       status: prize.productUrl ? 'ready_to_order' : 'pending',
       trackingNumber: '',
       carrier: '',
@@ -1963,6 +2828,7 @@ export function createMatchFlowRouter({ store }) {
       await store.update('north_pole_matches', matchRowId(match), {
         status: 'prize_fulfillment',
         fulfillment_order_id: fulfillment.id,
+        prize_cost_breakdown: prizeCostBreakdown,
       }).catch(() => null);
     }
 

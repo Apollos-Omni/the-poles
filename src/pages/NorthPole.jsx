@@ -39,7 +39,6 @@ import { PublicBetaBadge } from '@/components/public/PublicBetaLayout';
 import { searchProducts } from '@/functions/searchProducts';
 import { searchGames } from '@/functions/searchGames';
 import {
-  createNorthPoleMatch,
   listOpenNorthPoleMatches,
   joinNorthPoleMatch,
   leaveNorthPoleMatch,
@@ -53,14 +52,21 @@ import {
   disputeWinner,
   adminOverrideWinner,
   createFulfillmentOrder,
+  listPrizeRooms,
+  joinPrizeRoom,
+  createPrizeRoom,
   SKILL_COMPETITION_AGREEMENT_VERSION,
 } from '@/lib/northpole/matchEngine';
 
 const PLAYER_OPTIONS = [2, 4, 6, 8, 10, 12];
 
 const NORTH_POLE_COST_MODEL = {
-  donationRate: 0.1,
-  platformBufferRate: 0.03,
+  taxRate: 0.0825,
+  defaultShippingCents: 599,
+  fulfillmentReserveCents: 300,
+  foundationRate: 0.1,
+  processingRate: 0.03,
+  processingPerPlayerCents: 30,
 };
 
 const emptyPrizeForm = {
@@ -83,22 +89,42 @@ function formatMoney(cents = 0) {
 }
 
 function calculateNorthPoleOptions({ priceCents, taxCents, shippingCents, playerCounts = PLAYER_OPTIONS }) {
-  const totalPrizeCostCents = priceCents + taxCents + shippingCents;
-  const donationCents = Math.ceil(totalPrizeCostCents * NORTH_POLE_COST_MODEL.donationRate);
-  const platformBufferCents = Math.ceil(totalPrizeCostCents * NORTH_POLE_COST_MODEL.platformBufferRate);
-  const totalMatchCents = totalPrizeCostCents + donationCents + platformBufferCents;
-
   return playerCounts.map((players) => ({
+    ...calculatePrizeRoomBreakdown({ priceCents, taxCents, shippingCents, players }),
     players,
-    priceCents,
-    taxCents,
-    shippingCents,
-    totalPrizeCostCents,
-    donationCents,
-    platformBufferCents,
-    totalMatchCents,
-    perPlayerCents: Math.ceil(totalMatchCents / players),
   }));
+}
+
+function calculatePrizeRoomBreakdown({ priceCents, taxCents, shippingCents, players }) {
+  const itemCostCents = Number(priceCents || 0);
+  const estimatedTaxCents = Number(taxCents || Math.round(itemCostCents * NORTH_POLE_COST_MODEL.taxRate));
+  const estimatedShippingCents = Number(shippingCents || NORTH_POLE_COST_MODEL.defaultShippingCents);
+  const fulfillmentReserveCents = NORTH_POLE_COST_MODEL.fulfillmentReserveCents;
+  const prizeSubtotalCents = itemCostCents + estimatedTaxCents + estimatedShippingCents;
+  const paymentProcessingReserveCents = Math.ceil((prizeSubtotalCents + fulfillmentReserveCents) * NORTH_POLE_COST_MODEL.processingRate)
+    + (Number(players || 2) * NORTH_POLE_COST_MODEL.processingPerPlayerCents);
+  const foundationAmountCents = Math.ceil(prizeSubtotalCents * NORTH_POLE_COST_MODEL.foundationRate);
+  const totalRoomCostCents = prizeSubtotalCents + fulfillmentReserveCents + paymentProcessingReserveCents + foundationAmountCents;
+  return {
+    priceCents: itemCostCents,
+    taxCents: estimatedTaxCents,
+    shippingCents: estimatedShippingCents,
+    item_cost_cents: itemCostCents,
+    estimated_tax_cents: estimatedTaxCents,
+    estimated_shipping_cents: estimatedShippingCents,
+    fulfillment_reserve_cents: fulfillmentReserveCents,
+    payment_processing_reserve_cents: paymentProcessingReserveCents,
+    foundation_rate: NORTH_POLE_COST_MODEL.foundationRate,
+    foundation_amount_cents: foundationAmountCents,
+    totalPrizeCostCents: prizeSubtotalCents,
+    donationCents: foundationAmountCents,
+    platformBufferCents: paymentProcessingReserveCents,
+    totalMatchCents: totalRoomCostCents,
+    total_room_cost_cents: totalRoomCostCents,
+    perPlayerCents: Math.ceil(totalRoomCostCents / Number(players || 2)),
+    per_player_contribution_cents: Math.ceil(totalRoomCostCents / Number(players || 2)),
+    currency: 'USD',
+  };
 }
 
 function statusClass(status) {
@@ -151,6 +177,239 @@ function MatchStatusSteps({ status }) {
         );
       })}
     </div>
+  );
+}
+
+function RoomCostRows({ breakdown = {}, compact = false }) {
+  const rows = [
+    ['Prize cost', breakdown.item_cost_cents ?? breakdown.priceCents],
+    ['Estimated tax', breakdown.estimated_tax_cents ?? breakdown.taxCents],
+    ['Estimated shipping', breakdown.estimated_shipping_cents ?? breakdown.shippingCents],
+    ['Fulfillment reserve', breakdown.fulfillment_reserve_cents],
+    ['Processing reserve', breakdown.payment_processing_reserve_cents],
+    ['The Poles/Foundation 10%', breakdown.foundation_amount_cents ?? breakdown.donationCents],
+  ];
+  return (
+    <div className={`rounded-xl border border-yellow-700/35 bg-yellow-950/10 ${compact ? 'p-3' : 'p-4'}`}>
+      <div className="mb-2 flex flex-wrap gap-2">
+        <Badge className="border border-yellow-600/30 bg-yellow-600/20 text-yellow-100">Pilot Payment Mode</Badge>
+        <Badge className="border border-red-600/30 bg-red-600/20 text-red-100">No real charge made</Badge>
+        <Badge className="border border-orange-600/30 bg-orange-600/20 text-orange-100">Manual fulfillment required</Badge>
+      </div>
+      <div className="grid gap-1 text-xs text-purple-100 sm:grid-cols-2">
+        {rows.map(([label, cents]) => (
+          <div key={label} className="flex justify-between gap-3">
+            <span className="text-purple-300">{label}</span>
+            <strong className="font-mono text-white">{formatMoney(cents || 0)}</strong>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 flex justify-between border-t border-yellow-700/30 pt-2 text-sm">
+        <span className="font-bold text-yellow-100">Total room cost</span>
+        <strong className="font-mono text-yellow-100">{formatMoney(breakdown.total_room_cost_cents ?? breakdown.totalMatchCents)}</strong>
+      </div>
+      <div className="mt-1 flex justify-between text-sm">
+        <span className="font-bold text-green-200">Your contribution</span>
+        <strong className="font-mono text-green-200">{formatMoney(breakdown.per_player_contribution_cents ?? breakdown.perPlayerCents)}</strong>
+      </div>
+    </div>
+  );
+}
+
+function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
+  const [rooms, setRooms] = useState([]);
+  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [joiningId, setJoiningId] = useState('');
+
+  const loadRooms = useCallback(async () => {
+    setLoading(true);
+    try {
+      setRooms(await listPrizeRooms());
+    } catch (err) {
+      onError(err.message || 'Could not load Prize Rooms.');
+    } finally {
+      setLoading(false);
+    }
+  }, [onError]);
+
+  useEffect(() => { loadRooms(); }, [loadRooms]);
+
+  const joinRoom = async (room) => {
+    if (!user?.id) {
+      onError('Sign in before joining a Prize Room.');
+      return;
+    }
+    setJoiningId(room.id);
+    try {
+      const result = await joinPrizeRoom({
+        roomId: room.id,
+        displayName: user.full_name || user.name || user.email || 'Pilot Player',
+        userEmail: user.email || '',
+        paymentMode: 'pilot_manual',
+      });
+      const updatedRoom = result.room || room;
+      setRooms((prev) => prev.map((row) => (row.id === updatedRoom.id ? updatedRoom : row)));
+      setSelectedRoom(updatedRoom);
+      onJoined(updatedRoom);
+      onMessage('Joined Prize Room. Pilot contribution was marked for family testing; no real charge was made.');
+      await loadRooms();
+    } catch (err) {
+      onError(err.message || 'Could not join Prize Room.');
+    } finally {
+      setJoiningId('');
+    }
+  };
+
+  const quickCreate = async () => {
+    if (!user?.id) {
+      onError('Sign in before creating a Prize Room.');
+      return;
+    }
+    try {
+      const room = await createPrizeRoom({
+        title: 'Family Pilot Custom Prize Room',
+        description: 'Community-created pilot room with manual payment and fulfillment.',
+        gameId: 'family-skill-match',
+        gameTitle: 'Family Skill Match',
+        gamePlatform: 'manual',
+        prizeTitle: 'Family Pilot Gift Card',
+        prizeSource: 'pilot_demo',
+        prizeSnapshot: { title: 'Family Pilot Gift Card', price_cents: 4000, currency: 'USD' },
+        minPlayers: 2,
+        maxPlayers: 4,
+        winningRule: 'Highest verified score wins',
+        verificationMethod: 'manual_score_with_proof',
+        paymentMode: 'pilot_manual',
+      });
+      onCreated(room);
+      setSelectedRoom(room);
+      await loadRooms();
+      onMessage('Custom Prize Room created in pilot/manual mode.');
+    } catch (err) {
+      onError(err.message || 'Could not create Prize Room.');
+    }
+  };
+
+  const roomSections = [
+    ['Featured Prize Rooms', (room) => room.is_featured || room.room_type === 'platform_supported'],
+    ['Ready to Join', (room) => ['open', 'awaiting_contributions'].includes(room.status)],
+    ['Almost Full', (room) => Number(room.paid_contribution_count || 0) >= Math.max(1, Number(room.max_players || 0) - 1)],
+    ['Platform Supported', (room) => room.room_type === 'platform_supported' || room.room_type === 'template_based'],
+    ['Community Created', (room) => room.room_type === 'user_created'],
+    ['Family Friendly', (room) => room.family_friendly || /family|uno|mario|chess/i.test(`${room.title} ${room.game_title}`)],
+    ['Low Cost Rooms', (room) => Number(room.cost_breakdown?.per_player_contribution_cents || 0) <= 1500],
+  ];
+
+  const renderRoomCard = (room) => {
+    const playerCount = Array.isArray(room.player_ids) ? room.player_ids.length : Number(room.paid_contribution_count || 0);
+    const breakdown = room.cost_breakdown || {};
+    return (
+      <Card key={room.id} className="border border-purple-700/30 bg-black/35">
+        <CardContent className="p-4">
+          <div className="mb-3 grid gap-3 sm:grid-cols-[72px_1fr]">
+            <div className="flex h-20 min-h-20 items-center justify-center overflow-hidden rounded-xl bg-purple-950/50">
+              {room.prize_image || room.game_image ? (
+                <img src={room.prize_image || room.game_image} alt={room.prize_title || room.game_title} className="h-full w-full object-cover" />
+              ) : (
+                <Gift className="h-8 w-8 text-yellow-300" />
+              )}
+            </div>
+            <div className="min-w-0">
+              <div className="mb-1 flex flex-wrap gap-2">
+                <Badge className="bg-purple-600/20 text-purple-200">{room.room_type === 'user_created' ? 'Community Created' : 'Platform Supported'}</Badge>
+                <Badge className={statusClass(room.status)}>{room.status}</Badge>
+              </div>
+              <h3 className="line-clamp-2 text-base font-bold text-white">{room.title}</h3>
+              <p className="text-xs text-purple-300">{room.game_title} Skill Match</p>
+            </div>
+          </div>
+          <div className="grid gap-2 text-xs text-purple-200/80">
+            <span>Prize: <strong className="text-yellow-200">{room.prize_title}</strong></span>
+            <span>Players: <strong className="text-white">{playerCount} / {room.max_players}</strong></span>
+            <span>Each player: <strong className="text-green-300">{formatMoney(breakdown.per_player_contribution_cents)}</strong></span>
+            <span>Total room cost: <strong className="text-white">{formatMoney(breakdown.total_room_cost_cents)}</strong></span>
+            <span>Foundation 10% included: <strong className="text-pink-300">{formatMoney(breakdown.foundation_amount_cents)}</strong></span>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <Button onClick={() => setSelectedRoom(room)} variant="outline" className="flex-1 border-purple-700/50 text-purple-200 hover:bg-purple-900/40">
+              View Checkout
+            </Button>
+            <Button onClick={() => joinRoom(room)} disabled={joiningId === room.id || !['open', 'awaiting_contributions'].includes(room.status)} className="flex-1 bg-green-700 text-white hover:bg-green-600">
+              {joiningId === room.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+              Join Prize Room
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  return (
+    <Card className="border border-cyan-700/30 bg-cyan-950/10">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Trophy className="h-5 w-5 text-yellow-300" />
+            Prize Room Lobby
+          </CardTitle>
+          <p className="mt-1 text-xs text-cyan-100/70">Browse ready-made skill-based rooms. Pilot Mode: no real charge made.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={loadRooms} className="border-cyan-700/50 text-cyan-100 hover:bg-cyan-950/40">
+            <RefreshCw className="mr-2 h-4 w-4" />Refresh Rooms
+          </Button>
+          <Button onClick={quickCreate} className="bg-purple-700 text-white hover:bg-purple-600">
+            <Plus className="mr-2 h-4 w-4" />Create Pilot Room
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {selectedRoom && (
+          <div className="rounded-2xl border border-green-700/30 bg-green-950/15 p-4">
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-bold text-white">Prize Room Checkout</h3>
+                <p className="text-sm text-green-100">{selectedRoom.title}</p>
+                <p className="text-xs text-green-200/75">Winner receives: {selectedRoom.prize_title}</p>
+              </div>
+              <Badge className="border border-yellow-500/30 bg-yellow-600/20 text-yellow-100">Pilot Payment Mode</Badge>
+            </div>
+            <div className="mb-3 grid gap-2 text-xs text-purple-100 md:grid-cols-3">
+              <span>Game: <strong className="text-white">{selectedRoom.game_title}</strong></span>
+              <span>Players required: <strong className="text-white">{selectedRoom.min_players} - {selectedRoom.max_players}</strong></span>
+              <span>Current players joined: <strong className="text-white">{Array.isArray(selectedRoom.player_ids) ? selectedRoom.player_ids.length : selectedRoom.paid_contribution_count || 0}</strong></span>
+              <span>Winning Rule: <strong className="text-white">{selectedRoom.winning_rule}</strong></span>
+              <span>Verification: <strong className="text-white">{selectedRoom.verification_method}</strong></span>
+              <span>Payment mode: <strong className="text-white">Pilot/manual</strong></span>
+            </div>
+            <RoomCostRows breakdown={selectedRoom.cost_breakdown} />
+            <Button onClick={() => joinRoom(selectedRoom)} disabled={joiningId === selectedRoom.id} className="mt-3 w-full bg-green-700 text-white hover:bg-green-600">
+              Join Room - Mark Pilot Contribution
+            </Button>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="grid gap-4 md:grid-cols-3">
+            {[1, 2, 3].map((item) => <div key={item} className="h-56 animate-pulse rounded-xl bg-purple-900/30" />)}
+          </div>
+        ) : (
+          roomSections.map(([title, predicate]) => {
+            const sectionRooms = rooms.filter(predicate).slice(0, 6);
+            if (!sectionRooms.length) return null;
+            return (
+              <section key={title} className="space-y-3">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-cyan-100">{title}</h3>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {sectionRooms.map(renderRoomCard)}
+                </div>
+              </section>
+            );
+          })
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -941,23 +1200,30 @@ function RealNorthPoleFlow({ user }) {
         match_plan: selectedPlan,
       };
 
-      const created = await createNorthPoleMatch({
-        userId: user.id,
+      const createdRoom = await createPrizeRoom({
+        roomType: 'user_created',
+        title: `${selectedGame.title} Prize Room`,
+        description: 'Community-created pilot Prize Room. Manual payment and fulfillment required.',
         gameId: selectedGame.id,
+        gameTitle: selectedGame.title,
+        gameImage: selectedGame.icon_url || selectedGame.image || '',
+        gamePlatform: selectedGame.platform || selectedGame.store || 'manual',
         prizeId,
+        prizeTitle: selectedPrize.title,
+        prizeImage: selectedPrize.image_url || selectedPrize.image || '',
+        prizeSource: selectedPrize.source || selectedPrize.source_label || 'manual',
+        prizeUrl: selectedPrize.product_url || selectedPrize.url || '',
         prizeSnapshot,
+        minPlayers: Math.min(2, selectedPlan.players),
         maxPlayers: selectedPlan.players,
-        buyInCents: selectedPlan.perPlayerCents,
-        status: 'open',
-        sandboxMode: false,
-        matchPlan: selectedPlan,
-        gameSnapshot: selectedGame,
-        skillAgreementAccepted: true,
-        skillAgreementVersion: SKILL_COMPETITION_AGREEMENT_VERSION,
+        winningRule: selectedGame.score_type || selectedGame.skillStyle || 'Highest verified score wins',
+        verificationMethod: 'manual_score_with_proof',
+        foundationRate: NORTH_POLE_COST_MODEL.foundationRate,
+        paymentMode: 'pilot_manual',
       });
 
-      upsertMatch(created);
-      setMessage('Match created successfully. You are entered in this match.');
+      await loadMatches();
+      setMessage(`Prize Room created successfully: ${createdRoom.title}. It is visible in the lobby.`);
       setStep('prize');
       setSelectedPrize(null);
       setSelectedGame(null);
@@ -1325,6 +1591,14 @@ function RealNorthPoleFlow({ user }) {
         </Alert>
       )}
 
+      <PrizeRoomLobby
+        user={user}
+        onJoined={() => loadMatches()}
+        onCreated={() => loadMatches()}
+        onError={setError}
+        onMessage={setMessage}
+      />
+
       <Card className="border border-purple-700/30 bg-purple-900/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
@@ -1603,7 +1877,7 @@ function RealNorthPoleFlow({ user }) {
                   <DollarSign className="h-4 w-4 text-green-300" />
                   <h3 className="text-sm font-bold text-white">Room and Entry Contribution Options</h3>
                   <Badge className="border border-pink-500/30 bg-pink-600/15 text-pink-200">
-                    The Poles Foundation
+                    Foundation 10% added separately
                   </Badge>
                 </div>
                 <div className="grid gap-2 md:grid-cols-3 xl:grid-cols-6">
@@ -1628,17 +1902,14 @@ function RealNorthPoleFlow({ user }) {
                         </div>
                         <div className="text-xl font-black text-green-300">{formatMoney(option.perPlayerCents)}</div>
                         <div className="mt-1 text-[11px] leading-relaxed text-purple-200/65">
-                          Fund {formatMoney(option.donationCents)}
+                          Total {formatMoney(option.total_room_cost_cents)} / Foundation {formatMoney(option.foundation_amount_cents)}
                         </div>
                       </button>
                     );
                   })}
                 </div>
-                <div className="mt-4 grid gap-2 text-xs text-purple-200/75 sm:grid-cols-4">
-                  <span>Prize price: <strong className="text-white">{formatMoney(selectedPlan.priceCents)}</strong></span>
-                  <span>Tax: <strong className="text-white">{formatMoney(selectedPlan.taxCents)}</strong></span>
-                  <span>Shipping: <strong className="text-white">{formatMoney(selectedPlan.shippingCents)}</strong></span>
-                  <span>Prize total: <strong className="text-yellow-300">{formatMoney(selectedPlan.totalPrizeCostCents)}</strong></span>
+                <div className="mt-4">
+                  <RoomCostRows breakdown={selectedPlan} compact />
                 </div>
               </div>
 

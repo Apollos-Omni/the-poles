@@ -20,8 +20,14 @@ import {
   adminOverrideWinner,
   createFulfillmentOrder,
   createDemoFulfillmentOrder,
+  repairDemoFulfillmentOrders,
   listPrizeFulfillmentQueue,
   updatePrizeFulfillment,
+  listPrizeRooms,
+  markPrizeRoomContributionPaid,
+  markPrizeRoomFunded,
+  startPrizeRoomMatch,
+  createPrizeRoomFulfillment,
 } from '@/lib/northpole/matchEngine';
 import MatchEventLog from './MatchEventLog';
 
@@ -40,11 +46,119 @@ const ORDER_COLORS = {
   failed: 'bg-red-600/20 text-red-300',
 };
 
+const formatCents = (value) => {
+  const cents = Number(value || 0);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(cents / 100);
+};
+
+const fallbackNumber = (...values) => {
+  for (const value of values) {
+    if (value === null || value === undefined || value === '') continue;
+    const number = Number(value);
+    if (Number.isFinite(number)) return number;
+  }
+  return 0;
+};
+
+const estimateBreakdownFromPrize = (prize = {}) => {
+  const itemCost = fallbackNumber(prize.item_cost_cents, prize.price_cents, prize.price, 0);
+  const estimatedTax = fallbackNumber(prize.estimated_tax_cents, prize.tax_cents, Math.round(itemCost * 0.0825));
+  const estimatedShipping = fallbackNumber(prize.estimated_shipping_cents, prize.shipping_estimate_cents, prize.shipping_cost_cents, 599);
+  const reserve = fallbackNumber(prize.fulfillment_reserve_cents, 300);
+  const processingReserve = fallbackNumber(prize.payment_processing_reserve_cents, 0);
+  const platformAmount = fallbackNumber(prize.platform_or_foundation_amount_cents, prize.foundation_amount_cents, 500);
+  return {
+    item_cost_cents: itemCost,
+    estimated_tax_cents: estimatedTax,
+    estimated_shipping_cents: estimatedShipping,
+    fulfillment_reserve_cents: reserve,
+    payment_processing_reserve_cents: processingReserve,
+    foundation_amount_cents: platformAmount,
+    platform_or_foundation_amount_cents: platformAmount,
+    total_required_cents: itemCost + estimatedTax + estimatedShipping + reserve + processingReserve + platformAmount,
+    estimate_label: 'Pilot estimate',
+    purchase_automation_status: 'No real purchase made automatically',
+    fulfillment_requirement: 'Manual purchase required',
+  };
+};
+
+const getPrizeCostBreakdown = (record = {}) => {
+  const stored = record.prize_cost_breakdown || record.prizeCostBreakdown;
+  if (stored && typeof stored === 'object') return stored;
+  const estimated = estimateBreakdownFromPrize(record.prize_snapshot || record.prizeSnapshot || record);
+  const breakdown = {
+    ...estimateBreakdownFromPrize(record.prize_snapshot || record.prizeSnapshot || record),
+    item_cost_cents: fallbackNumber(record.item_cost_cents, stored?.item_cost_cents, record.prize_snapshot?.price_cents),
+    estimated_tax_cents: fallbackNumber(record.estimated_tax_cents, stored?.estimated_tax_cents),
+    estimated_shipping_cents: fallbackNumber(record.estimated_shipping_cents, stored?.estimated_shipping_cents),
+    fulfillment_reserve_cents: fallbackNumber(record.fulfillment_reserve_cents, stored?.fulfillment_reserve_cents, 300),
+    payment_processing_reserve_cents: fallbackNumber(record.payment_processing_reserve_cents, stored?.payment_processing_reserve_cents),
+    foundation_amount_cents: fallbackNumber(record.foundation_amount_cents, stored?.foundation_amount_cents, record.platform_or_foundation_amount_cents, stored?.platform_or_foundation_amount_cents, 500),
+    platform_or_foundation_amount_cents: fallbackNumber(record.platform_or_foundation_amount_cents, stored?.platform_or_foundation_amount_cents, record.foundation_amount_cents, stored?.foundation_amount_cents, 500),
+  };
+  return {
+    ...breakdown,
+    total_required_cents: fallbackNumber(
+      record.total_required_cents,
+      record.total_room_cost_cents,
+      stored?.total_required_cents,
+      stored?.total_room_cost_cents,
+      breakdown.item_cost_cents + breakdown.estimated_tax_cents + breakdown.estimated_shipping_cents + breakdown.fulfillment_reserve_cents + breakdown.payment_processing_reserve_cents + breakdown.platform_or_foundation_amount_cents,
+      estimated.total_required_cents,
+    ),
+  };
+};
+
+function PrizeCostBreakdownPanel({ record, compact = false }) {
+  const breakdown = getPrizeCostBreakdown(record);
+  const total = fallbackNumber(
+    breakdown.total_required_cents,
+    breakdown.total_room_cost_cents,
+    breakdown.item_cost_cents + breakdown.estimated_tax_cents + breakdown.estimated_shipping_cents + breakdown.fulfillment_reserve_cents + breakdown.payment_processing_reserve_cents + (breakdown.foundation_amount_cents || breakdown.platform_or_foundation_amount_cents),
+  );
+  const rows = [
+    ['Item cost', breakdown.item_cost_cents],
+    ['Estimated tax', breakdown.estimated_tax_cents],
+    ['Estimated shipping', breakdown.estimated_shipping_cents],
+    ['Fulfillment reserve', breakdown.fulfillment_reserve_cents],
+    ['Processing reserve', breakdown.payment_processing_reserve_cents],
+    ['Foundation 10%', breakdown.foundation_amount_cents || breakdown.platform_or_foundation_amount_cents],
+  ];
+
+  return (
+    <div className={`rounded-lg border border-yellow-700/40 bg-yellow-950/10 ${compact ? 'p-2' : 'p-3'}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge className="bg-yellow-600/20 text-yellow-100 border border-yellow-500/30">Pilot estimate</Badge>
+        <Badge className="bg-red-600/20 text-red-100 border border-red-500/30">No real purchase made automatically</Badge>
+        <Badge className="bg-orange-600/20 text-orange-100 border border-orange-500/30">Manual purchase required</Badge>
+      </div>
+      <div className="mt-2 grid gap-1 text-xs text-purple-100 sm:grid-cols-2">
+        {rows.map(([label, cents]) => (
+          <div key={label} className="flex justify-between gap-3">
+            <span className="text-purple-300">{label}</span>
+            <span className="font-mono text-white">{formatCents(cents)}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 flex items-center justify-between border-t border-yellow-700/30 pt-2 text-sm">
+        <span className="font-semibold text-yellow-100">Total required</span>
+        <span className="font-mono font-bold text-yellow-100">{formatCents(total)}</span>
+      </div>
+      {!compact && (
+        <p className="mt-2 text-xs text-yellow-100/80">
+          Tax uses 8.25% unless a prize snapshot tax exists. Shipping uses snapshot data when present, otherwise $5.99.
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard({ currentUser }) {
   const [matches, setMatches] = useState([]);
   const [fulfillments, setFulfillments] = useState([]);
   const [prizeFulfillments, setPrizeFulfillments] = useState([]);
   const [fulfillmentReadyMatches, setFulfillmentReadyMatches] = useState([]);
+  const [prizeRooms, setPrizeRooms] = useState([]);
   const [matchScores, setMatchScores] = useState([]);
   const [winnerVerifications, setWinnerVerifications] = useState([]);
   const [refereeAccounts, setRefereeAccounts] = useState([]);
@@ -64,10 +178,11 @@ export default function AdminDashboard({ currentUser }) {
   const load = async () => {
     setIsLoading(true);
     try {
-      const [matchList, fulfillList, prizeQueue, scoreList, verificationList, refereeAccountList, refereeSessionList, refereeReportList] = await Promise.all([
+      const [matchList, fulfillList, prizeQueue, roomList, scoreList, verificationList, refereeAccountList, refereeSessionList, refereeReportList] = await Promise.all([
         base44.entities.NorthPoleMatch.list('-created_date', 50),
         base44.entities.NorthPoleFulfillment.list('-created_date', 50),
         listPrizeFulfillmentQueue(),
+        listPrizeRooms().catch(() => []),
         base44.entities.MatchScore.list('-created_date', 100),
         base44.entities.WinnerVerification.list('-created_date', 50),
         base44.entities.RefereeAccount.list('-created_date', 50).catch(() => []),
@@ -79,6 +194,7 @@ export default function AdminDashboard({ currentUser }) {
       setFulfillments(fulfillList);
       setPrizeFulfillments(prizeQueue.fulfillments || []);
       setFulfillmentReadyMatches(prizeQueue.readyMatches || []);
+      setPrizeRooms(roomList || []);
       setMatchScores(scoreList);
       setWinnerVerifications(verificationList);
       setRefereeAccounts(refereeAccountList);
@@ -108,6 +224,29 @@ export default function AdminDashboard({ currentUser }) {
   };
 
   const getFulfillment = (matchId) => fulfillments.find(f => f.match_id === matchId);
+  const getMatch = (matchId) => matches.find(match => String(match.match_id || match.id) === String(matchId));
+  const scoresForMatch = (matchId) => matchScores.filter(score => String(score.matchId || score.match_id) === String(matchId));
+  const verificationForMatch = (matchId) => winnerVerifications.find(verification => String(verification.matchId || verification.match_id) === String(matchId) && verification.status === 'locked')
+    || winnerVerifications.find(verification => String(verification.matchId || verification.match_id) === String(matchId));
+  const gameTitle = (match = {}) => match.game_snapshot?.title || match.game_snapshot?.name || match.game_title || match.game_id || 'Game not recorded';
+  const winningRule = (match = {}, recommendation = null, verification = null) => (
+    recommendation?.deterministicRule
+    || verification?.auditSummary?.deterministicRule
+    || verification?.auditNotes
+    || match.match_plan?.selectedRule
+    || match.match_plan?.scoreType
+    || match.score_type
+    || match.game_snapshot?.score_type
+    || 'Highest verified eligible score'
+  );
+  const scoreSummary = (scores = []) => scores.length
+    ? scores.map(score => `${score.userId || score.user_id}: ${score.score} (${score.scoreType || score.score_type || 'score'})`).join(', ')
+    : 'No submitted scores recorded';
+  const proofUrlsForMatch = (matchId, scores = [], report = null) => [
+    ...scores.map(score => score.evidenceUrl || score.evidence_url).filter(Boolean),
+    ...(Array.isArray(report?.evidenceUrls) ? report.evidenceUrls : []),
+    ...(Array.isArray(report?.evidence_urls) ? report.evidence_urls : []),
+  ];
 
   const handleApprove = async (fulfillment) => {
     const key = fulfillment.id;
@@ -158,7 +297,11 @@ export default function AdminDashboard({ currentUser }) {
   const pendingScoreReviews = matchScores.filter(score => score.verificationStatus === 'pending');
   const disputedScores = matchScores.filter(score => score.verificationStatus === 'disputed' || ['suspicious', 'flagged'].includes(score.aiReviewStatus));
   const fulfillmentQueue = prizeFulfillments;
-  const totalFulfillmentCount = fulfillments.length + prizeFulfillments.length;
+  const roomFundingCounts = prizeRooms.reduce((acc, room) => {
+    acc.total += 1;
+    if (room.status === 'funded') acc.funded += 1;
+    return acc;
+  }, { total: 0, funded: 0 });
 
   const updateTrackingDraft = (fulfillmentId, patch) => {
     setTrackingDrafts(prev => ({
@@ -230,6 +373,23 @@ export default function AdminDashboard({ currentUser }) {
     }
   };
 
+  const handleRepairDemoFulfillmentOrders = async () => {
+    const key = 'repair_demo_fulfillment_orders';
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    setFulfillmentError('');
+    try {
+      const result = await repairDemoFulfillmentOrders();
+      if (result.errors?.length) {
+        setFulfillmentError(result.errors.map(error => `${error.match_id}: ${error.error}`).join(' | '));
+      }
+      await load();
+    } catch (error) {
+      setFulfillmentError(error.message || 'Repair demo fulfillment orders failed.');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
   const handlePrizeFulfillmentPatch = async (fulfillment, patch, keySuffix) => {
     const key = `${fulfillment.id}_${keySuffix}`;
     setActionLoading(prev => ({ ...prev, [key]: true }));
@@ -256,6 +416,38 @@ export default function AdminDashboard({ currentUser }) {
       shippingStatus: status,
       adminApproved: ['ready_to_order', 'ordered', 'shipped', 'delivered'].includes(status) || fulfillment.admin_approved,
     }, status);
+  };
+
+  const handleMarkRoomContributionPaid = async (room, contribution) => {
+    const key = `${room.id}_${contribution.id}_paid`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    await markPrizeRoomContributionPaid({ roomId: room.id, contributionId: contribution.id });
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const handleMarkRoomFunded = async (room) => {
+    const key = `${room.id}_funded`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    await markPrizeRoomFunded({ roomId: room.id });
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const handleStartPrizeRoom = async (room) => {
+    const key = `${room.id}_start`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    await startPrizeRoomMatch({ roomId: room.id });
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
+  };
+
+  const handleCreateRoomFulfillment = async (room) => {
+    const key = `${room.id}_room_fulfillment`;
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    await createPrizeRoomFulfillment({ roomId: room.id });
+    await load();
+    setActionLoading(prev => ({ ...prev, [key]: false }));
   };
 
   const handleScoreReview = async (score, verificationStatus, aiReviewStatus = score.aiReviewStatus || 'not_reviewed') => {
@@ -403,7 +595,7 @@ export default function AdminDashboard({ currentUser }) {
           { label: 'Total Matches', value: matches.length, icon: '🎮', color: 'text-purple-300' },
           { label: 'Verified Winners', value: verifiedMatches.length, icon: '✅', color: 'text-green-300' },
           { label: 'Pending Review', value: pendingFulfillments.length, icon: '⏳', color: 'text-yellow-300' },
-          { label: 'Total Fulfillments', value: totalFulfillmentCount, icon: '📦', color: 'text-blue-300' },
+          { label: 'Prize Rooms Funded', value: `${roomFundingCounts.funded}/${roomFundingCounts.total}`, icon: '🏆', color: 'text-blue-300' },
         ].map(stat => (
           <Card key={stat.label} className="bg-purple-900/30 border-purple-700/30">
             <CardContent className="p-4 text-center">
@@ -421,6 +613,98 @@ export default function AdminDashboard({ currentUser }) {
           <RefreshCw className="w-4 h-4" />Refresh
         </Button>
       </div>
+
+      <Card className="bg-black/30 border border-cyan-800/30">
+        <CardHeader>
+          <CardTitle className="text-lg text-white">Prize Room Queue</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {prizeRooms.slice(0, 12).map(room => {
+            const contributions = Array.isArray(room.contributions) ? room.contributions : [];
+            const paidCount = contributions.filter(row => ['marked_paid', 'paid'].includes(row.status)).length;
+            return (
+              <div key={room.id} className="rounded-lg border border-cyan-800/30 bg-cyan-950/10 p-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-white">{room.title}</span>
+                      <Badge className="bg-cyan-600/20 text-cyan-100">{room.status}</Badge>
+                      <Badge className="bg-purple-600/20 text-purple-100">{room.payment_mode || 'pilot_manual'}</Badge>
+                      <Badge className="bg-yellow-600/20 text-yellow-100">Manual purchase required</Badge>
+                    </div>
+                    <div className="text-xs text-purple-200">
+                      {room.game_title} - Prize {room.prize_title} - Players {paidCount}/{room.max_players}
+                    </div>
+                    <div className="text-xs text-purple-400">
+                      Match {room.match_id || 'not mirrored'} - Fulfillment {room.prize_fulfillment_id || room.fulfillment_status || 'not prepared'}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleMarkRoomFunded(room)}
+                      disabled={actionLoading[`${room.id}_funded`]}
+                      className="border-green-700/50 text-green-200 hover:bg-green-950/40"
+                    >
+                      Mark Room Funded
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleStartPrizeRoom(room)}
+                      disabled={actionLoading[`${room.id}_start`]}
+                      className="border-cyan-700/50 text-cyan-200 hover:bg-cyan-950/40"
+                    >
+                      Start Match
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleCreateRoomFulfillment(room)}
+                      disabled={actionLoading[`${room.id}_room_fulfillment`] || !(room.winner_user_id || getMatch(room.match_id)?.winner_user_id)}
+                      className="bg-purple-700 text-white hover:bg-purple-600"
+                    >
+                      Create Fulfillment
+                    </Button>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <PrizeCostBreakdownPanel record={{ ...room, prize_cost_breakdown: room.cost_breakdown }} />
+                </div>
+                <div className="mt-3 grid gap-2 md:grid-cols-2">
+                  {contributions.length ? contributions.map(contribution => (
+                    <div key={contribution.id} className="rounded border border-purple-800/30 bg-black/25 p-2 text-xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-white">{contribution.display_name || contribution.user_email || contribution.user_id}</span>
+                        <Badge className={['marked_paid', 'paid'].includes(contribution.status) ? 'bg-green-600/20 text-green-200' : 'bg-yellow-600/20 text-yellow-200'}>
+                          {contribution.status}
+                        </Badge>
+                      </div>
+                      <div className="mt-1 text-purple-300">Contribution {formatCents(contribution.amount_cents)} - {contribution.payment_provider || 'manual_pilot'}</div>
+                      {!['marked_paid', 'paid'].includes(contribution.status) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleMarkRoomContributionPaid(room, contribution)}
+                          disabled={actionLoading[`${room.id}_${contribution.id}_paid`]}
+                          className="mt-2 border-green-700/50 text-green-200 hover:bg-green-950/40"
+                        >
+                          Mark Contribution Paid
+                        </Button>
+                      )}
+                    </div>
+                  )) : (
+                    <p className="text-xs text-purple-400">No player contributions yet.</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {!prizeRooms.length && (
+            <p className="py-4 text-center text-sm text-purple-400">No Prize Rooms loaded yet. Open the lobby to seed starter rooms.</p>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card className="bg-black/30 border border-purple-800/30">
@@ -490,21 +774,46 @@ export default function AdminDashboard({ currentUser }) {
             <CardTitle className="text-lg text-white">Winner Verification Review</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {winnerVerifications.slice(0, 8).map(verification => (
-              <div key={verification.id} className="rounded-lg border border-purple-800/30 bg-purple-950/20 p-3 text-xs">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-mono text-purple-100">{verification.matchId}</span>
-                  <Badge className={verification.status === 'locked' ? 'bg-green-600/20 text-green-200' : 'bg-yellow-600/20 text-yellow-200'}>
-                    {verification.status}
-                  </Badge>
+            {winnerVerifications.slice(0, 8).map(verification => {
+              const matchId = verification.matchId || verification.match_id;
+              const match = getMatch(matchId) || {};
+              const scores = scoresForMatch(matchId);
+              const report = verification.refereeReport || getRefereeReport(matchId);
+              const proofs = proofUrlsForMatch(matchId, scores, report);
+              const finalWinner = verification.winnerUserId || verification.winner_user_id || match.winner_user_id || match.winner_id || '-';
+              return (
+                <div key={verification.id} className="rounded-lg border border-purple-800/30 bg-purple-950/20 p-3 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-mono text-purple-100">{matchId}</span>
+                    <Badge className={verification.status === 'locked' ? 'bg-green-600/20 text-green-200' : 'bg-yellow-600/20 text-yellow-200'}>
+                      Admin lock: {verification.status}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 grid gap-1 text-purple-200 sm:grid-cols-2">
+                    <div>Game title: <span className="text-white">{gameTitle(match)}</span></div>
+                    <div>Selected winning rule: <span className="text-white">{winningRule(match, null, verification)}</span></div>
+                    <div>Submitted scores: <span className="text-white">{scoreSummary(scores)}</span></div>
+                    <div>AI review status: <span className="text-white">{match.ai_referee_status || verification.aiReviewStatus || verification.ai_review_status || 'not reviewed'}</span></div>
+                    <div>Final winner: <span className="font-mono text-yellow-200">{finalWinner}</span></div>
+                    <div>Method: <span className="text-white">{verification.verificationMethod || verification.verification_method || '-'}</span></div>
+                  </div>
+                  {proofs.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {proofs.map(url => (
+                        <a key={url} href={url} target="_blank" rel="noreferrer" className="text-cyan-300 hover:underline">
+                          Evidence/proof URL
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-purple-400">Evidence/proof URL: none recorded</div>
+                  )}
+                  {verification.warnings?.length > 0 && (
+                    <div className="mt-1 text-yellow-200">Warnings: {verification.warnings.join(', ')}</div>
+                  )}
                 </div>
-                <div className="mt-2 text-yellow-200">Winner: {verification.winnerUserId}</div>
-                <div className="text-purple-300">Method: {verification.verificationMethod} / Score: {verification.winningScore ?? '-'}</div>
-                {verification.warnings?.length > 0 && (
-                  <div className="mt-1 text-yellow-200">Warnings: {verification.warnings.join(', ')}</div>
-                )}
-              </div>
-            ))}
+              );
+            })}
             {winnerVerifications.length === 0 && (
               <p className="py-4 text-center text-sm text-purple-400">No winner verifications yet.</p>
             )}
@@ -526,12 +835,17 @@ export default function AdminDashboard({ currentUser }) {
             const refereeReport = draft.referee?.report || recommendation?.refereeReport || getRefereeReport(matchId);
             const refereeAccount = draft.referee?.refereeAccount || getRefereeAccount(refereeSession);
             const recommendedWinnerUserId = recommendation?.recommendedWinnerUserId || recommendation?.recommendedWinner?.userId;
+            const lockedVerification = verificationForMatch(matchId);
+            const scores = scoresForMatch(matchId);
+            const proofs = proofUrlsForMatch(matchId, scores, refereeReport);
+            const finalWinner = match.winner_user_id || match.winner_id || lockedVerification?.winnerUserId || lockedVerification?.winner_user_id || recommendedWinnerUserId || '-';
             return (
               <div key={match.id} className="rounded-lg border border-purple-800/30 bg-purple-950/20 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div className="font-mono text-sm text-white">{matchId}</div>
-                    <div className="text-xs text-purple-300">Locked winner: {match.winner_user_id || 'None'}</div>
+                    <div className="text-xs text-purple-300">Game title: {gameTitle(match)}</div>
+                    <div className="text-xs text-purple-300">Final winner: {finalWinner}</div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button
@@ -561,6 +875,29 @@ export default function AdminDashboard({ currentUser }) {
                       Lock Winner
                     </Button>
                   </div>
+                </div>
+                <div className="mt-3 rounded border border-purple-800/30 bg-black/20 p-2 text-xs text-purple-100">
+                  <div className="grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+                    <span>Selected winning rule: <strong className="text-white">{winningRule(match, recommendation, lockedVerification)}</strong></span>
+                    <span>Submitted scores: <strong className="text-white">{scoreSummary(scores)}</strong></span>
+                    <span>AI review status: <strong className="text-white">{match.ai_referee_status || aiReview?.result || 'not reviewed'}</strong></span>
+                    <span>Admin lock status: <strong className="text-white">{lockedVerification?.status || (match.winner_locked_at ? 'locked' : 'not locked')}</strong></span>
+                    <span>Final winner: <strong className="font-mono text-yellow-200">{finalWinner}</strong></span>
+                  </div>
+                  {proofs.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {proofs.map(url => (
+                        <a key={url} href={url} target="_blank" rel="noreferrer" className="text-cyan-300 hover:underline">
+                          Evidence/proof URL
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-purple-400">Evidence/proof URL: none recorded</div>
+                  )}
+                </div>
+                <div className="mt-3">
+                  <PrizeCostBreakdownPanel record={match} compact />
                 </div>
                 {aiReview && (
                   <div className="mt-2 rounded border border-cyan-800/30 bg-cyan-950/10 p-2 text-xs text-purple-100">
@@ -699,14 +1036,25 @@ export default function AdminDashboard({ currentUser }) {
       <Card className="bg-black/30 border border-purple-800/30">
         <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
           <CardTitle className="text-lg text-white">Prize Fulfillment Queue</CardTitle>
-          <Button
-            size="sm"
-            onClick={handleCreateDemoFulfillmentOrder}
-            disabled={actionLoading.demo_fulfillment_order}
-            className="bg-yellow-700 text-white hover:bg-yellow-600"
-          >
-            Create Demo Fulfillment Order
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRepairDemoFulfillmentOrders}
+              disabled={actionLoading.repair_demo_fulfillment_orders}
+              className="border-yellow-700/50 text-yellow-100 hover:bg-yellow-950/40"
+            >
+              Repair Demo Fulfillment Orders
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleCreateDemoFulfillmentOrder}
+              disabled={actionLoading.demo_fulfillment_order}
+              className="bg-yellow-700 text-white hover:bg-yellow-600"
+            >
+              Create Demo Fulfillment Order
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {fulfillmentError && (
@@ -735,6 +1083,9 @@ export default function AdminDashboard({ currentUser }) {
                 >
                   Create Fulfillment
                 </Button>
+              </div>
+              <div className="mt-3">
+                <PrizeCostBreakdownPanel record={match} />
               </div>
             </div>
           ))}
@@ -807,6 +1158,10 @@ export default function AdminDashboard({ currentUser }) {
                 placeholder="Notes"
                 className="mt-2 min-h-20 border-purple-700/40 bg-black/30 text-white placeholder:text-purple-400/60"
               />
+
+              <div className="mt-3">
+                <PrizeCostBreakdownPanel record={fulfillment} />
+              </div>
 
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button
@@ -955,6 +1310,8 @@ export default function AdminDashboard({ currentUser }) {
                               </Badge>
                             </div>
                           </div>
+
+                          <PrizeCostBreakdownPanel record={fulfillment} compact />
 
                           {fulfillment.admin_status === 'pending_review' && (
                             <div className="space-y-2">
