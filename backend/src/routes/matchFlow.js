@@ -153,16 +153,16 @@ const createPrizeRoomSchema = z.object({
   game_id: z.string().min(1).optional(),
   gameTitle: z.string().max(240).optional(),
   game_title: z.string().max(240).optional(),
-  gameImage: z.string().url().optional().or(z.literal('')),
-  game_image: z.string().url().optional().or(z.literal('')),
+  gameImage: z.string().max(1000).optional(),
+  game_image: z.string().max(1000).optional(),
   gamePlatform: z.string().max(120).optional(),
   game_platform: z.string().max(120).optional(),
   prizeId: z.string().min(1).optional(),
   prize_id: z.string().min(1).optional(),
   prizeTitle: z.string().max(300).optional(),
   prize_title: z.string().max(300).optional(),
-  prizeImage: z.string().url().optional().or(z.literal('')),
-  prize_image: z.string().url().optional().or(z.literal('')),
+  prizeImage: z.string().max(1000).optional(),
+  prize_image: z.string().max(1000).optional(),
   prizeSource: z.string().max(120).optional(),
   prize_source: z.string().max(120).optional(),
   prizeUrl: z.string().url().optional().or(z.literal('')),
@@ -501,12 +501,110 @@ function buildPrizeRoomCostBreakdown({ prizeSnapshot = {}, playerCount = 2, foun
     total_room_cost_cents: totalRoomCostCents,
     per_player_contribution_cents: normalizeCents(Math.ceil(totalRoomCostCents / players)),
     currency: snapshot.currency || bestOffer.currency || 'USD',
-    estimate_label: 'Pilot estimate',
-    payment_mode_label: 'Pilot Payment Mode',
+    estimate_label: 'Test Mode estimate',
+    payment_mode_label: 'Test Mode: no real charge made',
     purchase_automation_status: 'No real purchase made automatically',
     fulfillment_requirement: 'Manual purchase required',
     prepared_fulfillment_label: 'Prepared order only',
   };
+}
+
+function normalizeLookupText(value = '') {
+  return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+function slugifyRoomImageName(value = '') {
+  return normalizeLookupText(value).replace(/\s+/g, '-');
+}
+
+function defaultGameImage(gameTitle = '') {
+  const title = normalizeLookupText(gameTitle);
+  if (title.includes('mario')) return '/images/prize-rooms/games/mario-kart.svg';
+  if (title.includes('madden')) return '/images/prize-rooms/games/madden.svg';
+  if (title.includes('nba') || title.includes('2k')) return '/images/prize-rooms/games/nba-2k.svg';
+  if (title.includes('call of duty') || title.includes('cod')) return '/images/prize-rooms/games/call-of-duty.svg';
+  if (title.includes('rocket')) return '/images/prize-rooms/games/rocket-league.svg';
+  if (title.includes('uno')) return '/images/prize-rooms/games/uno.svg';
+  if (title.includes('chess')) return '/images/prize-rooms/games/chess.svg';
+  if (title.includes('fortnite')) return '/images/prize-rooms/games/fortnite.svg';
+  if (title.includes('mortal')) return '/images/prize-rooms/games/mortal-kombat.svg';
+  return '/images/prize-rooms/games/family-game-night.svg';
+}
+
+function defaultPrizeImage(prizeTitle = '') {
+  const title = normalizeLookupText(prizeTitle);
+  if (title.includes('nintendo')) return '/images/prize-rooms/prizes/nintendo-gift-card.svg';
+  if (title.includes('gamestop') || title.includes('game stop')) return '/images/prize-rooms/prizes/gamestop-gift-card.svg';
+  if (title.includes('playstation')) return '/images/prize-rooms/prizes/playstation-store-gift-card.svg';
+  if (title.includes('xbox')) return '/images/prize-rooms/prizes/xbox-gift-card.svg';
+  if (title.includes('rocket')) return '/images/prize-rooms/prizes/rocket-league-credits.svg';
+  if (title.includes('family') && title.includes('gift card')) return '/images/prize-rooms/prizes/family-game-night-gift-card.svg';
+  if (title.includes('v bucks') || title.includes('vbucks') || title.includes('fortnite')) return '/images/prize-rooms/prizes/vbucks-gift-card.svg';
+  if (title.includes('amazon') || title.includes('book')) return '/images/prize-rooms/prizes/amazon-gift-card.svg';
+  if (title.includes('console') || title.includes('store')) return '/images/prize-rooms/prizes/console-store-gift-card.svg';
+  if (title.includes('mystery') || title.includes('family')) return '/images/prize-rooms/prizes/mystery-family-prize.svg';
+  const slug = slugifyRoomImageName(prizeTitle);
+  if (slug) return `/images/prize-rooms/prizes/${slug}.svg`;
+  return '/images/prize-rooms/prizes/mystery-family-prize.svg';
+}
+
+function firstImageUrl(source, fields = []) {
+  if (!source || typeof source !== 'object') return '';
+  for (const field of fields) {
+    const value = source[field];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (value && typeof value === 'object' && typeof value.imageUrl === 'string' && value.imageUrl.trim()) {
+      return value.imageUrl.trim();
+    }
+    if (value && typeof value === 'object' && typeof value.url === 'string' && value.url.trim()) {
+      return value.url.trim();
+    }
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        if (typeof entry === 'string' && entry.trim()) return entry.trim();
+        if (entry && typeof entry === 'object' && typeof entry.imageUrl === 'string' && entry.imageUrl.trim()) {
+          return entry.imageUrl.trim();
+        }
+        if (entry && typeof entry === 'object' && typeof entry.image === 'string' && entry.image.trim()) {
+          return entry.image.trim();
+        }
+        if (entry && typeof entry === 'object' && typeof entry.url === 'string' && entry.url.trim()) {
+          return entry.url.trim();
+        }
+      }
+    }
+  }
+  return '';
+}
+
+function prizeImageFromSnapshot(source) {
+  return firstImageUrl(source, [
+    'image',
+    'image_url',
+    'thumbnailImages',
+    'thumbnail',
+    'thumbnail_url',
+    'galleryURL',
+    'pictureURLLarge',
+    'pictureURLSuperSize',
+    'additionalImages',
+  ]);
+}
+
+function gameImageFromSnapshot(source) {
+  return firstImageUrl(source, [
+    'background_image',
+    'background_image_additional',
+    'image',
+    'icon_url',
+    'cover',
+    'thumbnail',
+    'short_screenshots',
+  ]);
+}
+
+function isPrizeRoomFallbackImage(value = '') {
+  return typeof value === 'string' && value.startsWith('/images/prize-rooms/');
 }
 
 const STARTER_PRIZE_ROOM_TEMPLATES = [
@@ -527,16 +625,18 @@ const STARTER_PRIZE_ROOM_TEMPLATES = [
   room_type: 'platform_supported',
   game_id: gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
   game_title: gameTitle,
-  game_image: '',
+  game_image: defaultGameImage(gameTitle),
   game_platform: gamePlatform,
   prize_id: `starter_${id}`,
   prize_title: prizeTitle,
-  prize_image: '',
+  prize_image: defaultPrizeImage(prizeTitle),
   prize_source: 'pilot_demo',
   prize_url: '',
   prize_snapshot: {
     id: `starter_${id}`,
     title: prizeTitle,
+    image: defaultPrizeImage(prizeTitle),
+    image_url: defaultPrizeImage(prizeTitle),
     source: 'pilot_demo',
     price_cents: priceCents,
     currency: 'USD',
@@ -556,7 +656,20 @@ async function ensureStarterPrizeRoomTemplates(store) {
   const created = [];
   for (const template of STARTER_PRIZE_ROOM_TEMPLATES) {
     const existing = await store.findOne('prize_room_templates', { id: template.id }).catch(() => null);
-    if (existing) continue;
+    if (existing) {
+      const patch = {};
+      if (!existing.game_image) patch.game_image = template.game_image || defaultGameImage(existing.game_title || template.game_title);
+      if (!existing.prize_image) patch.prize_image = template.prize_image || defaultPrizeImage(existing.prize_title || template.prize_title);
+      if (existing.prize_snapshot && typeof existing.prize_snapshot === 'object' && (!existing.prize_snapshot.image && !existing.prize_snapshot.image_url)) {
+        patch.prize_snapshot = {
+          ...existing.prize_snapshot,
+          image: patch.prize_image || existing.prize_image || template.prize_image,
+          image_url: patch.prize_image || existing.prize_image || template.prize_image,
+        };
+      }
+      if (Object.keys(patch).length) await store.update('prize_room_templates', existing.id, patch).catch(() => null);
+      continue;
+    }
     created.push(await store.create('prize_room_templates', template));
   }
   return created;
@@ -564,12 +677,18 @@ async function ensureStarterPrizeRoomTemplates(store) {
 
 function prizeSnapshotFromRoomInput(input = {}, template = null) {
   const explicit = input.prizeSnapshot || input.prize_snapshot;
-  if (explicit && typeof explicit === 'object') return explicit;
+  if (explicit && typeof explicit === 'object') {
+    const image = prizeImageFromSnapshot(explicit);
+    return image ? { ...explicit, image, image_url: image } : explicit;
+  }
   if (template?.prize_snapshot) return template.prize_snapshot;
+  const prizeTitle = input.prizeTitle || input.prize_title || template?.prize_title || 'Pilot Prize';
+  const prizeImage = input.prizeImage || input.prize_image || template?.prize_image || defaultPrizeImage(prizeTitle);
   return {
     id: input.prizeId || input.prize_id || template?.prize_id || `prize_${crypto.randomUUID()}`,
-    title: input.prizeTitle || input.prize_title || template?.prize_title || 'Pilot Prize',
-    image: input.prizeImage || input.prize_image || template?.prize_image || '',
+    title: prizeTitle,
+    image: prizeImage,
+    image_url: prizeImage,
     source: input.prizeSource || input.prize_source || template?.prize_source || 'manual',
     product_url: input.prizeUrl || input.prize_url || template?.prize_url || '',
     price_cents: normalizeCents(input.price_cents || input.item_cost_cents || template?.prize_snapshot?.price_cents || 4000),
@@ -684,6 +803,19 @@ async function createPrizeRoomRecord(store, input, user) {
   const prizeSnapshot = prizeSnapshotFromRoomInput(input, template);
   const foundationRate = input.foundationRate ?? input.foundation_rate ?? template?.foundation_rate ?? DEFAULT_FOUNDATION_RATE;
   const costBreakdown = buildPrizeRoomCostBreakdown({ prizeSnapshot, playerCount: maxPlayers, foundationRate });
+  const gameTitle = input.gameTitle || input.game_title || template?.game_title || 'Skill Match';
+  const prizeTitle = input.prizeTitle || input.prize_title || prizeSnapshot.title || template?.prize_title || 'Pilot Prize';
+  const gameSnapshot = input.gameSnapshot || input.game_snapshot || {};
+  const gameImage = input.gameImage
+    || input.game_image
+    || gameImageFromSnapshot(gameSnapshot)
+    || template?.game_image
+    || defaultGameImage(gameTitle);
+  const prizeImage = input.prizeImage
+    || input.prize_image
+    || prizeImageFromSnapshot(prizeSnapshot)
+    || template?.prize_image
+    || defaultPrizeImage(prizeTitle);
   const room = await store.create('prize_rooms', {
     id: input.id || roomPublicId(),
     template_id: template?.id || templateId || '',
@@ -692,12 +824,24 @@ async function createPrizeRoomRecord(store, input, user) {
     title: input.title || template?.title || `${prizeSnapshot.title || 'Prize'} Skill Match`,
     description: input.description || template?.description || 'Pilot Prize Room for a skill-based match.',
     game_id: input.gameId || input.game_id || template?.game_id || 'north-pole-skill-match',
-    game_title: input.gameTitle || input.game_title || template?.game_title || 'Skill Match',
-    game_image: input.gameImage || input.game_image || template?.game_image || '',
+    game_title: gameTitle,
+    game_image: gameImage,
+    game_snapshot: {
+      ...(gameSnapshot && typeof gameSnapshot === 'object' ? gameSnapshot : {}),
+      title: gameTitle,
+      image: gameImage,
+      background_image: gameImage,
+    },
     game_platform: input.gamePlatform || input.game_platform || template?.game_platform || 'manual',
     prize_id: input.prizeId || input.prize_id || prizeSnapshot.id || template?.prize_id || `prize_${crypto.randomUUID()}`,
-    prize_title: input.prizeTitle || input.prize_title || prizeSnapshot.title || template?.prize_title || 'Pilot Prize',
-    prize_image: input.prizeImage || input.prize_image || prizeSnapshot.image || prizeSnapshot.image_url || template?.prize_image || '',
+    prize_title: prizeTitle,
+    prize_image: prizeImage,
+    prize_snapshot: {
+      ...(prizeSnapshot && typeof prizeSnapshot === 'object' ? prizeSnapshot : {}),
+      title: prizeTitle,
+      image: prizeImage,
+      image_url: prizeImage,
+    },
     prize_source: input.prizeSource || input.prize_source || prizeSnapshot.source || template?.prize_source || 'manual',
     prize_url: input.prizeUrl || input.prize_url || prizeSnapshot.product_url || prizeSnapshot.url || template?.prize_url || '',
     min_players: minPlayers,
@@ -711,7 +855,7 @@ async function createPrizeRoomRecord(store, input, user) {
     payment_mode: input.paymentMode || input.payment_mode || 'pilot_manual',
     fulfillment_mode: 'manual',
     pilot_mode_label: 'Pilot Mode: no real charge made.',
-    fulfillment_note: 'Manual fulfillment required. Automatic purchase provider not enabled yet.',
+    fulfillment_note: 'Manual purchase required. Automatic purchase provider not enabled yet.',
   });
   const match = await createMatchForPrizeRoom(store, room, user?.id);
   const synced = await store.update('prize_rooms', room.id, { match_id: match.id });
@@ -2363,8 +2507,52 @@ export function createMatchFlowRouter({ store }) {
       }
     }
     const rooms = await store.list('prize_rooms', {}, { sort: '-created_at' });
+    const repairedRooms = [];
+    for (const room of rooms) {
+      const patch = {};
+      const linkedMatch = (!room.game_image || !room.prize_image || isPrizeRoomFallbackImage(room.game_image) || isPrizeRoomFallbackImage(room.prize_image)) && room.match_id
+        ? await store.findOne('north_pole_matches', { id: room.match_id }).catch(() => null)
+        : null;
+      const snapshotGameImage = gameImageFromSnapshot(room.game_snapshot) || gameImageFromSnapshot(linkedMatch?.game_snapshot);
+      const snapshotPrizeImage = prizeImageFromSnapshot(room.prize_snapshot) || prizeImageFromSnapshot(linkedMatch?.prize_snapshot);
+      const repairedGameImage = snapshotGameImage || defaultGameImage(room.game_title || linkedMatch?.game_snapshot?.title);
+      const repairedPrizeImage = snapshotPrizeImage || defaultPrizeImage(room.prize_title || linkedMatch?.prize_snapshot?.title);
+      if (!room.game_image || (snapshotGameImage && isPrizeRoomFallbackImage(room.game_image))) patch.game_image = repairedGameImage;
+      if (!room.prize_image || (snapshotPrizeImage && isPrizeRoomFallbackImage(room.prize_image))) patch.prize_image = repairedPrizeImage;
+      if (room.game_snapshot && typeof room.game_snapshot === 'object' && !gameImageFromSnapshot(room.game_snapshot)) {
+        patch.game_snapshot = {
+          ...room.game_snapshot,
+          image: patch.game_image || room.game_image,
+          background_image: patch.game_image || room.game_image,
+        };
+      } else if (!room.game_snapshot && linkedMatch?.game_snapshot) {
+        patch.game_snapshot = {
+          ...linkedMatch.game_snapshot,
+          image: patch.game_image || room.game_image || snapshotGameImage,
+          background_image: patch.game_image || room.game_image || snapshotGameImage,
+        };
+      }
+      if (room.prize_snapshot && typeof room.prize_snapshot === 'object' && !prizeImageFromSnapshot(room.prize_snapshot)) {
+        patch.prize_snapshot = {
+          ...room.prize_snapshot,
+          image: patch.prize_image || room.prize_image,
+          image_url: patch.prize_image || room.prize_image,
+        };
+      } else if (!room.prize_snapshot && linkedMatch?.prize_snapshot) {
+        patch.prize_snapshot = {
+          ...linkedMatch.prize_snapshot,
+          image: patch.prize_image || room.prize_image || snapshotPrizeImage,
+          image_url: patch.prize_image || room.prize_image || snapshotPrizeImage,
+        };
+      }
+      if (Object.keys(patch).length) {
+        repairedRooms.push(await store.update('prize_rooms', room.id, patch).catch(() => ({ ...room, ...patch })));
+      } else {
+        repairedRooms.push(room);
+      }
+    }
     const contributions = await store.list('player_contributions', {}, { sort: '-created_at' }).catch(() => []);
-    const roomsWithFunding = rooms.map((room) => {
+    const roomsWithFunding = repairedRooms.map((room) => {
       const roomContributions = contributions.filter((row) => row.room_id === room.id);
       const paidContributions = roomContributions.filter((row) => ['marked_paid', 'paid'].includes(row.status));
       return {

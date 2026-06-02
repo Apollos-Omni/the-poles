@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Mario Kart game image">
+  <rect width="800" height="600" rx="56" fill="#fff"/>
+  <rect x="28" y="28" width="744" height="544" rx="44" fill="#160326"/>
+  <circle cx="650" cy="130" r="90" fill="#facc15" opacity=".9"/>
+  <path d="M92 410c138-120 278-120 420 0 56 47 118 57 196 30" fill="none" stroke="#a855f7" stroke-width="44" stroke-linecap="round"/>
+  <rect x="128" y="178" width="318" height="148" rx="34" fill="#fff"/>
+  <text x="287" y="242" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="900" fill="#160326">MARIO</text>
+  <text x="287" y="292" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="900" fill="#7c3aed">KART</text>
+  <circle cx="538" cy="329" r="58" fill="#111827" stroke="#fff" stroke-width="16"/>
+  <circle cx="538" cy="329" r="18" fill="#facc15"/>
+</svg>

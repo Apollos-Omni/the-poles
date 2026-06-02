@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 675" role="img" aria-label="Rocket League credits prize image">
+  <rect width="900" height="675" rx="64" fill="#fff"/>
+  <rect x="54" y="72" width="792" height="531" rx="46" fill="#06122b"/>
+  <rect x="130" y="154" width="640" height="338" rx="40" fill="#fff"/>
+  <circle cx="570" cy="252" r="58" fill="#7c3aed"/>
+  <path d="M238 394c120-110 248-132 384-66" stroke="#facc15" stroke-width="32" fill="none" stroke-linecap="round"/>
+  <text x="450" y="566" text-anchor="middle" font-family="Arial, sans-serif" font-size="50" font-weight="900" fill="#fff">ROCKET LEAGUE CREDITS</text>
+</svg>

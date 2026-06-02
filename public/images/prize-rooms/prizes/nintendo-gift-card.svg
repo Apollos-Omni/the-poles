@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 675" role="img" aria-label="Nintendo gift card prize image">
+  <rect width="900" height="675" rx="64" fill="#fff"/>
+  <rect x="54" y="72" width="792" height="531" rx="46" fill="#dc2626"/>
+  <rect x="116" y="156" width="668" height="250" rx="42" fill="#fff"/>
+  <text x="450" y="264" text-anchor="middle" font-family="Arial, sans-serif" font-size="74" font-weight="900" fill="#dc2626">NINTENDO</text>
+  <text x="450" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="62" font-weight="900" fill="#160326">GIFT CARD</text>
+  <path d="M180 504h540" stroke="#facc15" stroke-width="34" stroke-linecap="round"/>
+</svg>

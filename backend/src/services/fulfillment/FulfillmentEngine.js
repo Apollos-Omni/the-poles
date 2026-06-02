@@ -33,93 +33,105 @@ export class FulfillmentEngine {
   }
 
   async fulfillVerifiedWinner({ match, userId }) {
-    console.log('[fulfillment:engine] fulfillVerifiedWinner:start', {
-      matchId: match?.match_id || match?.id,
-      userId,
-      provider: this.providerName,
-      mode: this.mode,
-      demoMode: match?.demo_mode === true,
-      testOrder: match?.test_order === true,
-    });
-
-    const fulfillment = await this.createFulfillment(this.store, match, userId);
-    console.log('[fulfillment:engine] fulfillVerifiedWinner:created_or_existing', {
-      fulfillmentId: fulfillment?.id,
-      matchId: fulfillment?.match_id,
-      status: fulfillment?.status,
-      retailerOrderId: fulfillment?.retailer_order_id,
-      trackingNumber: fulfillment?.tracking_number,
-    });
-
-    if (fulfillment.status === 'ordered' && fulfillment.retailer_order_id && fulfillment.tracking_number) {
-      console.log('[fulfillment:engine] fulfillVerifiedWinner:already_ordered', {
-        fulfillmentId: fulfillment.id,
-        retailerOrderId: fulfillment.retailer_order_id,
-        trackingNumber: fulfillment.tracking_number,
-      });
-      return fulfillment;
-    }
-
-    const reviewed = await this.runFulfillmentReview({ match, fulfillment, userId });
-    const order = this.preparePrizeOrder({ match, fulfillment, reviewed });
-    console.log('[fulfillment:engine] fulfillVerifiedWinner:prepared_order', {
-      fulfillmentId: reviewed?.id,
-      prizeTitle: order.prize_title,
-      provider: order.provider,
-      purchaseEnabled: order.purchase_enabled,
-    });
-
-    const providerResult = await this.provider.createOrder({ fulfillment: reviewed, order });
-
-    console.log('[fulfillment:engine] store.update prize_fulfillments:start', {
-      fulfillmentId: fulfillment.id,
-      status: 'ordered',
-      retailerOrderId: providerResult.retailer_order_id,
-      trackingNumber: providerResult.tracking_number,
-    });
-
-    const updated = await this.store.update('prize_fulfillments', fulfillment.id, {
-      status: 'ordered',
-      shipping_status: 'ordered',
-      admin_approved: true,
-      retailer_order_id: providerResult.retailer_order_id,
-      tracking_number: providerResult.tracking_number,
-      provider_status: providerResult.provider_status,
-      provider: providerResult.provider,
-      provider_reference: providerResult.provider_reference,
-      estimated_delivery: providerResult.estimated_delivery,
-      fulfillment_mode: this.mode,
-      order_prepared_at: order.prepared_at,
-      ordered_at: now(),
-      admin_notes: [
-        fulfillment.admin_notes,
-        `Mock order prepared by ${this.mode} fulfillment mode. No real purchase was made.`,
-      ].filter(Boolean).join('\n'),
-    });
-
-    console.log('[fulfillment:engine] store.update prize_fulfillments:success', {
-      fulfillmentId: updated?.id,
-      status: updated?.status,
-      retailerOrderId: updated?.retailer_order_id,
-      trackingNumber: updated?.tracking_number,
-    });
-
-    await this.audit({
-      entityType: 'PrizeFulfillment',
-      entityId: updated.id,
-      matchId: updated.match_id,
-      userId,
-      action: 'PRIZE_FULFILLMENT_ORDERED',
-      metadata: {
-        provider: providerResult.provider,
-        providerStatus: providerResult.provider_status,
+    try {
+      console.log('[fulfillment:engine] fulfillVerifiedWinner:start', {
+        matchId: match?.match_id || match?.id,
+        userId,
+        provider: this.providerName,
         mode: this.mode,
-        retailerOrderId: providerResult.retailer_order_id,
-        autoPurchase: false,
-      },
-    });
+        demoMode: match?.demo_mode === true,
+        testOrder: match?.test_order === true,
+      });
 
-    return updated;
+      const fulfillment = await this.createFulfillment(this.store, match, userId);
+      console.log('[fulfillment:engine] fulfillVerifiedWinner:created_or_existing', {
+        fulfillmentId: fulfillment?.id,
+        matchId: fulfillment?.match_id,
+        status: fulfillment?.status,
+        retailerOrderId: fulfillment?.retailer_order_id,
+        trackingNumber: fulfillment?.tracking_number,
+      });
+
+      if (fulfillment.status === 'ordered' && fulfillment.retailer_order_id && fulfillment.tracking_number) {
+        console.log('[fulfillment:engine] fulfillVerifiedWinner:already_ordered', {
+          fulfillmentId: fulfillment.id,
+          retailerOrderId: fulfillment.retailer_order_id,
+          trackingNumber: fulfillment.tracking_number,
+        });
+        return fulfillment;
+      }
+
+      const reviewed = await this.runFulfillmentReview({ match, fulfillment, userId });
+      const order = this.preparePrizeOrder({ match, fulfillment, reviewed });
+      console.log('[fulfillment:engine] fulfillVerifiedWinner:prepared_order', {
+        fulfillmentId: reviewed?.id,
+        prizeTitle: order.prize_title,
+        provider: order.provider,
+        purchaseEnabled: order.purchase_enabled,
+      });
+
+      const providerResult = await this.provider.createOrder({ fulfillment: reviewed, order });
+
+      console.log('[fulfillment:engine] store.update prize_fulfillments:start', {
+        fulfillmentId: fulfillment.id,
+        status: 'ordered',
+        retailerOrderId: providerResult.retailer_order_id,
+        trackingNumber: providerResult.tracking_number,
+      });
+
+      const updated = await this.store.update('prize_fulfillments', fulfillment.id, {
+        status: 'ordered',
+        shipping_status: 'ordered',
+        admin_approved: true,
+        retailer_order_id: providerResult.retailer_order_id,
+        tracking_number: providerResult.tracking_number,
+        provider_status: providerResult.provider_status,
+        provider: providerResult.provider,
+        provider_reference: providerResult.provider_reference,
+        estimated_delivery: providerResult.estimated_delivery,
+        fulfillment_mode: this.mode,
+        order_prepared_at: order.prepared_at,
+        ordered_at: now(),
+        admin_notes: [
+          fulfillment.admin_notes,
+          `Mock order prepared by ${this.mode} fulfillment mode. No real purchase was made.`,
+        ].filter(Boolean).join('\n'),
+      });
+
+      console.log('[fulfillment:engine] store.update prize_fulfillments:success', {
+        fulfillmentId: updated?.id,
+        status: updated?.status,
+        retailerOrderId: updated?.retailer_order_id,
+        trackingNumber: updated?.tracking_number,
+      });
+
+      await this.audit({
+        entityType: 'PrizeFulfillment',
+        entityId: updated.id,
+        matchId: updated.match_id,
+        userId,
+        action: 'PRIZE_FULFILLMENT_ORDERED',
+        metadata: {
+          provider: providerResult.provider,
+          providerStatus: providerResult.provider_status,
+          mode: this.mode,
+          retailerOrderId: providerResult.retailer_order_id,
+          autoPurchase: false,
+        },
+      });
+
+      return updated;
+    } catch (error) {
+      console.error('[fulfillment:engine] fulfillVerifiedWinner:failed', {
+        matchId: match?.match_id || match?.id,
+        userId,
+        provider: this.providerName,
+        mode: this.mode,
+        error: error.message,
+        stack: error.stack,
+      });
+      throw error;
+    }
   }
 
   async runFulfillmentReview({ match, fulfillment, userId }) {

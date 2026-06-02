@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Rocket League game image">
+  <rect width="800" height="600" rx="56" fill="#fff"/>
+  <rect x="28" y="28" width="744" height="544" rx="44" fill="#06122b"/>
+  <circle cx="548" cy="198" r="64" fill="#fff" stroke="#a855f7" stroke-width="18"/>
+  <path d="M126 410c102-112 236-146 392-104" stroke="#facc15" stroke-width="28" stroke-linecap="round" fill="none"/>
+  <path d="M230 348h206l56 58-66 44H206l-58-50 82-52Z" fill="#7c3aed"/>
+  <circle cx="244" cy="454" r="36" fill="#111827" stroke="#fff" stroke-width="10"/>
+  <circle cx="414" cy="454" r="36" fill="#111827" stroke="#fff" stroke-width="10"/>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Family game night image">
+  <rect width="800" height="600" rx="56" fill="#fff"/>
+  <rect x="28" y="28" width="744" height="544" rx="44" fill="#1a0633"/>
+  <rect x="160" y="176" width="140" height="190" rx="24" fill="#facc15"/>
+  <rect x="330" y="132" width="140" height="190" rx="24" fill="#fff"/>
+  <rect x="500" y="176" width="140" height="190" rx="24" fill="#7c3aed"/>
+  <text x="400" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-size="54" font-weight="900" fill="#fff">GAME NIGHT</text>
+</svg>

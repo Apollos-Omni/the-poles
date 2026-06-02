@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 675" role="img" aria-label="Family game night prize image">
+  <rect width="900" height="675" rx="64" fill="#fff"/>
+  <rect x="54" y="72" width="792" height="531" rx="46" fill="#21063a"/>
+  <rect x="154" y="168" width="592" height="284" rx="42" fill="#fff"/>
+  <circle cx="314" cy="310" r="64" fill="#facc15"/>
+  <rect x="420" y="242" width="180" height="136" rx="28" fill="#7c3aed"/>
+  <text x="450" y="535" text-anchor="middle" font-family="Arial, sans-serif" font-size="58" font-weight="900" fill="#fff">FAMILY GAME NIGHT</text>
+</svg>

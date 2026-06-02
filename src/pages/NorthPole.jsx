@@ -31,6 +31,7 @@ import {
   ArrowRight,
   PlayCircle,
   Target,
+  ChevronDown,
 } from 'lucide-react';
 import AdminDashboard from '@/components/northpole/AdminDashboard';
 import SkillCompetitionAgreement from '@/components/northpole/SkillCompetitionAgreement';
@@ -86,6 +87,61 @@ function toCents(value) {
 
 function formatMoney(cents = 0) {
   return `$${(Number(cents || 0) / 100).toFixed(2)}`;
+}
+
+function firstImageUrl(source, fields) {
+  if (!source) return '';
+  for (const field of fields) {
+    const value = source[field];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (value && typeof value === 'object' && typeof value.imageUrl === 'string' && value.imageUrl.trim()) {
+      return value.imageUrl.trim();
+    }
+    if (value && typeof value === 'object' && typeof value.url === 'string' && value.url.trim()) {
+      return value.url.trim();
+    }
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        if (typeof entry === 'string' && entry.trim()) return entry.trim();
+        if (entry && typeof entry === 'object' && typeof entry.imageUrl === 'string' && entry.imageUrl.trim()) {
+          return entry.imageUrl.trim();
+        }
+        if (entry && typeof entry === 'object' && typeof entry.image === 'string' && entry.image.trim()) {
+          return entry.image.trim();
+        }
+        if (entry && typeof entry === 'object' && typeof entry.url === 'string' && entry.url.trim()) {
+          return entry.url.trim();
+        }
+      }
+    }
+  }
+  return '';
+}
+
+function prizeImageFromSource(source) {
+  return firstImageUrl(source, [
+    'image',
+    'image_url',
+    'thumbnailImages',
+    'thumbnail',
+    'thumbnail_url',
+    'galleryURL',
+    'pictureURLLarge',
+    'pictureURLSuperSize',
+    'additionalImages',
+  ]);
+}
+
+function gameImageFromSource(source) {
+  return firstImageUrl(source, [
+    'background_image',
+    'background_image_additional',
+    'image',
+    'icon_url',
+    'cover',
+    'thumbnail',
+    'short_screenshots',
+  ]);
 }
 
 function calculateNorthPoleOptions({ priceCents, taxCents, shippingCents, playerCounts = PLAYER_OPTIONS }) {
@@ -192,9 +248,9 @@ function RoomCostRows({ breakdown = {}, compact = false }) {
   return (
     <div className={`rounded-xl border border-yellow-700/35 bg-yellow-950/10 ${compact ? 'p-3' : 'p-4'}`}>
       <div className="mb-2 flex flex-wrap gap-2">
-        <Badge className="border border-yellow-600/30 bg-yellow-600/20 text-yellow-100">Pilot Payment Mode</Badge>
-        <Badge className="border border-red-600/30 bg-red-600/20 text-red-100">No real charge made</Badge>
-        <Badge className="border border-orange-600/30 bg-orange-600/20 text-orange-100">Manual fulfillment required</Badge>
+        <Badge className="border border-yellow-600/30 bg-yellow-600/20 text-yellow-100">Test Mode: no real charge made</Badge>
+        <Badge className="border border-red-600/30 bg-red-600/20 text-red-100">Manual payment confirmation</Badge>
+        <Badge className="border border-orange-600/30 bg-orange-600/20 text-orange-100">Manual purchase required</Badge>
       </div>
       <div className="grid gap-1 text-xs text-purple-100 sm:grid-cols-2">
         {rows.map(([label, cents]) => (
@@ -216,18 +272,508 @@ function RoomCostRows({ breakdown = {}, compact = false }) {
   );
 }
 
+const FRONTEND_DEMO_PRIZE_ROOMS = [
+  {
+    id: 'frontend-demo-mario-kart-family',
+    title: 'Mario Kart Family Prize Room',
+    description: 'Test Mode Room: a family-friendly kart racing skill match with a digital gift card prize prepared for manual purchase.',
+    room_type: 'platform_supported',
+    game_id: 'mario-kart-family',
+    game_title: 'Mario Kart',
+    game_image: '',
+    game_platform: 'Nintendo Switch',
+    game_description: 'Family race night. Players run the agreed track set, then submit final placement or scoreboard proof.',
+    prize_id: 'nintendo-gift-card-demo',
+    prize_title: 'Nintendo Gift Card',
+    prize_image: '',
+    prize_source: 'pilot_demo',
+    prize_type: 'Gift Card',
+    prize_url: '',
+    min_players: 2,
+    max_players: 4,
+    player_ids: ['pilot-player-1', 'pilot-player-2'],
+    status: 'open',
+    winning_rule: 'Best final placement after agreed races wins',
+    verification_method: 'Scoreboard photo or parent/admin confirmation',
+    foundation_rate: 0.1,
+    is_featured: true,
+    family_friendly: true,
+    payment_mode: 'pilot_manual',
+    is_frontend_demo: true,
+    cost_breakdown: calculatePrizeRoomBreakdown({ priceCents: 2500, players: 4 }),
+    contributions: [
+      { id: 'demo-contribution-1', display_name: 'Pilot Player 1', status: 'marked_paid', amount_cents: 920 },
+      { id: 'demo-contribution-2', display_name: 'Pilot Player 2', status: 'marked_paid', amount_cents: 920 },
+    ],
+  },
+  {
+    id: 'frontend-demo-madden-1v1',
+    title: 'Madden 1v1 Gift Card Room',
+    description: 'Test Mode Room: head-to-head skill match with manual winner verification and prepared fulfillment.',
+    room_type: 'platform_supported',
+    game_id: 'madden-1v1',
+    game_title: 'Madden NFL',
+    game_image: '',
+    game_platform: 'PlayStation / Xbox',
+    game_description: 'One full game with default rules unless the room host chooses otherwise.',
+    prize_id: 'sports-gift-card-demo',
+    prize_title: 'Sports Gift Card',
+    prize_image: '',
+    prize_source: 'pilot_demo',
+    prize_type: 'Gift Card',
+    prize_url: '',
+    min_players: 2,
+    max_players: 2,
+    player_ids: ['pilot-player-1'],
+    status: 'open',
+    winning_rule: 'Highest final score wins',
+    verification_method: 'Final scoreboard proof URL or admin confirmation',
+    foundation_rate: 0.1,
+    is_featured: true,
+    family_friendly: false,
+    payment_mode: 'pilot_manual',
+    is_frontend_demo: true,
+    cost_breakdown: calculatePrizeRoomBreakdown({ priceCents: 4000, players: 2 }),
+    contributions: [
+      { id: 'demo-contribution-3', display_name: 'Pilot Player 1', status: 'marked_paid', amount_cents: 2647 },
+    ],
+  },
+  {
+    id: 'frontend-demo-uno-family',
+    title: 'Uno Family Game Room',
+    description: 'Test Mode Room: quick family competition with simple manual score verification.',
+    room_type: 'platform_supported',
+    game_id: 'uno-family',
+    game_title: 'Uno',
+    game_image: '',
+    game_platform: 'Tabletop / Mobile',
+    game_description: 'Players compete in the agreed number of rounds. Submit a final score note or photo.',
+    prize_id: 'family-night-prize-demo',
+    prize_title: 'Family Game Night Prize',
+    prize_image: '',
+    prize_source: 'pilot_demo',
+    prize_type: 'Family Prize',
+    prize_url: '',
+    min_players: 2,
+    max_players: 6,
+    player_ids: ['pilot-player-1', 'pilot-player-2', 'pilot-player-3', 'pilot-player-4', 'pilot-player-5'],
+    status: 'open',
+    winning_rule: 'Lowest score after agreed rounds wins',
+    verification_method: 'Manual score entry with proof note',
+    foundation_rate: 0.1,
+    is_featured: false,
+    family_friendly: true,
+    payment_mode: 'pilot_manual',
+    is_frontend_demo: true,
+    cost_breakdown: calculatePrizeRoomBreakdown({ priceCents: 3000, players: 6 }),
+    contributions: [
+      { id: 'demo-contribution-4', display_name: 'Pilot Player 1', status: 'marked_paid', amount_cents: 725 },
+      { id: 'demo-contribution-5', display_name: 'Pilot Player 2', status: 'marked_paid', amount_cents: 725 },
+      { id: 'demo-contribution-6', display_name: 'Pilot Player 3', status: 'marked_paid', amount_cents: 725 },
+      { id: 'demo-contribution-7', display_name: 'Pilot Player 4', status: 'marked_paid', amount_cents: 725 },
+      { id: 'demo-contribution-8', display_name: 'Pilot Player 5', status: 'marked_paid', amount_cents: 725 },
+    ],
+  },
+  {
+    id: 'frontend-demo-chess',
+    title: 'Chess Match Prize Room',
+    description: 'Test Mode Room: classic skill competition with a prepared digital prize and manual purchase.',
+    room_type: 'platform_supported',
+    game_id: 'chess-match',
+    game_title: 'Chess',
+    game_image: '',
+    game_platform: 'Board / Online',
+    game_description: 'One match or best-of-three, agreed before play starts.',
+    prize_id: 'bookshop-gift-card-demo',
+    prize_title: 'Bookshop Gift Card',
+    prize_image: '',
+    prize_source: 'pilot_demo',
+    prize_type: 'Gift Card',
+    prize_url: '',
+    min_players: 2,
+    max_players: 2,
+    player_ids: [],
+    status: 'open',
+    winning_rule: 'Checkmate or agreed match result wins',
+    verification_method: 'Game link, screenshot, or admin confirmation',
+    foundation_rate: 0.1,
+    is_featured: false,
+    family_friendly: true,
+    payment_mode: 'pilot_manual',
+    is_frontend_demo: true,
+    cost_breakdown: calculatePrizeRoomBreakdown({ priceCents: 2000, players: 2 }),
+    contributions: [],
+  },
+];
+
+const PRIZE_ROOM_FILTERS = [
+  { value: 'all', label: 'All Rooms' },
+  { value: 'platform_supported', label: 'Platform Supported' },
+  { value: 'community_created', label: 'Community Created' },
+  { value: 'family_friendly', label: 'Family Friendly' },
+  { value: 'low_cost', label: 'Low Cost Rooms' },
+  { value: 'almost_full', label: 'Almost Full' },
+  { value: 'open', label: 'Open Rooms' },
+  { value: 'funded', label: 'Funded Rooms' },
+  { value: 'by_game', label: 'By Game' },
+  { value: 'by_prize_type', label: 'By Prize Type' },
+];
+
+function prizeRoomPlayerCount(room) {
+  return Array.isArray(room?.player_ids) ? room.player_ids.length : Number(room?.paid_contribution_count || 0);
+}
+
+function prizeRoomJoinCost(room) {
+  return Number(room?.cost_breakdown?.per_player_contribution_cents || 0);
+}
+
+function prizeRoomTotalCost(room) {
+  return Number(room?.cost_breakdown?.total_room_cost_cents || 0);
+}
+
+function prizeRoomTypeLabel(room) {
+  if (room?.is_frontend_demo) return 'Test Mode Room';
+  if (room?.room_type === 'user_created') return 'Community Created';
+  if (room?.room_type === 'community_template') return 'Community Template';
+  return 'Platform Supported';
+}
+
+function PrizeRoomHeroImage({
+  prizeImage,
+  prizeTitle,
+  gameImage,
+  gameTitle,
+  roomTitle,
+  joinCost,
+  status,
+  large = false,
+}) {
+  const [prizeFailed, setPrizeFailed] = useState(false);
+  const [gameFailed, setGameFailed] = useState(false);
+  const hasPrizeImage = prizeImage && !prizeFailed;
+  const hasGameImage = gameImage && !gameFailed;
+
+  return (
+    <div className={`relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-yellow-950 via-black to-purple-950 shadow-[0_0_36px_rgba(250,204,21,0.12)] ${
+      large ? 'aspect-[16/9] min-h-[260px]' : 'aspect-[4/3]'
+    }`}>
+      {hasPrizeImage ? (
+        <img
+          src={prizeImage}
+          alt={prizeTitle || roomTitle || 'Prize Room prize'}
+          onError={() => setPrizeFailed(true)}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.22),transparent_46%),linear-gradient(135deg,#2b1600,#050505_55%,#21073d)] px-6 text-center">
+          <Gift className={`${large ? 'h-16 w-16' : 'h-12 w-12'} text-yellow-200 drop-shadow-[0_0_16px_rgba(250,204,21,0.45)]`} />
+          <span className="text-xs font-black uppercase tracking-[0.18em] text-yellow-100">Prize Item</span>
+          <span className="line-clamp-2 text-sm font-bold text-white/80">{prizeTitle || 'Test mode prize image'}</span>
+        </div>
+      )}
+
+      <div className="absolute right-3 top-3 h-16 w-16 overflow-hidden rounded-2xl border border-white/30 bg-black shadow-[0_0_28px_rgba(124,58,237,0.55)] sm:h-20 sm:w-20">
+        {hasGameImage ? (
+          <img
+            src={gameImage}
+            alt={gameTitle || 'Prize Room game'}
+            onError={() => setGameFailed(true)}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-purple-800 via-black to-cyan-900">
+            <Gamepad2 className="h-6 w-6 text-purple-100 sm:h-8 sm:w-8" />
+            <span className="mt-1 hidden max-w-[4rem] truncate px-1 text-[9px] font-bold text-white/75 sm:block">{gameTitle || 'Game'}</span>
+          </div>
+        )}
+      </div>
+
+      {status && (
+        <Badge className={`absolute left-3 top-3 border ${statusClass(status)}`}>{status}</Badge>
+      )}
+
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/80 to-transparent p-4 pt-14">
+        <h3 className={`${large ? 'text-2xl sm:text-3xl' : 'text-lg'} line-clamp-2 font-black leading-tight text-white drop-shadow`}>
+          {roomTitle}
+        </h3>
+        <p className="mt-1 line-clamp-1 text-sm font-semibold text-purple-100">Game: {gameTitle || 'Skill Match'}</p>
+        <p className={`${large ? 'text-xl' : 'text-lg'} mt-2 font-black text-green-200`}>
+          Join cost: {formatMoney(joinCost)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function PrizeRoomFilters({
+  searchTerm,
+  onSearchTermChange,
+  filter,
+  onFilterChange,
+  secondaryValue,
+  onSecondaryValueChange,
+  gameOptions,
+  prizeTypeOptions,
+}) {
+  const needsSecondary = filter === 'by_game' || filter === 'by_prize_type';
+  const secondaryOptions = filter === 'by_game' ? gameOptions : prizeTypeOptions;
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-3 shadow-[0_0_45px_rgba(124,58,237,0.18)]">
+      <div className="grid gap-3 lg:grid-cols-[1fr_230px_220px]">
+        <label className="relative block">
+          <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-200" />
+          <Input
+            value={searchTerm}
+            onChange={(event) => onSearchTermChange(event.target.value)}
+            placeholder="Search games, prizes, or rooms..."
+            className="h-12 rounded-2xl border-white/10 bg-black/55 pl-11 text-white placeholder:text-white/45 focus:border-yellow-300"
+          />
+        </label>
+        <label className="relative block">
+          <select
+            value={filter}
+            onChange={(event) => {
+              onFilterChange(event.target.value);
+              onSecondaryValueChange('all');
+            }}
+            className="h-12 w-full appearance-none rounded-2xl border border-white/10 bg-black/55 px-4 pr-10 text-sm font-semibold text-white outline-none focus:border-yellow-300"
+          >
+            {PRIZE_ROOM_FILTERS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-200" />
+        </label>
+        <label className={`relative block ${needsSecondary ? '' : 'hidden lg:block'}`}>
+          <select
+            value={secondaryValue}
+            onChange={(event) => onSecondaryValueChange(event.target.value)}
+            disabled={!needsSecondary}
+            className="h-12 w-full appearance-none rounded-2xl border border-white/10 bg-black/55 px-4 pr-10 text-sm font-semibold text-white outline-none disabled:opacity-45 focus:border-yellow-300"
+          >
+            <option value="all">{filter === 'by_game' ? 'All Games' : filter === 'by_prize_type' ? 'All Prize Types' : 'Choose Filter'}</option>
+            {secondaryOptions.map((option) => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-200" />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function PlayerListPreview({ room }) {
+  const contributions = Array.isArray(room.contributions) ? room.contributions : [];
+  const players = contributions.length
+    ? contributions.map((contribution, index) => ({
+      id: contribution.id || `${room.id}-contribution-${index}`,
+      name: contribution.display_name || contribution.user_email || `Player ${index + 1}`,
+      status: contribution.status || 'pending',
+    }))
+    : (Array.isArray(room.player_ids) ? room.player_ids : []).map((playerId, index) => ({
+      id: playerId || `${room.id}-player-${index}`,
+      name: `Player ${index + 1}`,
+      status: 'joined',
+    }));
+
+  if (!players.length) {
+    return <p className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white/65">No players have joined yet.</p>;
+  }
+
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {players.slice(0, 8).map((player) => (
+        <div key={player.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm">
+          <span className="truncate text-white">{player.name}</span>
+          <Badge className={player.status === 'marked_paid' || player.status === 'paid' ? 'bg-green-600/20 text-green-200' : 'bg-purple-600/20 text-purple-100'}>
+            {player.status}
+          </Badge>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PrizeRoomCostBreakdown({ breakdown = {} }) {
+  return (
+    <div className="rounded-3xl border border-yellow-400/20 bg-gradient-to-br from-yellow-950/25 via-black/55 to-purple-950/35 p-4">
+      <div className="mb-3 flex flex-wrap gap-2">
+        <Badge className="border border-yellow-500/30 bg-yellow-500/20 text-yellow-50">Test Mode: no real charge made</Badge>
+        <Badge className="border border-white/15 bg-white/10 text-white">Manual payment confirmation</Badge>
+        <Badge className="border border-orange-500/30 bg-orange-500/20 text-orange-50">Manual purchase required</Badge>
+      </div>
+      <RoomCostRows breakdown={breakdown} compact />
+    </div>
+  );
+}
+
+function PrizeRoomCard({ room, isOpen, onToggleDetails, onJoin, joining }) {
+  const playerCount = prizeRoomPlayerCount(room);
+  const canJoin = ['open', 'awaiting_contributions'].includes(room.status);
+  return (
+    <Card className={`overflow-hidden rounded-3xl border bg-black/65 shadow-[0_0_38px_rgba(124,58,237,0.16)] transition ${
+      isOpen ? 'border-yellow-300/55 ring-1 ring-yellow-300/30' : 'border-white/10 hover:border-purple-300/40'
+    }`}>
+      <CardContent className="p-3">
+        <PrizeRoomHeroImage
+          prizeImage={room.prize_image}
+          prizeTitle={room.prize_title}
+          gameImage={room.game_image}
+          gameTitle={room.game_title}
+          roomTitle={room.title}
+          joinCost={prizeRoomJoinCost(room)}
+          status={room.status}
+        />
+        <div className="space-y-3 px-1 py-4">
+          <div className="flex flex-wrap gap-2">
+            <Badge className={room.is_frontend_demo ? 'bg-yellow-500/20 text-yellow-100' : 'bg-purple-600/20 text-purple-100'}>{prizeRoomTypeLabel(room)}</Badge>
+          </div>
+          <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-3 text-sm">
+            <div className="flex justify-between gap-3">
+              <span className="text-yellow-100/75">Prize</span>
+              <strong className="line-clamp-1 text-right text-white">{room.prize_title}</strong>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-white/55">Players</span>
+              <strong className="text-white">{playerCount} / {room.max_players}</strong>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="text-white/55">Status</span>
+              <strong className="capitalize text-green-200">{String(room.status || 'open').replace(/_/g, ' ')}</strong>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={onToggleDetails} variant="outline" className="flex-1 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+              {isOpen ? 'Hide Details' : 'View Details'}
+            </Button>
+            <Button onClick={onJoin} disabled={joining || !canJoin} className="flex-1 rounded-2xl bg-green-600 text-white hover:bg-green-500 disabled:bg-slate-700">
+              {joining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
+              Join Room
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PrizeRoomDetailsDropdown({ room, onJoin, joining }) {
+  const playerCount = prizeRoomPlayerCount(room);
+  return (
+    <div className="md:col-span-2 xl:col-span-3">
+      <div className="rounded-[2rem] border border-yellow-300/35 bg-gradient-to-br from-black via-purple-950/55 to-black p-4 shadow-[0_0_55px_rgba(250,204,21,0.14)]">
+        <PrizeRoomHeroImage
+          prizeImage={room.prize_image}
+          prizeTitle={room.prize_title}
+          gameImage={room.game_image}
+          gameTitle={room.game_title}
+          roomTitle={room.title}
+          joinCost={prizeRoomJoinCost(room)}
+          status={room.status}
+          large
+        />
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-4">
+            <div>
+              <div className="flex flex-wrap gap-2">
+                <Badge className="bg-yellow-500/20 text-yellow-100">{prizeRoomTypeLabel(room)}</Badge>
+                <Badge className={statusClass(room.status)}>{room.status}</Badge>
+              </div>
+              <h3 className="mt-3 text-2xl font-black text-white">{room.title}</h3>
+              <p className="mt-2 text-sm leading-6 text-white/70">{room.description || 'A pilot Prize Room prepared for skill-based competition and manual fulfillment.'}</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-3xl border border-purple-300/15 bg-white/[0.05] p-4">
+                <div className="mb-2 flex items-center gap-2 text-sm font-black text-purple-100">
+                  <Gamepad2 className="h-4 w-4" /> Game
+                </div>
+                <p className="font-bold text-white">{room.game_title}</p>
+                <p className="mt-1 text-sm text-white/60">{room.game_description || room.game_platform || 'Skill match rules are confirmed before play.'}</p>
+                <a
+                  href="https://rawg.io/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex text-xs font-semibold text-purple-200 underline-offset-4 hover:text-white hover:underline"
+                >
+                  Game data/images powered by RAWG
+                </a>
+              </div>
+              <div className="rounded-3xl border border-yellow-300/15 bg-white/[0.05] p-4">
+                <div className="mb-2 flex items-center gap-2 text-sm font-black text-yellow-100">
+                  <Gift className="h-4 w-4" /> Prize Listing
+                </div>
+                <p className="font-bold text-white">{room.prize_title}</p>
+                <p className="mt-1 text-sm text-white/60">{room.prize_description || `Source: ${room.prize_source || 'pilot demo'}. Prepared order only.`}</p>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-3xl border border-white/10 bg-black/35 p-4">
+                <div className="text-xs uppercase tracking-wide text-white/45">Winning rule</div>
+                <p className="mt-1 font-semibold text-white">{room.winning_rule || 'Highest verified score wins'}</p>
+              </div>
+              <div className="rounded-3xl border border-white/10 bg-black/35 p-4">
+                <div className="text-xs uppercase tracking-wide text-white/45">Verification method</div>
+                <p className="mt-1 font-semibold text-white">{room.verification_method || 'Manual score with proof URL'}</p>
+              </div>
+            </div>
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-sm font-black text-white">
+                <Users className="h-4 w-4 text-green-200" /> Players currently in room
+                <span className="text-white/55">({playerCount} / {room.max_players})</span>
+              </div>
+              <PlayerListPreview room={room} />
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-green-400/20 bg-green-500/10 p-4">
+              <div className="text-xs uppercase tracking-wide text-green-100/70">Your pilot contribution</div>
+              <div className="mt-1 text-4xl font-black text-green-100">{formatMoney(prizeRoomJoinCost(room))}</div>
+              <div className="mt-1 text-sm text-white/60">Total room cost: {formatMoney(prizeRoomTotalCost(room))}</div>
+            </div>
+            <PrizeRoomCostBreakdown breakdown={room.cost_breakdown} />
+            <Button onClick={onJoin} disabled={joining || !['open', 'awaiting_contributions'].includes(room.status)} className="h-12 w-full rounded-2xl bg-green-600 text-base font-black text-white hover:bg-green-500">
+              {joining ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <DoorOpen className="mr-2 h-5 w-5" />}
+              Join Room / Enter Room
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
   const [rooms, setRooms] = useState([]);
-  const [selectedRoom, setSelectedRoom] = useState(null);
+  const [openRoomId, setOpenRoomId] = useState('');
   const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [secondaryFilter, setSecondaryFilter] = useState('all');
+  const [localError, setLocalError] = useState('');
+  const [localMessage, setLocalMessage] = useState('');
+  const [usingDemoFallback, setUsingDemoFallback] = useState(false);
 
   const loadRooms = useCallback(async () => {
     setLoading(true);
+    setLocalError('');
     try {
-      setRooms(await listPrizeRooms());
+      const apiRooms = await listPrizeRooms();
+      if (Array.isArray(apiRooms) && apiRooms.length) {
+        setRooms(apiRooms);
+        setUsingDemoFallback(false);
+      } else {
+        setRooms(FRONTEND_DEMO_PRIZE_ROOMS);
+        setUsingDemoFallback(true);
+        setLocalMessage('Showing Test Mode Rooms because the backend returned no Prize Rooms.');
+      }
     } catch (err) {
-      onError(err.message || 'Could not load Prize Rooms.');
+      const message = err.message || 'Could not load Prize Rooms.';
+      setLocalError(message);
+      onError(message);
+      setRooms(FRONTEND_DEMO_PRIZE_ROOMS);
+      setUsingDemoFallback(true);
     } finally {
       setLoading(false);
     }
@@ -235,27 +781,75 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
 
   useEffect(() => { loadRooms(); }, [loadRooms]);
 
+  const materializeDemoRoom = async (room) => {
+    const createdRoom = await createPrizeRoom({
+      title: `${room.title} - Test Mode`,
+      description: room.description,
+      roomType: 'template_based',
+      gameId: room.game_id,
+      gameTitle: room.game_title,
+      gameImage: room.game_image || '',
+      gamePlatform: room.game_platform || 'pilot',
+      prizeId: room.prize_id,
+      prizeTitle: room.prize_title,
+      prizeImage: room.prize_image || '',
+      prizeSource: room.prize_source || 'pilot_demo',
+      prizeUrl: room.prize_url || '',
+      prizeSnapshot: {
+        id: room.prize_id,
+        title: room.prize_title,
+        image: room.prize_image || '',
+        price_cents: room.cost_breakdown?.item_cost_cents || 2500,
+        shipping_cents: room.cost_breakdown?.estimated_shipping_cents,
+        tax_cents: room.cost_breakdown?.estimated_tax_cents,
+        currency: 'USD',
+      },
+      minPlayers: room.min_players || 2,
+      maxPlayers: room.max_players || 4,
+      winningRule: room.winning_rule,
+      verificationMethod: room.verification_method,
+      foundationRate: room.foundation_rate || NORTH_POLE_COST_MODEL.foundationRate,
+      paymentMode: 'pilot_manual',
+    });
+    onCreated(createdRoom);
+    return createdRoom;
+  };
+
   const joinRoom = async (room) => {
     if (!user?.id) {
       onError('Sign in before joining a Prize Room.');
       return;
     }
     setJoiningId(room.id);
+    setLocalError('');
+    setLocalMessage('');
     try {
+      const roomToJoin = room.is_frontend_demo ? await materializeDemoRoom(room) : room;
       const result = await joinPrizeRoom({
-        roomId: room.id,
+        roomId: roomToJoin.id,
         displayName: user.full_name || user.name || user.email || 'Pilot Player',
         userEmail: user.email || '',
         paymentMode: 'pilot_manual',
       });
-      const updatedRoom = result.room || room;
-      setRooms((prev) => prev.map((row) => (row.id === updatedRoom.id ? updatedRoom : row)));
-      setSelectedRoom(updatedRoom);
+      const updatedRoom = result.room || roomToJoin;
+      setRooms((prev) => {
+        const withoutDemo = prev.filter((row) => row.id !== room.id);
+        const hasRoom = withoutDemo.some((row) => row.id === updatedRoom.id);
+        return hasRoom
+          ? withoutDemo.map((row) => (row.id === updatedRoom.id ? updatedRoom : row))
+          : [updatedRoom, ...withoutDemo];
+      });
+      setOpenRoomId(updatedRoom.id);
+      setUsingDemoFallback(false);
       onJoined(updatedRoom);
-      onMessage('Joined Prize Room. Pilot contribution was marked for family testing; no real charge was made.');
+      const message = 'Joined Prize Room. Pilot contribution was marked for family testing; no real charge was made.';
+      setLocalMessage(message);
+      onMessage(message);
       await loadRooms();
     } catch (err) {
-      onError(err.message || 'Could not join Prize Room.');
+      const message = err.message || 'Could not join Prize Room.';
+      setLocalError(message);
+      onError(message);
     } finally {
       setJoiningId('');
     }
@@ -283,7 +877,7 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
         paymentMode: 'pilot_manual',
       });
       onCreated(room);
-      setSelectedRoom(room);
+      setOpenRoomId(room.id);
       await loadRooms();
       onMessage('Custom Prize Room created in pilot/manual mode.');
     } catch (err) {
@@ -291,122 +885,131 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
     }
   };
 
-  const roomSections = [
-    ['Featured Prize Rooms', (room) => room.is_featured || room.room_type === 'platform_supported'],
-    ['Ready to Join', (room) => ['open', 'awaiting_contributions'].includes(room.status)],
-    ['Almost Full', (room) => Number(room.paid_contribution_count || 0) >= Math.max(1, Number(room.max_players || 0) - 1)],
-    ['Platform Supported', (room) => room.room_type === 'platform_supported' || room.room_type === 'template_based'],
-    ['Community Created', (room) => room.room_type === 'user_created'],
-    ['Family Friendly', (room) => room.family_friendly || /family|uno|mario|chess/i.test(`${room.title} ${room.game_title}`)],
-    ['Low Cost Rooms', (room) => Number(room.cost_breakdown?.per_player_contribution_cents || 0) <= 1500],
-  ];
+  const gameOptions = useMemo(() => (
+    [...new Set(rooms.map((room) => room.game_title).filter(Boolean))].sort()
+  ), [rooms]);
 
-  const renderRoomCard = (room) => {
-    const playerCount = Array.isArray(room.player_ids) ? room.player_ids.length : Number(room.paid_contribution_count || 0);
-    const breakdown = room.cost_breakdown || {};
-    return (
-      <Card key={room.id} className="border border-purple-700/30 bg-black/35">
-        <CardContent className="p-4">
-          <div className="mb-3 grid gap-3 sm:grid-cols-[72px_1fr]">
-            <div className="flex h-20 min-h-20 items-center justify-center overflow-hidden rounded-xl bg-purple-950/50">
-              {room.prize_image || room.game_image ? (
-                <img src={room.prize_image || room.game_image} alt={room.prize_title || room.game_title} className="h-full w-full object-cover" />
-              ) : (
-                <Gift className="h-8 w-8 text-yellow-300" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <div className="mb-1 flex flex-wrap gap-2">
-                <Badge className="bg-purple-600/20 text-purple-200">{room.room_type === 'user_created' ? 'Community Created' : 'Platform Supported'}</Badge>
-                <Badge className={statusClass(room.status)}>{room.status}</Badge>
-              </div>
-              <h3 className="line-clamp-2 text-base font-bold text-white">{room.title}</h3>
-              <p className="text-xs text-purple-300">{room.game_title} Skill Match</p>
-            </div>
-          </div>
-          <div className="grid gap-2 text-xs text-purple-200/80">
-            <span>Prize: <strong className="text-yellow-200">{room.prize_title}</strong></span>
-            <span>Players: <strong className="text-white">{playerCount} / {room.max_players}</strong></span>
-            <span>Each player: <strong className="text-green-300">{formatMoney(breakdown.per_player_contribution_cents)}</strong></span>
-            <span>Total room cost: <strong className="text-white">{formatMoney(breakdown.total_room_cost_cents)}</strong></span>
-            <span>Foundation 10% included: <strong className="text-pink-300">{formatMoney(breakdown.foundation_amount_cents)}</strong></span>
-          </div>
-          <div className="mt-4 flex gap-2">
-            <Button onClick={() => setSelectedRoom(room)} variant="outline" className="flex-1 border-purple-700/50 text-purple-200 hover:bg-purple-900/40">
-              View Checkout
-            </Button>
-            <Button onClick={() => joinRoom(room)} disabled={joiningId === room.id || !['open', 'awaiting_contributions'].includes(room.status)} className="flex-1 bg-green-700 text-white hover:bg-green-600">
-              {joiningId === room.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-              Join Prize Room
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
+  const prizeTypeOptions = useMemo(() => (
+    [...new Set(rooms.map((room) => room.prize_type || room.prize_source || 'Pilot Prize').filter(Boolean))].sort()
+  ), [rooms]);
+
+  const filteredRooms = useMemo(() => {
+    const query = searchTerm.trim().toLowerCase();
+    return rooms.filter((room) => {
+      const searchable = [
+        room.title,
+        room.game_title,
+        room.prize_title,
+        room.prize_source,
+        room.room_type,
+        room.status,
+      ].join(' ').toLowerCase();
+      if (query && !searchable.includes(query)) return false;
+      const playerCount = prizeRoomPlayerCount(room);
+      if (filter === 'platform_supported' && !['platform_supported', 'template_based'].includes(room.room_type)) return false;
+      if (filter === 'community_created' && room.room_type !== 'user_created') return false;
+      if (filter === 'family_friendly' && !(room.family_friendly || /family|uno|mario|chess/i.test(`${room.title} ${room.game_title}`))) return false;
+      if (filter === 'low_cost' && prizeRoomJoinCost(room) > 1500) return false;
+      if (filter === 'almost_full' && playerCount < Math.max(1, Number(room.max_players || 0) - 1)) return false;
+      if (filter === 'open' && !['open', 'awaiting_contributions'].includes(room.status)) return false;
+      if (filter === 'funded' && room.status !== 'funded') return false;
+      if (filter === 'by_game' && secondaryFilter !== 'all' && room.game_title !== secondaryFilter) return false;
+      if (filter === 'by_prize_type' && secondaryFilter !== 'all' && (room.prize_type || room.prize_source || 'Pilot Prize') !== secondaryFilter) return false;
+      return true;
+    });
+  }, [rooms, searchTerm, filter, secondaryFilter]);
 
   return (
-    <Card className="border border-cyan-700/30 bg-cyan-950/10">
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+    <Card className="overflow-hidden rounded-[2rem] border border-purple-400/20 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.35),transparent_32%),linear-gradient(135deg,#05010d,#10061f_45%,#050505)] text-white shadow-[0_0_70px_rgba(124,58,237,0.18)]">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.03]">
         <div>
           <CardTitle className="flex items-center gap-2 text-white">
             <Trophy className="h-5 w-5 text-yellow-300" />
             Prize Room Lobby
           </CardTitle>
-          <p className="mt-1 text-xs text-cyan-100/70">Browse ready-made skill-based rooms. Pilot Mode: no real charge made.</p>
+          <p className="mt-1 text-sm text-white/70">Browse visual Prize Rooms, review the game and prize, then join in Test Mode.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={loadRooms} className="border-cyan-700/50 text-cyan-100 hover:bg-cyan-950/40">
+          <Button variant="outline" onClick={loadRooms} className="rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
             <RefreshCw className="mr-2 h-4 w-4" />Refresh Rooms
           </Button>
-          <Button onClick={quickCreate} className="bg-purple-700 text-white hover:bg-purple-600">
+          <Button onClick={quickCreate} className="rounded-2xl bg-purple-700 text-white hover:bg-purple-600">
             <Plus className="mr-2 h-4 w-4" />Create Pilot Room
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {selectedRoom && (
-          <div className="rounded-2xl border border-green-700/30 bg-green-950/15 p-4">
-            <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-bold text-white">Prize Room Checkout</h3>
-                <p className="text-sm text-green-100">{selectedRoom.title}</p>
-                <p className="text-xs text-green-200/75">Winner receives: {selectedRoom.prize_title}</p>
-              </div>
-              <Badge className="border border-yellow-500/30 bg-yellow-600/20 text-yellow-100">Pilot Payment Mode</Badge>
-            </div>
-            <div className="mb-3 grid gap-2 text-xs text-purple-100 md:grid-cols-3">
-              <span>Game: <strong className="text-white">{selectedRoom.game_title}</strong></span>
-              <span>Players required: <strong className="text-white">{selectedRoom.min_players} - {selectedRoom.max_players}</strong></span>
-              <span>Current players joined: <strong className="text-white">{Array.isArray(selectedRoom.player_ids) ? selectedRoom.player_ids.length : selectedRoom.paid_contribution_count || 0}</strong></span>
-              <span>Winning Rule: <strong className="text-white">{selectedRoom.winning_rule}</strong></span>
-              <span>Verification: <strong className="text-white">{selectedRoom.verification_method}</strong></span>
-              <span>Payment mode: <strong className="text-white">Pilot/manual</strong></span>
-            </div>
-            <RoomCostRows breakdown={selectedRoom.cost_breakdown} />
-            <Button onClick={() => joinRoom(selectedRoom)} disabled={joiningId === selectedRoom.id} className="mt-3 w-full bg-green-700 text-white hover:bg-green-600">
-              Join Room - Mark Pilot Contribution
-            </Button>
+        <PrizeRoomFilters
+          searchTerm={searchTerm}
+          onSearchTermChange={setSearchTerm}
+          filter={filter}
+          onFilterChange={setFilter}
+          secondaryValue={secondaryFilter}
+          onSecondaryValueChange={setSecondaryFilter}
+          gameOptions={gameOptions}
+          prizeTypeOptions={prizeTypeOptions}
+        />
+
+        {(localError || localMessage || usingDemoFallback) && (
+          <div className="space-y-2">
+            {localError && (
+              <Alert className="border-orange-500/40 bg-orange-950/30 text-orange-50">
+                <AlertTitle>Prize Room notice</AlertTitle>
+                <AlertDescription>{localError}</AlertDescription>
+              </Alert>
+            )}
+            {(localMessage || usingDemoFallback) && (
+              <Alert className="border-yellow-500/35 bg-yellow-950/25 text-yellow-50">
+                <AlertTitle>{usingDemoFallback ? 'Test Mode Rooms' : 'Prize Room update'}</AlertTitle>
+                <AlertDescription>{localMessage || 'Showing Test Mode Rooms so the family test screen is never empty.'}</AlertDescription>
+              </Alert>
+            )}
           </div>
         )}
 
         {loading ? (
           <div className="grid gap-4 md:grid-cols-3">
-            {[1, 2, 3].map((item) => <div key={item} className="h-56 animate-pulse rounded-xl bg-purple-900/30" />)}
+            {[1, 2, 3].map((item) => <div key={item} className="h-80 animate-pulse rounded-3xl bg-purple-900/30" />)}
           </div>
+        ) : filteredRooms.length ? (
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h3 className="text-xl font-black text-white">Prize Rooms</h3>
+                <p className="text-sm text-white/55">{filteredRooms.length} room{filteredRooms.length === 1 ? '' : 's'} ready to browse.</p>
+              </div>
+              <Badge className="bg-yellow-500/20 text-yellow-100">Foundation 10% included</Badge>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {filteredRooms.map((room) => {
+                const isOpen = openRoomId === room.id;
+                return (
+                  <React.Fragment key={room.id}>
+                    <PrizeRoomCard
+                      room={room}
+                      isOpen={isOpen}
+                      joining={joiningId === room.id}
+                      onToggleDetails={() => setOpenRoomId(isOpen ? '' : room.id)}
+                      onJoin={() => joinRoom(room)}
+                    />
+                    {isOpen && (
+                      <PrizeRoomDetailsDropdown
+                        room={room}
+                        joining={joiningId === room.id}
+                        onJoin={() => joinRoom(room)}
+                      />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </section>
         ) : (
-          roomSections.map(([title, predicate]) => {
-            const sectionRooms = rooms.filter(predicate).slice(0, 6);
-            if (!sectionRooms.length) return null;
-            return (
-              <section key={title} className="space-y-3">
-                <h3 className="text-sm font-bold uppercase tracking-wide text-cyan-100">{title}</h3>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {sectionRooms.map(renderRoomCard)}
-                </div>
-              </section>
-            );
-          })
+          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center">
+            <Search className="mx-auto mb-3 h-8 w-8 text-purple-200" />
+            <h3 className="text-lg font-black text-white">No rooms match this search.</h3>
+            <p className="mt-1 text-sm text-white/60">Try All Rooms or clear the search to see the pilot marketplace.</p>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -1189,9 +1792,13 @@ function RealNorthPoleFlow({ user }) {
     setIsCreating(true);
     try {
       const prizeId = selectedPrize.id || `custom-prize-${Date.now().toString(36)}`;
+      const prizeImage = prizeImageFromSource(selectedPrize);
+      const gameImage = gameImageFromSource(selectedGame);
       const prizeSnapshot = {
         ...selectedPrize,
         id: prizeId,
+        image: prizeImage,
+        image_url: prizeImage,
         price_cents: selectedPlan.priceCents,
         estimated_tax_cents: selectedPlan.taxCents,
         estimated_shipping_cents: selectedPlan.shippingCents,
@@ -1206,11 +1813,16 @@ function RealNorthPoleFlow({ user }) {
         description: 'Community-created pilot Prize Room. Manual payment and fulfillment required.',
         gameId: selectedGame.id,
         gameTitle: selectedGame.title,
-        gameImage: selectedGame.icon_url || selectedGame.image || '',
+        gameImage,
+        gameSnapshot: {
+          ...selectedGame,
+          image: gameImage,
+          background_image: gameImage,
+        },
         gamePlatform: selectedGame.platform || selectedGame.store || 'manual',
         prizeId,
         prizeTitle: selectedPrize.title,
-        prizeImage: selectedPrize.image_url || selectedPrize.image || '',
+        prizeImage,
         prizeSource: selectedPrize.source || selectedPrize.source_label || 'manual',
         prizeUrl: selectedPrize.product_url || selectedPrize.url || '',
         prizeSnapshot,

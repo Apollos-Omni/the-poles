@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 675" role="img" aria-label="Amazon gift card prize image">
+  <rect width="900" height="675" rx="64" fill="#fff"/>
+  <rect x="54" y="72" width="792" height="531" rx="46" fill="#111827"/>
+  <rect x="130" y="150" width="640" height="330" rx="38" fill="#fff"/>
+  <text x="450" y="282" text-anchor="middle" font-family="Arial, sans-serif" font-size="70" font-weight="900" fill="#111827">AMAZON</text>
+  <text x="450" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="54" font-weight="900" fill="#7c3aed">GIFT CARD</text>
+  <path d="M294 418c92 54 216 54 312 0" stroke="#facc15" stroke-width="28" fill="none" stroke-linecap="round"/>
+</svg>

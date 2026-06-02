@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Chess game image">
+  <rect width="800" height="600" rx="56" fill="#fff"/>
+  <rect x="28" y="28" width="744" height="544" rx="44" fill="#0f0618"/>
+  <rect x="158" y="128" width="484" height="300" rx="20" fill="#fff"/>
+  <g fill="#7c3aed">
+    <rect x="158" y="128" width="121" height="75"/><rect x="400" y="128" width="121" height="75"/>
+    <rect x="279" y="203" width="121" height="75"/><rect x="521" y="203" width="121" height="75"/>
+    <rect x="158" y="278" width="121" height="75"/><rect x="400" y="278" width="121" height="75"/>
+    <rect x="279" y="353" width="121" height="75"/><rect x="521" y="353" width="121" height="75"/>
+  </g>
+  <path d="M380 352h40l24 72H356l24-72Zm-42 112h124v36H338v-36Zm62-290c46 0 72 29 72 66 0 31-19 53-42 62l14 50h-88l14-50c-23-9-42-31-42-62 0-37 26-66 72-66Z" fill="#facc15"/>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" role="img" aria-label="Mortal Kombat game image">
+  <rect width="800" height="600" rx="56" fill="#fff"/>
+  <rect x="28" y="28" width="744" height="544" rx="44" fill="#12040a"/>
+  <circle cx="400" cy="292" r="178" fill="#facc15"/>
+  <path d="M446 132c-84 34-148 124-130 236 52-34 88-78 96-144 50 42 66 96 34 164 92-52 126-180 0-256Z" fill="#12040a"/>
+  <text x="400" y="520" text-anchor="middle" font-family="Arial, sans-serif" font-size="54" font-weight="900" fill="#fff">MORTAL KOMBAT</text>
+</svg>

@@ -15,6 +15,16 @@
       "type": "object",
       "description": "Prize data at time of fulfillment"
     },
+    "prize_cost_breakdown": {
+      "type": "object",
+      "description": "Family pilot cost estimate. No real purchase is made automatically."
+    },
+    "item_cost_cents": { "type": "number" },
+    "estimated_tax_cents": { "type": "number" },
+    "estimated_shipping_cents": { "type": "number" },
+    "fulfillment_reserve_cents": { "type": "number" },
+    "platform_or_foundation_amount_cents": { "type": "number" },
+    "total_required_cents": { "type": "number" },
     "admin_status": {
       "type": "string",
       "enum": [
