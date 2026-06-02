@@ -2,7 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { getRequestUser, ROLES } from '../lib/auth.js';
-import { searchProductsAcrossProviders } from '../lib/searchProviders/products.js';
+import { searchProductsAcrossProviders, searchEbayBrowseCleanResults } from '../lib/searchProviders/products.js';
 import { searchGamesAcrossProviders } from '../lib/searchProviders/games.js';
 import { FulfillmentEngine } from '../services/fulfillment/FulfillmentEngine.js';
 
@@ -606,14 +606,13 @@ function gameImageFromSnapshot(source) {
 }
 
 function extractEbayImage(item = {}) {
-  return item?.image?.imageUrl
-    || item?.thumbnailImages?.[0]?.imageUrl
-    || item?.additionalImages?.[0]?.imageUrl
-    || item?.image_url
+  return item?.image_url
     || item?.imageUrl
-    || item?.image
     || item?.images?.[0]
     || item?.raw_ebay?.imageUrl
+    || item?.image?.imageUrl
+    || item?.thumbnailImages?.[0]?.imageUrl
+    || item?.additionalImages?.[0]?.imageUrl
     || '';
 }
 
@@ -631,6 +630,18 @@ function extractRawgGameImage(game = {}) {
 
 function isPrizeRoomFallbackImage(value = '') {
   return typeof value === 'string' && value.startsWith('/images/prize-rooms/');
+}
+
+function isExternalEbayImage(value = '') {
+  return typeof value === 'string' && /^https?:\/\/i\.ebayimg\.com\//i.test(value);
+}
+
+function isHttpsImage(value = '') {
+  return typeof value === 'string' && value.startsWith('https://');
+}
+
+function isExternalRawgImage(value = '') {
+  return typeof value === 'string' && /^https?:\/\/media\.rawg\.io\//i.test(value);
 }
 
 const STARTER_PRIZE_ROOM_TEMPLATES = [
@@ -895,6 +906,178 @@ async function createPrizeRoomRecord(store, input, user) {
   return synced;
 }
 
+async function findEbayPrizeImageCandidate(room, env = process.env) {
+  const prizeQuery = room.prize_query || room.prize_title;
+  const errors = [];
+  let fallbackCandidate = null;
+  let provider = '';
+  let providerStatus = '';
+  let productCount = 0;
+
+  try {
+    const result = await searchProductsAcrossProviders({ q: prizeQuery, limit: 5 }, env);
+    provider = result.provider || '';
+    providerStatus = result.providerStatus || result.externalProviderStatus || '';
+    const products = Array.isArray(result.products) ? result.products : [];
+    productCount = products.length;
+    const product = products.find((item) => isHttpsImage(extractEbayImage(item)))
+      || products.find((item) => extractEbayImage(item))
+      || null;
+    const image = extractEbayImage(product);
+    if (image && !fallbackCandidate) {
+      fallbackCandidate = {
+        image,
+        item: product,
+        source: result.provider || product?.source || 'product_search',
+        product_url: product?.product_url || product?.offers?.[0]?.product_url || '',
+      };
+    }
+    if (isHttpsImage(image)) {
+      return {
+        ...fallbackCandidate,
+        image,
+        provider,
+        provider_status: providerStatus,
+        product_count: productCount,
+        status: 'found',
+        errors,
+      };
+    }
+    if (result.provider === 'ebay_browse' && result.providerStatus !== 'live' && result.providerMessage) {
+      errors.push(result.providerMessage);
+    }
+  } catch (error) {
+    errors.push(`searchProductsAcrossProviders: ${error.message}`);
+  }
+
+  try {
+    const cleanResult = await searchEbayBrowseCleanResults({ q: prizeQuery, limit: 3 }, env);
+    provider = provider || 'ebay_browse_clean';
+    providerStatus = providerStatus || 'live';
+    const cleanItems = Array.isArray(cleanResult.results) ? cleanResult.results : [];
+    productCount = Math.max(productCount, cleanItems.length);
+    const cleanItem = cleanItems.find((item) => isHttpsImage(extractEbayImage(item)))
+      || cleanItems.find((item) => extractEbayImage(item))
+      || null;
+    const image = extractEbayImage(cleanItem);
+    if (isHttpsImage(image)) {
+      return {
+        image,
+        item: cleanItem,
+        source: 'ebay_browse_clean',
+        product_url: cleanItem?.itemWebUrl || '',
+        provider,
+        provider_status: providerStatus,
+        product_count: productCount,
+        status: 'found',
+        errors,
+      };
+    }
+    if (image && !fallbackCandidate) {
+      fallbackCandidate = {
+        image,
+        item: cleanItem,
+        source: 'ebay_browse_clean',
+        product_url: cleanItem?.itemWebUrl || '',
+      };
+    }
+  } catch (error) {
+    errors.push(`searchEbayBrowseCleanResults: ${error.message}`);
+  }
+
+  return {
+    image: fallbackCandidate?.image || '',
+    item: fallbackCandidate?.item || null,
+    source: fallbackCandidate?.source || '',
+    product_url: fallbackCandidate?.product_url || '',
+    provider,
+    provider_status: providerStatus,
+    product_count: productCount,
+    status: fallbackCandidate?.image ? 'candidate_not_external_ebay' : 'not_found',
+    errors,
+  };
+}
+
+async function findRawgGameImageCandidate(room, env = process.env) {
+  const gameQuery = room.game_query || room.game_title;
+  const errors = [];
+  let fallbackCandidate = null;
+
+  try {
+    const result = await searchGamesAcrossProviders({ q: gameQuery, limit: 5 }, env);
+    const games = Array.isArray(result.games) ? result.games : [];
+    const game = games.find((item) => isExternalRawgImage(extractRawgGameImage(item)))
+      || games.find((item) => extractRawgGameImage(item))
+      || null;
+    const image = extractRawgGameImage(game);
+    if (image) {
+      fallbackCandidate = {
+        image,
+        item: game,
+        source: result.provider || game?.source || 'game_search',
+      };
+    }
+    if (isExternalRawgImage(image)) {
+      return {
+        ...fallbackCandidate,
+        image,
+        status: 'found',
+        errors,
+      };
+    }
+    if (result.provider === 'rawg' && result.providerStatus !== 'live' && result.providerMessage) {
+      errors.push(result.providerMessage);
+    }
+  } catch (error) {
+    errors.push(`searchGamesAcrossProviders: ${error.message}`);
+  }
+
+  return {
+    image: fallbackCandidate?.image || '',
+    item: fallbackCandidate?.item || null,
+    source: fallbackCandidate?.source || '',
+    status: fallbackCandidate?.image ? 'candidate_not_external_rawg' : 'not_found',
+    errors,
+  };
+}
+
+async function getPrizeRoomProviderImageDiagnostics(room, env = process.env) {
+  const [prizeCandidate, gameCandidate] = await Promise.all([
+    findEbayPrizeImageCandidate(room, env),
+    findRawgGameImageCandidate(room, env),
+  ]);
+  const prizeWouldUpdate = Boolean(
+    isHttpsImage(prizeCandidate.image)
+      && (!room.prize_image || isPrizeRoomFallbackImage(room.prize_image))
+      && prizeCandidate.image !== room.prize_image
+  );
+  const gameWouldUpdate = Boolean(
+    isExternalRawgImage(gameCandidate.image)
+      && (!room.game_image || isPrizeRoomFallbackImage(room.game_image))
+      && gameCandidate.image !== room.game_image
+  );
+
+  return {
+    room_id: room.id,
+    title: room.title,
+    prize_query: room.prize_query || room.prize_title || '',
+    game_query: room.game_query || room.game_title || '',
+    current_prize_image: room.prize_image || '',
+    current_game_image: room.game_image || '',
+    ebay_candidate_image_url: isHttpsImage(prizeCandidate.image) ? prizeCandidate.image : '',
+    rawg_candidate_image_url: isExternalRawgImage(gameCandidate.image) ? gameCandidate.image : '',
+    would_update: prizeWouldUpdate || gameWouldUpdate,
+    would_update_prize_image: prizeWouldUpdate,
+    would_update_game_image: gameWouldUpdate,
+    provider: prizeCandidate.provider || '',
+    provider_status: prizeCandidate.provider_status || '',
+    product_count: prizeCandidate.product_count || 0,
+    prize_candidate_status: prizeCandidate.status,
+    game_candidate_status: gameCandidate.status,
+    errors: [...(prizeCandidate.errors || []), ...(gameCandidate.errors || [])],
+  };
+}
+
 async function hydratePrizeRoomProviderImages(store, room, env = process.env) {
   const patch = {};
   const details = {
@@ -902,50 +1085,69 @@ async function hydratePrizeRoomProviderImages(store, room, env = process.env) {
     title: room.title,
     prize_status: 'skipped',
     game_status: 'skipped',
+    prize_query: room.prize_query || room.prize_title || '',
+    provider: '',
+    provider_status: '',
+    product_count: 0,
+    ebay_candidate_image: '',
+    current_prize_image: room.prize_image || '',
+    saved_prize_image: '',
+    prize_candidate_image_url: '',
+    game_candidate_image_url: '',
+    saved_prize_image_url: '',
+    saved_game_image_url: '',
     errors: [],
   };
 
   if (!room.prize_image || isPrizeRoomFallbackImage(room.prize_image)) {
-    const prizeQuery = room.prize_query || room.prize_title;
-    try {
-      const result = await searchProductsAcrossProviders({ q: prizeQuery, limit: 5 }, env);
-      const providerIsLive = result.provider === 'ebay_browse' && result.providerStatus === 'live';
-      const product = providerIsLive && Array.isArray(result.products)
-        ? result.products.find((item) => extractEbayImage(item)) || result.products[0]
-        : null;
-      const image = extractEbayImage(product);
-      if (image) {
+    const candidate = await findEbayPrizeImageCandidate(room, env);
+    details.provider = candidate.provider || '';
+    details.provider_status = candidate.provider_status || '';
+    details.product_count = candidate.product_count || 0;
+    details.ebay_candidate_image = isHttpsImage(candidate.image) ? candidate.image : '';
+    details.prize_candidate_image_url = isHttpsImage(candidate.image) ? candidate.image : '';
+    details.errors.push(...(candidate.errors || []));
+    if (isHttpsImage(candidate.image)) {
+      const product = candidate.item;
+      const image = candidate.image;
+      try {
         patch.prize_image = image;
         patch.prize_snapshot = {
           ...(room.prize_snapshot && typeof room.prize_snapshot === 'object' ? room.prize_snapshot : {}),
           ...(product && typeof product === 'object' ? product : {}),
           image,
           image_url: image,
-          provider_image_source: product?.source || result.provider || 'ebay_browse',
+          provider_image_source: 'ebay_browse',
         };
-        patch.prize_url = product?.product_url || product?.offers?.[0]?.product_url || room.prize_url || '';
+        patch.prize_url = candidate.product_url
+          || product?.product_url
+          || product?.offers?.[0]?.product_url
+          || product?.raw_ebay?.itemWebUrl
+          || room.prize_url
+          || '';
         details.prize_status = 'updated';
-      } else {
-        patch.prize_image = room.prize_image || defaultPrizeImage(room.prize_title);
-        details.prize_status = providerIsLive ? 'no_provider_image' : 'fallback';
+        details.saved_prize_image = image;
+        details.saved_prize_image_url = image;
+      } catch (error) {
+        details.prize_status = 'failed';
+        details.errors.push(`Prize image: ${error.message}`);
       }
-    } catch (error) {
+    } else if (!room.prize_image) {
       patch.prize_image = room.prize_image || defaultPrizeImage(room.prize_title);
-      details.prize_status = 'failed';
-      details.errors.push(`Prize image: ${error.message}`);
+      details.prize_status = candidate.status === 'not_found' ? 'fallback' : candidate.status;
+    } else {
+      details.prize_status = candidate.status === 'not_found' ? 'no_provider_image' : candidate.status;
     }
   }
 
   if (!room.game_image || isPrizeRoomFallbackImage(room.game_image)) {
-    const gameQuery = room.game_query || room.game_title;
-    try {
-      const result = await searchGamesAcrossProviders({ q: gameQuery, limit: 5 }, env);
-      const providerIsLive = result.provider === 'rawg' && result.providerStatus === 'live';
-      const game = providerIsLive && Array.isArray(result.games)
-        ? result.games.find((item) => extractRawgGameImage(item)) || result.games[0]
-        : null;
-      const image = extractRawgGameImage(game);
-      if (image) {
+    const candidate = await findRawgGameImageCandidate(room, env);
+    details.game_candidate_image_url = isExternalRawgImage(candidate.image) ? candidate.image : '';
+    details.errors.push(...(candidate.errors || []));
+    if (isExternalRawgImage(candidate.image)) {
+      const game = candidate.item;
+      const image = candidate.image;
+      try {
         patch.game_image = image;
         patch.game_snapshot = {
           ...(room.game_snapshot && typeof room.game_snapshot === 'object' ? room.game_snapshot : {}),
@@ -953,17 +1155,19 @@ async function hydratePrizeRoomProviderImages(store, room, env = process.env) {
           image,
           image_url: image,
           background_image: image,
-          provider_image_source: game?.source || result.provider || 'rawg',
+          provider_image_source: candidate.source || game?.source || 'rawg',
         };
         details.game_status = 'updated';
-      } else {
-        patch.game_image = room.game_image || defaultGameImage(room.game_title);
-        details.game_status = providerIsLive ? 'no_provider_image' : 'fallback';
+        details.saved_game_image_url = image;
+      } catch (error) {
+        details.game_status = 'failed';
+        details.errors.push(`Game image: ${error.message}`);
       }
-    } catch (error) {
+    } else if (!room.game_image) {
       patch.game_image = room.game_image || defaultGameImage(room.game_title);
-      details.game_status = 'failed';
-      details.errors.push(`Game image: ${error.message}`);
+      details.game_status = candidate.status === 'not_found' ? 'fallback' : candidate.status;
+    } else {
+      details.game_status = candidate.status === 'not_found' ? 'no_provider_image' : candidate.status;
     }
   }
 
@@ -2706,6 +2910,45 @@ export function createMatchFlowRouter({ store }) {
     ok(res, { room, data: room });
   }));
 
+  router.post('/prize-rooms/hydrate-provider-images-test', asyncHandler(async (req, res) => {
+    const allowed = process.env.NODE_ENV !== 'production' || String(process.env.PRIZE_ROOM_ALLOW_TEST_HYDRATE || '').toLowerCase() === 'true';
+    if (!allowed) return res.status(404).json({ success: false, error: 'Not found' });
+
+    const rooms = await store.list('prize_rooms', {}, { sort: '-created_at' }).catch(() => []);
+    const details = [];
+    let updatedRoomCount = 0;
+    let failedRoomCount = 0;
+
+    for (const room of rooms) {
+      try {
+        const result = await hydratePrizeRoomProviderImages(store, room);
+        if (result.updated) updatedRoomCount += 1;
+        if (result.details.errors.length) failedRoomCount += 1;
+        details.push(result.details);
+      } catch (error) {
+        failedRoomCount += 1;
+        details.push({
+          room_id: room.id,
+          title: room.title,
+          prize_status: 'failed',
+          game_status: 'failed',
+          errors: [error.message],
+        });
+      }
+    }
+
+    ok(res, {
+      updated_room_count: updatedRoomCount,
+      failed_room_count: failedRoomCount,
+      details,
+      data: {
+        updated_room_count: updatedRoomCount,
+        failed_room_count: failedRoomCount,
+        details,
+      },
+    });
+  }));
+
   router.post('/prize-rooms/:roomId/join', asyncHandler(async (req, res) => {
     const user = await requireUser(req, res, store);
     if (!user) return;
@@ -2852,6 +3095,24 @@ export function createMatchFlowRouter({ store }) {
       fulfillment_status: 'prepared_order_only',
     });
     ok(res, { room: updatedRoom, fulfillment, data: { room: updatedRoom, fulfillment } });
+  }));
+
+  router.get('/admin/prize-rooms/provider-image-diagnostics', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
+
+    const rooms = await store.list('prize_rooms', {}, { sort: '-created_at' }).catch(() => []);
+    const diagnostics = [];
+    for (const room of rooms) {
+      diagnostics.push(await getPrizeRoomProviderImageDiagnostics(room));
+    }
+
+    ok(res, {
+      rooms: diagnostics,
+      data: diagnostics,
+      update_count: diagnostics.filter((entry) => entry.would_update).length,
+    });
   }));
 
   router.post('/admin/prize-rooms/hydrate-provider-images', asyncHandler(async (req, res) => {
