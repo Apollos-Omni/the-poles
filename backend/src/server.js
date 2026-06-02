@@ -7,6 +7,7 @@ import morgan from 'morgan';
 import { createAuthRouter } from './routes/auth.js';
 import { createFunctionRouter } from './routes/functions.js';
 import { createMatchFlowRouter } from './routes/matchFlow.js';
+import { createPaymentRouter, createStripeWebhookHandler } from './routes/payments.js';
 import { createStore } from './lib/store.js';
 import { searchEbayBrowseCleanResults } from './lib/searchProviders/products.js';
 
@@ -37,10 +38,12 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json({ limit: '2mb' }));
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 const store = createStore();
+app.post('/api/payments/webhook/stripe', express.raw({ type: 'application/json' }), createStripeWebhookHandler({ store }));
+
+app.use(express.json({ limit: '2mb' }));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 app.get('/', (_req, res) => {
   res.json({ status: 'ok', service: 'the-poles-backend' });
@@ -59,6 +62,7 @@ app.get('/api/health', async (_req, res) => {
 const functionRouter = createFunctionRouter({ store });
 app.use('/api/auth', createAuthRouter({ store }));
 app.use('/api/functions', functionRouter);
+app.use('/api/payments', createPaymentRouter({ store }));
 app.use('/api', createMatchFlowRouter({ store }));
 
 app.get('/api/ebay/search', async (req, res, next) => {
