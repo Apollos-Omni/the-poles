@@ -2,6 +2,8 @@ import express from 'express';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { getRequestUser, ROLES } from '../lib/auth.js';
+import { searchProductsAcrossProviders } from '../lib/searchProviders/products.js';
+import { searchGamesAcrossProviders } from '../lib/searchProviders/games.js';
 import { FulfillmentEngine } from '../services/fulfillment/FulfillmentEngine.js';
 
 const ADMIN_ROLES = new Set([ROLES.OWNER, ROLES.ADMIN]);
@@ -603,32 +605,58 @@ function gameImageFromSnapshot(source) {
   ]);
 }
 
+function extractEbayImage(item = {}) {
+  return item?.image?.imageUrl
+    || item?.thumbnailImages?.[0]?.imageUrl
+    || item?.additionalImages?.[0]?.imageUrl
+    || item?.image_url
+    || item?.imageUrl
+    || item?.image
+    || item?.images?.[0]
+    || item?.raw_ebay?.imageUrl
+    || '';
+}
+
+function extractRawgGameImage(game = {}) {
+  return game?.background_image
+    || game?.background_image_additional
+    || game?.short_screenshots?.[0]?.image
+    || game?.image
+    || game?.image_url
+    || game?.icon_url
+    || game?.cover
+    || game?.thumbnail
+    || '';
+}
+
 function isPrizeRoomFallbackImage(value = '') {
   return typeof value === 'string' && value.startsWith('/images/prize-rooms/');
 }
 
 const STARTER_PRIZE_ROOM_TEMPLATES = [
-  ['madden-gift-card', 'Madden 1v1 Gift Card Room', 'Madden 1v1 skill match for a pilot gift card prize.', 'Madden NFL', 'console', 'GameStop Gift Card', 4000, 2, 2, 'Highest score wins'],
-  ['nba-2k-gift-card', 'NBA 2K 1v1 Gift Card Room', 'NBA 2K head-to-head family pilot room.', 'NBA 2K', 'console', 'PlayStation Store Gift Card', 4000, 2, 2, 'Highest score wins'],
-  ['mario-kart-family', 'Mario Kart 4 Player Family Room', 'Four-player family race night with manual winner verification.', 'Mario Kart', 'switch', 'Nintendo Gift Card', 4000, 2, 4, 'Best final race placement wins'],
-  ['cod-kill-race', 'Call of Duty Kill Race Room', 'Skill-based kill race using submitted scoreboard proof.', 'Call of Duty', 'console/pc', 'Xbox Gift Card', 5000, 2, 4, 'Highest verified elimination count wins'],
-  ['rocket-league-2v2', 'Rocket League 2v2 Prize Room', 'Team skill room for Rocket League players.', 'Rocket League', 'multi-platform', 'Rocket League Credits Gift Card', 5000, 4, 4, 'Winning team by final score wins'],
-  ['chess-match', 'Chess Match Prize Room', 'Classic chess match with PGN or screenshot proof.', 'Chess', 'web/mobile', 'Amazon Gift Card', 2500, 2, 2, 'Checkmate or agreed final result wins'],
-  ['uno-family', 'Uno Family Game Room', 'Family-friendly Uno room with manual proof.', 'Uno', 'tabletop/mobile', 'Family Game Night Gift Card', 3000, 2, 4, 'First player out wins'],
-  ['fortnite-creative', 'Fortnite Creative Challenge Room', 'Creative challenge room with score/proof URL.', 'Fortnite Creative', 'multi-platform', 'V-Bucks Gift Card', 4000, 2, 4, 'Highest challenge score wins'],
-  ['mortal-kombat-1v1', 'Mortal Kombat 1v1 Room', 'Head-to-head fighting game prize room.', 'Mortal Kombat', 'console/pc', 'Console Store Gift Card', 4000, 2, 2, 'Best-of-three winner wins'],
-  ['family-mystery', 'Family Game Night Mystery Prize Room', 'Pilot mystery prize room for a family game night.', 'Family Game Night', 'tabletop', 'Mystery Family Prize', 3500, 2, 6, 'Manual family challenge winner wins'],
-].map(([id, title, description, gameTitle, gamePlatform, prizeTitle, priceCents, minPlayers, maxPlayers, winningRule], index) => ({
+  ['madden-gift-card', 'Madden 1v1 Gift Card Room', 'Madden 1v1 skill match for a test mode gift card prize.', 'Madden NFL', 'console', 'GameStop Gift Card', 4000, 2, 2, 'Highest score wins', 'Madden NFL', 'GameStop gift card'],
+  ['nba-2k-gift-card', 'NBA 2K 1v1 Gift Card Room', 'NBA 2K head-to-head family test room.', 'NBA 2K', 'console', 'PlayStation Store Gift Card', 4000, 2, 2, 'Highest score wins', 'NBA 2K', 'PlayStation Store gift card'],
+  ['mario-kart-family', 'Mario Kart 4 Player Family Room', 'Four-player family race night with manual winner verification.', 'Mario Kart', 'switch', 'Nintendo Gift Card', 4000, 2, 4, 'Best final race placement wins', 'Mario Kart', 'Nintendo gift card'],
+  ['cod-kill-race', 'Call of Duty Kill Race Room', 'Skill-based kill race using submitted scoreboard proof.', 'Call of Duty', 'console/pc', 'Xbox Gift Card', 5000, 2, 4, 'Highest verified elimination count wins', 'Call of Duty', 'Xbox gift card'],
+  ['rocket-league-2v2', 'Rocket League 2v2 Prize Room', 'Team skill room for Rocket League players.', 'Rocket League', 'multi-platform', 'Rocket League Credits Gift Card', 5000, 4, 4, 'Winning team by final score wins', 'Rocket League', 'Rocket League credits gift card'],
+  ['chess-match', 'Chess Match Prize Room', 'Classic chess match with PGN or screenshot proof.', 'Chess', 'web/mobile', 'Amazon Gift Card', 2500, 2, 2, 'Checkmate or agreed final result wins', 'Chess', 'Amazon gift card'],
+  ['uno-family', 'Uno Family Game Room', 'Family-friendly Uno room with manual proof.', 'Uno', 'tabletop/mobile', 'Family Game Night Gift Card', 3000, 2, 4, 'First player out wins', 'Uno', 'Family game night gift card'],
+  ['fortnite-creative', 'Fortnite Creative Challenge Room', 'Creative challenge room with score/proof URL.', 'Fortnite Creative', 'multi-platform', 'V-Bucks Gift Card', 4000, 2, 4, 'Highest challenge score wins', 'Fortnite', 'V-Bucks gift card'],
+  ['mortal-kombat-1v1', 'Mortal Kombat 1v1 Room', 'Head-to-head fighting game prize room.', 'Mortal Kombat', 'console/pc', 'Console Store Gift Card', 4000, 2, 2, 'Best-of-three winner wins', 'Mortal Kombat', 'Console store gift card'],
+  ['family-mystery', 'Family Game Night Mystery Prize Room', 'Test mode mystery prize room for a family game night.', 'Family Game Night', 'tabletop', 'Mystery Family Prize', 3500, 2, 6, 'Manual family challenge winner wins', 'Family game night', 'Mystery family prize'],
+].map(([id, title, description, gameTitle, gamePlatform, prizeTitle, priceCents, minPlayers, maxPlayers, winningRule, gameQuery, prizeQuery], index) => ({
   id: `tpl_${id}`,
   title,
   description,
   room_type: 'platform_supported',
   game_id: gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
   game_title: gameTitle,
+  game_query: gameQuery,
   game_image: defaultGameImage(gameTitle),
   game_platform: gamePlatform,
   prize_id: `starter_${id}`,
   prize_title: prizeTitle,
+  prize_query: prizeQuery,
   prize_image: defaultPrizeImage(prizeTitle),
   prize_source: 'pilot_demo',
   prize_url: '',
@@ -660,6 +688,8 @@ async function ensureStarterPrizeRoomTemplates(store) {
       const patch = {};
       if (!existing.game_image) patch.game_image = template.game_image || defaultGameImage(existing.game_title || template.game_title);
       if (!existing.prize_image) patch.prize_image = template.prize_image || defaultPrizeImage(existing.prize_title || template.prize_title);
+      if (!existing.game_query) patch.game_query = template.game_query || existing.game_title || template.game_title;
+      if (!existing.prize_query) patch.prize_query = template.prize_query || existing.prize_title || template.prize_title;
       if (existing.prize_snapshot && typeof existing.prize_snapshot === 'object' && (!existing.prize_snapshot.image && !existing.prize_snapshot.image_url)) {
         patch.prize_snapshot = {
           ...existing.prize_snapshot,
@@ -825,6 +855,7 @@ async function createPrizeRoomRecord(store, input, user) {
     description: input.description || template?.description || 'Pilot Prize Room for a skill-based match.',
     game_id: input.gameId || input.game_id || template?.game_id || 'north-pole-skill-match',
     game_title: gameTitle,
+    game_query: input.gameQuery || input.game_query || template?.game_query || gameTitle,
     game_image: gameImage,
     game_snapshot: {
       ...(gameSnapshot && typeof gameSnapshot === 'object' ? gameSnapshot : {}),
@@ -835,6 +866,7 @@ async function createPrizeRoomRecord(store, input, user) {
     game_platform: input.gamePlatform || input.game_platform || template?.game_platform || 'manual',
     prize_id: input.prizeId || input.prize_id || prizeSnapshot.id || template?.prize_id || `prize_${crypto.randomUUID()}`,
     prize_title: prizeTitle,
+    prize_query: input.prizeQuery || input.prize_query || template?.prize_query || prizeTitle,
     prize_image: prizeImage,
     prize_snapshot: {
       ...(prizeSnapshot && typeof prizeSnapshot === 'object' ? prizeSnapshot : {}),
@@ -861,6 +893,92 @@ async function createPrizeRoomRecord(store, input, user) {
   const synced = await store.update('prize_rooms', room.id, { match_id: match.id });
   await createLedgerEntriesForRoom(store, { ...synced, match_id: match.id });
   return synced;
+}
+
+async function hydratePrizeRoomProviderImages(store, room, env = process.env) {
+  const patch = {};
+  const details = {
+    room_id: room.id,
+    title: room.title,
+    prize_status: 'skipped',
+    game_status: 'skipped',
+    errors: [],
+  };
+
+  if (!room.prize_image || isPrizeRoomFallbackImage(room.prize_image)) {
+    const prizeQuery = room.prize_query || room.prize_title;
+    try {
+      const result = await searchProductsAcrossProviders({ q: prizeQuery, limit: 5 }, env);
+      const providerIsLive = result.provider === 'ebay_browse' && result.providerStatus === 'live';
+      const product = providerIsLive && Array.isArray(result.products)
+        ? result.products.find((item) => extractEbayImage(item)) || result.products[0]
+        : null;
+      const image = extractEbayImage(product);
+      if (image) {
+        patch.prize_image = image;
+        patch.prize_snapshot = {
+          ...(room.prize_snapshot && typeof room.prize_snapshot === 'object' ? room.prize_snapshot : {}),
+          ...(product && typeof product === 'object' ? product : {}),
+          image,
+          image_url: image,
+          provider_image_source: product?.source || result.provider || 'ebay_browse',
+        };
+        patch.prize_url = product?.product_url || product?.offers?.[0]?.product_url || room.prize_url || '';
+        details.prize_status = 'updated';
+      } else {
+        patch.prize_image = room.prize_image || defaultPrizeImage(room.prize_title);
+        details.prize_status = providerIsLive ? 'no_provider_image' : 'fallback';
+      }
+    } catch (error) {
+      patch.prize_image = room.prize_image || defaultPrizeImage(room.prize_title);
+      details.prize_status = 'failed';
+      details.errors.push(`Prize image: ${error.message}`);
+    }
+  }
+
+  if (!room.game_image || isPrizeRoomFallbackImage(room.game_image)) {
+    const gameQuery = room.game_query || room.game_title;
+    try {
+      const result = await searchGamesAcrossProviders({ q: gameQuery, limit: 5 }, env);
+      const providerIsLive = result.provider === 'rawg' && result.providerStatus === 'live';
+      const game = providerIsLive && Array.isArray(result.games)
+        ? result.games.find((item) => extractRawgGameImage(item)) || result.games[0]
+        : null;
+      const image = extractRawgGameImage(game);
+      if (image) {
+        patch.game_image = image;
+        patch.game_snapshot = {
+          ...(room.game_snapshot && typeof room.game_snapshot === 'object' ? room.game_snapshot : {}),
+          ...(game && typeof game === 'object' ? game : {}),
+          image,
+          image_url: image,
+          background_image: image,
+          provider_image_source: game?.source || result.provider || 'rawg',
+        };
+        details.game_status = 'updated';
+      } else {
+        patch.game_image = room.game_image || defaultGameImage(room.game_title);
+        details.game_status = providerIsLive ? 'no_provider_image' : 'fallback';
+      }
+    } catch (error) {
+      patch.game_image = room.game_image || defaultGameImage(room.game_title);
+      details.game_status = 'failed';
+      details.errors.push(`Game image: ${error.message}`);
+    }
+  }
+
+  const meaningfulPatch = Object.entries(patch).filter(([key, value]) => {
+    if (key === 'prize_url') return value && value !== room.prize_url;
+    return value !== undefined && JSON.stringify(value) !== JSON.stringify(room[key]);
+  });
+
+  if (!meaningfulPatch.length) {
+    return { room, updated: false, details };
+  }
+
+  const updatePayload = Object.fromEntries(meaningfulPatch);
+  const updatedRoom = await store.update('prize_rooms', room.id, updatePayload);
+  return { room: updatedRoom, updated: true, details };
 }
 
 async function findProfileForUser(store, userId) {
@@ -2519,6 +2637,8 @@ export function createMatchFlowRouter({ store }) {
       const repairedPrizeImage = snapshotPrizeImage || defaultPrizeImage(room.prize_title || linkedMatch?.prize_snapshot?.title);
       if (!room.game_image || (snapshotGameImage && isPrizeRoomFallbackImage(room.game_image))) patch.game_image = repairedGameImage;
       if (!room.prize_image || (snapshotPrizeImage && isPrizeRoomFallbackImage(room.prize_image))) patch.prize_image = repairedPrizeImage;
+      if (!room.game_query) patch.game_query = room.game_title || linkedMatch?.game_snapshot?.title || '';
+      if (!room.prize_query) patch.prize_query = room.prize_title || linkedMatch?.prize_snapshot?.title || '';
       if (room.game_snapshot && typeof room.game_snapshot === 'object' && !gameImageFromSnapshot(room.game_snapshot)) {
         patch.game_snapshot = {
           ...room.game_snapshot,
@@ -2545,10 +2665,15 @@ export function createMatchFlowRouter({ store }) {
           image_url: patch.prize_image || room.prize_image || snapshotPrizeImage,
         };
       }
+      let repairedRoom = room;
       if (Object.keys(patch).length) {
-        repairedRooms.push(await store.update('prize_rooms', room.id, patch).catch(() => ({ ...room, ...patch })));
+        repairedRoom = await store.update('prize_rooms', room.id, patch).catch(() => ({ ...room, ...patch }));
+      }
+      if (String(process.env.PRIZE_ROOM_AUTO_HYDRATE_IMAGES || '').toLowerCase() === 'true') {
+        const hydration = await hydratePrizeRoomProviderImages(store, repairedRoom).catch(() => null);
+        repairedRooms.push(hydration?.room || repairedRoom);
       } else {
-        repairedRooms.push(room);
+        repairedRooms.push(repairedRoom);
       }
     }
     const contributions = await store.list('player_contributions', {}, { sort: '-created_at' }).catch(() => []);
@@ -2727,6 +2852,45 @@ export function createMatchFlowRouter({ store }) {
       fulfillment_status: 'prepared_order_only',
     });
     ok(res, { room: updatedRoom, fulfillment, data: { room: updatedRoom, fulfillment } });
+  }));
+
+  router.post('/admin/prize-rooms/hydrate-provider-images', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
+    const rooms = await store.list('prize_rooms', {}, { sort: '-created_at' }).catch(() => []);
+    const details = [];
+    let updatedRoomCount = 0;
+    let failedRoomCount = 0;
+
+    for (const room of rooms) {
+      try {
+        const result = await hydratePrizeRoomProviderImages(store, room);
+        if (result.updated) updatedRoomCount += 1;
+        if (result.details.errors.length) failedRoomCount += 1;
+        details.push(result.details);
+      } catch (error) {
+        failedRoomCount += 1;
+        details.push({
+          room_id: room.id,
+          title: room.title,
+          prize_status: 'failed',
+          game_status: 'failed',
+          errors: [error.message],
+        });
+      }
+    }
+
+    ok(res, {
+      updated_room_count: updatedRoomCount,
+      failed_room_count: failedRoomCount,
+      details,
+      data: {
+        updated_room_count: updatedRoomCount,
+        failed_room_count: failedRoomCount,
+        details,
+      },
+    });
   }));
 
   router.get('/admin/fulfillment', asyncHandler(async (req, res) => {

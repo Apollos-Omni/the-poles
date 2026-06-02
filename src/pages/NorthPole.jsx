@@ -704,7 +704,15 @@ function PrizeRoomDetailsDropdown({ room, onJoin, joining }) {
                   <Gift className="h-4 w-4" /> Prize Listing
                 </div>
                 <p className="font-bold text-white">{room.prize_title}</p>
-                <p className="mt-1 text-sm text-white/60">{room.prize_description || `Source: ${room.prize_source || 'pilot demo'}. Prepared order only.`}</p>
+                <p className="mt-1 text-sm text-white/60">{room.prize_description || `Source: ${room.prize_source || 'test mode catalog'}. Prepared order only.`}</p>
+                <a
+                  href="https://www.ebay.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex text-xs font-semibold text-yellow-100 underline-offset-4 hover:text-white hover:underline"
+                >
+                  Prize image/product powered by eBay
+                </a>
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">

@@ -28,6 +28,7 @@ import {
   markPrizeRoomFunded,
   startPrizeRoomMatch,
   createPrizeRoomFulfillment,
+  hydratePrizeRoomProviderImages,
 } from '@/lib/northpole/matchEngine';
 import MatchEventLog from './MatchEventLog';
 
@@ -450,6 +451,20 @@ export default function AdminDashboard({ currentUser }) {
     setActionLoading(prev => ({ ...prev, [key]: false }));
   };
 
+  const handleHydrateProviderImages = async () => {
+    const key = 'hydrate_provider_images';
+    setActionLoading(prev => ({ ...prev, [key]: true }));
+    try {
+      const result = await hydratePrizeRoomProviderImages();
+      setFulfillmentError(`Provider image refresh complete. Updated ${result.updated_room_count || 0} room(s); ${result.failed_room_count || 0} failed.`);
+      await load();
+    } catch (error) {
+      setFulfillmentError(error.message || 'Could not refresh provider images.');
+    } finally {
+      setActionLoading(prev => ({ ...prev, [key]: false }));
+    }
+  };
+
   const handleScoreReview = async (score, verificationStatus, aiReviewStatus = score.aiReviewStatus || 'not_reviewed') => {
     const key = `${score.id}_${verificationStatus}`;
     setActionLoading(prev => ({ ...prev, [key]: true }));
@@ -608,7 +623,16 @@ export default function AdminDashboard({ currentUser }) {
       </div>
 
       {/* Refresh */}
-      <div className="flex justify-end">
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          variant="outline"
+          onClick={handleHydrateProviderImages}
+          disabled={actionLoading.hydrate_provider_images}
+          className="border-yellow-700/50 text-yellow-200 hover:bg-yellow-950/40 gap-2"
+        >
+          <RefreshCw className={`w-4 h-4 ${actionLoading.hydrate_provider_images ? 'animate-spin' : ''}`} />
+          Refresh Provider Images
+        </Button>
         <Button variant="outline" onClick={load} className="border-purple-700/50 text-purple-300 hover:bg-purple-900/40 gap-2">
           <RefreshCw className="w-4 h-4" />Refresh
         </Button>

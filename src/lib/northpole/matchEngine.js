@@ -430,6 +430,15 @@ export async function createPrizeRoomFulfillment({ roomId }) {
   return response.data || { room: response.room, fulfillment: response.fulfillment };
 }
 
+export async function hydratePrizeRoomProviderImages() {
+  const response = await apiRequest('/api/admin/prize-rooms/hydrate-provider-images', {
+    method: 'POST',
+    body: {},
+  });
+
+  return response.data || response;
+}
+
 function pilotPrizeCostBreakdown(prizeSnapshot = {}) {
   const number = (value, fallback = 0) => {
     const parsed = Number(value);
