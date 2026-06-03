@@ -444,8 +444,6 @@ function PrizeRoomHeroImage({
   gameImage,
   gameTitle,
   roomTitle,
-  joinCost,
-  status,
   large = false,
 }) {
   const [prizeFailed, setPrizeFailed] = useState(false);
@@ -454,7 +452,7 @@ function PrizeRoomHeroImage({
   const hasGameImage = gameImage && !gameFailed;
 
   return (
-    <div className={`relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-yellow-950 via-black to-purple-950 shadow-[0_0_36px_rgba(250,204,21,0.12)] ${
+    <div className={`relative overflow-hidden rounded-3xl border border-white/15 bg-white p-4 shadow-[0_0_36px_rgba(250,204,21,0.12)] ${
       large ? 'aspect-[16/9] min-h-[260px]' : 'aspect-[4/3]'
     }`}>
       {hasPrizeImage ? (
@@ -462,17 +460,17 @@ function PrizeRoomHeroImage({
           src={prizeImage}
           alt={prizeTitle || roomTitle || 'Prize Room prize'}
           onError={() => setPrizeFailed(true)}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain"
         />
       ) : (
-        <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.22),transparent_46%),linear-gradient(135deg,#2b1600,#050505_55%,#21073d)] px-6 text-center">
+        <div className="flex h-full w-full flex-col items-center justify-center gap-3 rounded-2xl bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.25),transparent_48%),linear-gradient(135deg,#fff7ed,#ffffff_48%,#f3e8ff)] px-6 text-center">
           <Gift className={`${large ? 'h-16 w-16' : 'h-12 w-12'} text-yellow-200 drop-shadow-[0_0_16px_rgba(250,204,21,0.45)]`} />
-          <span className="text-xs font-black uppercase tracking-[0.18em] text-yellow-100">Prize Item</span>
-          <span className="line-clamp-2 text-sm font-bold text-white/80">{prizeTitle || 'Test mode prize image'}</span>
+          <span className="text-xs font-black uppercase tracking-[0.18em] text-purple-900">Prize Item</span>
+          <span className="line-clamp-2 text-sm font-bold text-slate-800">{prizeTitle || 'Test mode prize image'}</span>
         </div>
       )}
 
-      <div className="absolute right-3 top-3 h-16 w-16 overflow-hidden rounded-2xl border border-white/30 bg-black shadow-[0_0_28px_rgba(124,58,237,0.55)] sm:h-20 sm:w-20">
+      <div className="absolute right-3 top-3 h-16 w-16 overflow-hidden rounded-2xl border border-white/80 bg-black shadow-[0_0_28px_rgba(124,58,237,0.45)] sm:h-20 sm:w-20">
         {hasGameImage ? (
           <img
             src={gameImage}
@@ -486,20 +484,6 @@ function PrizeRoomHeroImage({
             <span className="mt-1 hidden max-w-[4rem] truncate px-1 text-[9px] font-bold text-white/75 sm:block">{gameTitle || 'Game'}</span>
           </div>
         )}
-      </div>
-
-      {status && (
-        <Badge className={`absolute left-3 top-3 border ${statusClass(status)}`}>{status}</Badge>
-      )}
-
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/80 to-transparent p-4 pt-14">
-        <h3 className={`${large ? 'text-2xl sm:text-3xl' : 'text-lg'} line-clamp-2 font-black leading-tight text-white drop-shadow`}>
-          {roomTitle}
-        </h3>
-        <p className="mt-1 line-clamp-1 text-sm font-semibold text-purple-100">Game: {gameTitle || 'Skill Match'}</p>
-        <p className={`${large ? 'text-xl' : 'text-lg'} mt-2 font-black text-green-200`}>
-          Join cost: {formatMoney(joinCost)}
-        </p>
       </div>
     </div>
   );
@@ -622,12 +606,17 @@ function PrizeRoomCard({ room, isOpen, onToggleDetails, onJoin, joining }) {
           gameImage={room.game_image}
           gameTitle={room.game_title}
           roomTitle={room.title}
-          joinCost={prizeRoomJoinCost(room)}
-          status={room.status}
         />
         <div className="space-y-3 px-1 py-4">
           <div className="flex flex-wrap gap-2">
             <Badge className={room.is_frontend_demo ? 'bg-yellow-500/20 text-yellow-100' : 'bg-purple-600/20 text-purple-100'}>{prizeRoomTypeLabel(room)}</Badge>
+            <Badge className={`border ${statusClass(room.status)}`}>{String(room.status || 'open').replace(/_/g, ' ')}</Badge>
+          </div>
+          <div>
+            <h3 className="line-clamp-2 text-xl font-black leading-tight text-white">{room.title}</h3>
+            <p className="mt-1 line-clamp-1 text-sm font-semibold text-purple-100">Game: {room.game_title || 'Skill Match'}</p>
+            <p className="mt-3 text-2xl font-black text-green-200">{formatMoney(prizeRoomJoinCost(room))}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/45">Join cost</p>
           </div>
           <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-3 text-sm">
             <div className="flex justify-between gap-3">
@@ -669,8 +658,6 @@ function PrizeRoomDetailsDropdown({ room, onJoin, joining }) {
           gameImage={room.game_image}
           gameTitle={room.game_title}
           roomTitle={room.title}
-          joinCost={prizeRoomJoinCost(room)}
-          status={room.status}
           large
         />
         <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
