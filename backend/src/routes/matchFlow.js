@@ -645,16 +645,16 @@ function isExternalRawgImage(value = '') {
 }
 
 const STARTER_PRIZE_ROOM_TEMPLATES = [
-  ['madden-gift-card', 'Madden 1v1 Gift Card Room', 'Madden 1v1 skill match for a test mode gift card prize.', 'Madden NFL', 'console', 'GameStop Gift Card', 4000, 2, 2, 'Highest score wins', 'Madden NFL', 'GameStop gift card'],
-  ['nba-2k-gift-card', 'NBA 2K 1v1 Gift Card Room', 'NBA 2K head-to-head family test room.', 'NBA 2K', 'console', 'PlayStation Store Gift Card', 4000, 2, 2, 'Highest score wins', 'NBA 2K', 'PlayStation Store gift card'],
-  ['mario-kart-family', 'Mario Kart 4 Player Family Room', 'Four-player family race night with manual winner verification.', 'Mario Kart', 'switch', 'Nintendo Gift Card', 4000, 2, 4, 'Best final race placement wins', 'Mario Kart', 'Nintendo gift card'],
-  ['cod-kill-race', 'Call of Duty Kill Race Room', 'Skill-based kill race using submitted scoreboard proof.', 'Call of Duty', 'console/pc', 'Xbox Gift Card', 5000, 2, 4, 'Highest verified elimination count wins', 'Call of Duty', 'Xbox gift card'],
-  ['rocket-league-2v2', 'Rocket League 2v2 Prize Room', 'Team skill room for Rocket League players.', 'Rocket League', 'multi-platform', 'Rocket League Credits Gift Card', 5000, 4, 4, 'Winning team by final score wins', 'Rocket League', 'Rocket League credits gift card'],
-  ['chess-match', 'Chess Match Prize Room', 'Classic chess match with PGN or screenshot proof.', 'Chess', 'web/mobile', 'Amazon Gift Card', 2500, 2, 2, 'Checkmate or agreed final result wins', 'Chess', 'Amazon gift card'],
-  ['uno-family', 'Uno Family Game Room', 'Family-friendly Uno room with manual proof.', 'Uno', 'tabletop/mobile', 'Family Game Night Gift Card', 3000, 2, 4, 'First player out wins', 'Uno', 'Family game night gift card'],
-  ['fortnite-creative', 'Fortnite Creative Challenge Room', 'Creative challenge room with score/proof URL.', 'Fortnite Creative', 'multi-platform', 'V-Bucks Gift Card', 4000, 2, 4, 'Highest challenge score wins', 'Fortnite', 'V-Bucks gift card'],
-  ['mortal-kombat-1v1', 'Mortal Kombat 1v1 Room', 'Head-to-head fighting game prize room.', 'Mortal Kombat', 'console/pc', 'Console Store Gift Card', 4000, 2, 2, 'Best-of-three winner wins', 'Mortal Kombat', 'Console store gift card'],
-  ['family-mystery', 'Family Game Night Mystery Prize Room', 'Test mode mystery prize room for a family game night.', 'Family Game Night', 'tabletop', 'Mystery Family Prize', 3500, 2, 6, 'Manual family challenge winner wins', 'Family game night', 'Mystery family prize'],
+  ['madden-gift-card', 'Madden 1v1 Headset Room', 'Madden 1v1 skill match for a gaming headset prize.', 'Madden NFL', 'console', 'Gaming Headset', 4500, 2, 2, 'Highest score wins', 'Madden NFL', 'gaming headset'],
+  ['nba-2k-gift-card', 'NBA 2K Controller Room', 'NBA 2K head-to-head room for a wireless controller prize.', 'NBA 2K', 'console', 'Wireless Game Controller', 4500, 2, 2, 'Highest score wins', 'NBA 2K', 'wireless game controller'],
+  ['mario-kart-family', 'Mario Kart Switch Controller Room', 'Four-player family race night with a Nintendo Switch controller prize.', 'Mario Kart', 'switch', 'Nintendo Switch Controller', 4000, 2, 4, 'Best final race placement wins', 'Mario Kart', 'Nintendo Switch controller'],
+  ['cod-kill-race', 'Call of Duty Earbuds Room', 'Skill-based kill race using submitted scoreboard proof for wireless earbuds.', 'Call of Duty', 'console/pc', 'Wireless Earbuds', 5000, 2, 4, 'Highest verified elimination count wins', 'Call of Duty', 'wireless earbuds'],
+  ['rocket-league-2v2', 'Rocket League Soccer Ball Room', 'Team skill room for Rocket League players with a soccer ball prize.', 'Rocket League', 'multi-platform', 'Soccer Ball', 3000, 4, 4, 'Winning team by final score wins', 'Rocket League', 'soccer ball'],
+  ['chess-match', 'Chess Set Prize Room', 'Classic chess match with PGN or screenshot proof for a chess set prize.', 'Chess', 'web/mobile', 'Chess Set', 3000, 2, 2, 'Checkmate or agreed final result wins', 'Chess', 'chess set'],
+  ['uno-family', 'Uno Board Game Bundle Room', 'Family-friendly Uno room with a board game bundle prize.', 'Uno', 'tabletop/mobile', 'Board Game Bundle', 3500, 2, 4, 'First player out wins', 'Uno', 'board game bundle'],
+  ['fortnite-creative', 'Fortnite Drone Toy Room', 'Creative challenge room with score/proof URL for a drone toy prize.', 'Fortnite Creative', 'multi-platform', 'Drone Toy', 4500, 2, 4, 'Highest challenge score wins', 'Fortnite', 'drone toy'],
+  ['mortal-kombat-1v1', 'Mortal Kombat LEGO Set Room', 'Head-to-head fighting game prize room with a LEGO set prize.', 'Mortal Kombat', 'console/pc', 'LEGO Set', 4000, 2, 2, 'Best-of-three winner wins', 'Mortal Kombat', 'LEGO set'],
+  ['family-mystery', 'Family Game Night Art Kit Room', 'Family game night room with an art supply kit prize.', 'Family Game Night', 'tabletop', 'Art Supply Kit', 3500, 2, 6, 'Manual family challenge winner wins', 'Family game night', 'art supply kit'],
 ].map(([id, title, description, gameTitle, gamePlatform, prizeTitle, priceCents, minPlayers, maxPlayers, winningRule, gameQuery, prizeQuery], index) => ({
   id: `tpl_${id}`,
   title,
@@ -669,14 +669,14 @@ const STARTER_PRIZE_ROOM_TEMPLATES = [
   prize_title: prizeTitle,
   prize_query: prizeQuery,
   prize_image: defaultPrizeImage(prizeTitle),
-  prize_source: 'pilot_demo',
+  prize_source: 'ebay_browse',
   prize_url: '',
   prize_snapshot: {
     id: `starter_${id}`,
     title: prizeTitle,
     image: defaultPrizeImage(prizeTitle),
     image_url: defaultPrizeImage(prizeTitle),
-    source: 'pilot_demo',
+    source: 'ebay_browse',
     price_cents: priceCents,
     currency: 'USD',
     estimated_shipping_cents: DEFAULT_SHIPPING_CENTS,
@@ -691,16 +691,38 @@ const STARTER_PRIZE_ROOM_TEMPLATES = [
   status: 'active',
 }));
 
+const STARTER_PRIZE_ROOM_TEMPLATE_BY_ID = new Map(STARTER_PRIZE_ROOM_TEMPLATES.map((template) => [template.id, template]));
+
 async function ensureStarterPrizeRoomTemplates(store) {
   const created = [];
   for (const template of STARTER_PRIZE_ROOM_TEMPLATES) {
     const existing = await store.findOne('prize_room_templates', { id: template.id }).catch(() => null);
     if (existing) {
       const patch = {};
+      for (const key of [
+        'title',
+        'description',
+        'prize_title',
+        'prize_query',
+        'prize_source',
+        'game_query',
+        'winning_rule',
+        'max_players',
+        'min_players',
+      ]) {
+        if (existing[key] !== template[key]) patch[key] = template[key];
+      }
       if (!existing.game_image) patch.game_image = template.game_image || defaultGameImage(existing.game_title || template.game_title);
       if (!existing.prize_image) patch.prize_image = template.prize_image || defaultPrizeImage(existing.prize_title || template.prize_title);
-      if (!existing.game_query) patch.game_query = template.game_query || existing.game_title || template.game_title;
-      if (!existing.prize_query) patch.prize_query = template.prize_query || existing.prize_title || template.prize_title;
+      if (existing.prize_snapshot && typeof existing.prize_snapshot === 'object' && existing.prize_snapshot.title !== template.prize_title && isPrizeRoomFallbackImage(existing.prize_image || existing.prize_snapshot.image || '')) {
+        patch.prize_snapshot = {
+          ...existing.prize_snapshot,
+          title: template.prize_title,
+          source: template.prize_source,
+          image: patch.prize_image || existing.prize_image || template.prize_image,
+          image_url: patch.prize_image || existing.prize_image || template.prize_image,
+        };
+      }
       if (existing.prize_snapshot && typeof existing.prize_snapshot === 'object' && (!existing.prize_snapshot.image && !existing.prize_snapshot.image_url)) {
         patch.prize_snapshot = {
           ...existing.prize_snapshot,
@@ -2832,6 +2854,25 @@ export function createMatchFlowRouter({ store }) {
     const repairedRooms = [];
     for (const room of rooms) {
       const patch = {};
+      const starterTemplate = STARTER_PRIZE_ROOM_TEMPLATE_BY_ID.get(room.template_id);
+      if (starterTemplate && ['platform_supported', 'template_based'].includes(room.room_type || '')) {
+        for (const key of ['title', 'description', 'prize_title', 'prize_query', 'prize_source', 'game_query', 'winning_rule']) {
+          if (room[key] !== starterTemplate[key]) patch[key] = starterTemplate[key];
+        }
+        if (room.prize_title !== starterTemplate.prize_title) {
+          patch.prize_image = starterTemplate.prize_image || defaultPrizeImage(starterTemplate.prize_title);
+          patch.prize_snapshot = {
+            ...(room.prize_snapshot && typeof room.prize_snapshot === 'object' ? room.prize_snapshot : {}),
+            id: room.prize_id || starterTemplate.prize_id,
+            title: starterTemplate.prize_title,
+            source: starterTemplate.prize_source,
+            image: patch.prize_image,
+            image_url: patch.prize_image,
+            price_cents: room.cost_breakdown?.item_cost_cents || starterTemplate.prize_snapshot?.price_cents || 4000,
+            currency: room.cost_breakdown?.currency || 'USD',
+          };
+        }
+      }
       const linkedMatch = (!room.game_image || !room.prize_image || isPrizeRoomFallbackImage(room.game_image) || isPrizeRoomFallbackImage(room.prize_image)) && room.match_id
         ? await store.findOne('north_pole_matches', { id: room.match_id }).catch(() => null)
         : null;
@@ -2918,12 +2959,16 @@ export function createMatchFlowRouter({ store }) {
     const details = [];
     let updatedRoomCount = 0;
     let failedRoomCount = 0;
+    let ebayImageCount = 0;
+    let rawgImageCount = 0;
 
     for (const room of rooms) {
       try {
         const result = await hydratePrizeRoomProviderImages(store, room);
         if (result.updated) updatedRoomCount += 1;
         if (result.details.errors.length) failedRoomCount += 1;
+        if (result.details.saved_prize_image_url) ebayImageCount += 1;
+        if (result.details.saved_game_image_url) rawgImageCount += 1;
         details.push(result.details);
       } catch (error) {
         failedRoomCount += 1;
@@ -2940,10 +2985,14 @@ export function createMatchFlowRouter({ store }) {
     ok(res, {
       updated_room_count: updatedRoomCount,
       failed_room_count: failedRoomCount,
+      ebay_image_count: ebayImageCount,
+      rawg_image_count: rawgImageCount,
       details,
       data: {
         updated_room_count: updatedRoomCount,
         failed_room_count: failedRoomCount,
+        ebay_image_count: ebayImageCount,
+        rawg_image_count: rawgImageCount,
         details,
       },
     });
@@ -3123,12 +3172,16 @@ export function createMatchFlowRouter({ store }) {
     const details = [];
     let updatedRoomCount = 0;
     let failedRoomCount = 0;
+    let ebayImageCount = 0;
+    let rawgImageCount = 0;
 
     for (const room of rooms) {
       try {
         const result = await hydratePrizeRoomProviderImages(store, room);
         if (result.updated) updatedRoomCount += 1;
         if (result.details.errors.length) failedRoomCount += 1;
+        if (result.details.saved_prize_image_url) ebayImageCount += 1;
+        if (result.details.saved_game_image_url) rawgImageCount += 1;
         details.push(result.details);
       } catch (error) {
         failedRoomCount += 1;
@@ -3145,10 +3198,14 @@ export function createMatchFlowRouter({ store }) {
     ok(res, {
       updated_room_count: updatedRoomCount,
       failed_room_count: failedRoomCount,
+      ebay_image_count: ebayImageCount,
+      rawg_image_count: rawgImageCount,
       details,
       data: {
         updated_room_count: updatedRoomCount,
         failed_room_count: failedRoomCount,
+        ebay_image_count: ebayImageCount,
+        rawg_image_count: rawgImageCount,
         details,
       },
     });

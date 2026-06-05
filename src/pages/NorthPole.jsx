@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +56,7 @@ import {
   listPrizeRooms,
   joinPrizeRoom,
   createPrizeRoom,
+  hydratePrizeRoomProviderImages,
   SKILL_COMPETITION_AGREEMENT_VERSION,
 } from '@/lib/northpole/matchEngine';
 
@@ -203,6 +204,20 @@ function prizeRoomGameImage(room = {}) {
     || defaultPrizeRoomGameImage(room.game_title);
 }
 
+function isLocalPrizeRoomFallbackImage(value = '') {
+  return typeof value === 'string' && value.startsWith('/images/prize-rooms/');
+}
+
+function mostlyUsesLocalPrizeRoomImages(rooms = []) {
+  const imageBearingRooms = rooms.filter((room) => room?.prize_title || room?.game_title);
+  if (!imageBearingRooms.length) return false;
+  const fallbackCount = imageBearingRooms.filter((room) => (
+    isLocalPrizeRoomFallbackImage(prizeRoomPrizeImage(room))
+      || isLocalPrizeRoomFallbackImage(prizeRoomGameImage(room))
+  )).length;
+  return fallbackCount / imageBearingRooms.length >= 0.55;
+}
+
 function calculateNorthPoleOptions({ priceCents, taxCents, shippingCents, playerCounts = PLAYER_OPTIONS }) {
   return playerCounts.map((players) => ({
     ...calculatePrizeRoomBreakdown({ priceCents, taxCents, shippingCents, players }),
@@ -334,19 +349,19 @@ function RoomCostRows({ breakdown = {}, compact = false }) {
 const FRONTEND_DEMO_PRIZE_ROOMS = [
   {
     id: 'frontend-demo-mario-kart-family',
-    title: 'Mario Kart Family Prize Room',
-    description: 'Test Mode Room: a family-friendly kart racing skill match with a digital gift card prize prepared for manual purchase.',
+    title: 'Mario Kart Switch Controller Room',
+    description: 'Test Mode Room: a family-friendly kart racing skill match with a Nintendo Switch controller prize prepared for manual purchase.',
     room_type: 'platform_supported',
     game_id: 'mario-kart-family',
     game_title: 'Mario Kart',
     game_image: defaultPrizeRoomGameImage('Mario Kart'),
     game_platform: 'Nintendo Switch',
     game_description: 'Family race night. Players run the agreed track set, then submit final placement or scoreboard proof.',
-    prize_id: 'nintendo-gift-card-demo',
-    prize_title: 'Nintendo Gift Card',
-    prize_image: defaultPrizeRoomPrizeImage('Nintendo Gift Card'),
+    prize_id: 'nintendo-switch-controller-demo',
+    prize_title: 'Nintendo Switch Controller',
+    prize_image: defaultPrizeRoomPrizeImage('Nintendo Switch Controller'),
     prize_source: 'pilot_demo',
-    prize_type: 'Gift Card',
+    prize_type: 'Controller',
     prize_url: '',
     min_players: 2,
     max_players: 4,
@@ -367,19 +382,19 @@ const FRONTEND_DEMO_PRIZE_ROOMS = [
   },
   {
     id: 'frontend-demo-madden-1v1',
-    title: 'Madden 1v1 Gift Card Room',
-    description: 'Test Mode Room: head-to-head skill match with manual winner verification and prepared fulfillment.',
+    title: 'Madden 1v1 Headset Room',
+    description: 'Test Mode Room: head-to-head skill match with a gaming headset prize and prepared fulfillment.',
     room_type: 'platform_supported',
     game_id: 'madden-1v1',
     game_title: 'Madden NFL',
     game_image: defaultPrizeRoomGameImage('Madden NFL'),
     game_platform: 'PlayStation / Xbox',
     game_description: 'One full game with default rules unless the room host chooses otherwise.',
-    prize_id: 'sports-gift-card-demo',
-    prize_title: 'Sports Gift Card',
-    prize_image: defaultPrizeRoomPrizeImage('Sports Gift Card'),
+    prize_id: 'gaming-headset-demo',
+    prize_title: 'Gaming Headset',
+    prize_image: defaultPrizeRoomPrizeImage('Gaming Headset'),
     prize_source: 'pilot_demo',
-    prize_type: 'Gift Card',
+    prize_type: 'Gaming Accessory',
     prize_url: '',
     min_players: 2,
     max_players: 2,
@@ -407,9 +422,9 @@ const FRONTEND_DEMO_PRIZE_ROOMS = [
     game_image: defaultPrizeRoomGameImage('Uno'),
     game_platform: 'Tabletop / Mobile',
     game_description: 'Players compete in the agreed number of rounds. Submit a final score note or photo.',
-    prize_id: 'family-night-prize-demo',
-    prize_title: 'Family Game Night Prize',
-    prize_image: defaultPrizeRoomPrizeImage('Family Game Night Prize'),
+    prize_id: 'board-game-bundle-demo',
+    prize_title: 'Board Game Bundle',
+    prize_image: defaultPrizeRoomPrizeImage('Board Game Bundle'),
     prize_source: 'pilot_demo',
     prize_type: 'Family Prize',
     prize_url: '',
@@ -436,18 +451,18 @@ const FRONTEND_DEMO_PRIZE_ROOMS = [
   {
     id: 'frontend-demo-chess',
     title: 'Chess Match Prize Room',
-    description: 'Test Mode Room: classic skill competition with a prepared digital prize and manual purchase.',
+    description: 'Test Mode Room: classic skill competition with a chess set prize and manual purchase.',
     room_type: 'platform_supported',
     game_id: 'chess-match',
     game_title: 'Chess',
     game_image: defaultPrizeRoomGameImage('Chess'),
     game_platform: 'Board / Online',
     game_description: 'One match or best-of-three, agreed before play starts.',
-    prize_id: 'bookshop-gift-card-demo',
-    prize_title: 'Bookshop Gift Card',
-    prize_image: defaultPrizeRoomPrizeImage('Bookshop Gift Card'),
+    prize_id: 'chess-set-demo',
+    prize_title: 'Chess Set',
+    prize_image: defaultPrizeRoomPrizeImage('Chess Set'),
     prize_source: 'pilot_demo',
-    prize_type: 'Gift Card',
+    prize_type: 'Board Game',
     prize_url: '',
     min_players: 2,
     max_players: 2,
@@ -851,6 +866,7 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
   const [localError, setLocalError] = useState('');
   const [localMessage, setLocalMessage] = useState('');
   const [usingDemoFallback, setUsingDemoFallback] = useState(false);
+  const providerHydrationAttemptedRef = useRef(false);
 
   const loadRooms = useCallback(async () => {
     setLoading(true);
@@ -860,6 +876,23 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
       if (Array.isArray(apiRooms) && apiRooms.length) {
         setRooms(apiRooms);
         setUsingDemoFallback(false);
+        if (!providerHydrationAttemptedRef.current && mostlyUsesLocalPrizeRoomImages(apiRooms)) {
+          providerHydrationAttemptedRef.current = true;
+          setLocalMessage('Refreshing real product images...');
+          hydratePrizeRoomProviderImages()
+            .then(async (result) => {
+              const refreshedRooms = await listPrizeRooms();
+              if (Array.isArray(refreshedRooms) && refreshedRooms.length) setRooms(refreshedRooms);
+              const ebayCount = result.ebay_image_count || 0;
+              const rawgCount = result.rawg_image_count || 0;
+              setLocalMessage(`Provider image refresh complete. eBay images: ${ebayCount}; RAWG images: ${rawgCount}.`);
+            })
+            .catch((error) => {
+              setLocalMessage(error?.message?.includes('Admin')
+                ? 'Real product image refresh is available from the admin dashboard.'
+                : 'Provider image refresh could not run automatically.');
+            });
+        }
       } else {
         setRooms(FRONTEND_DEMO_PRIZE_ROOMS);
         setUsingDemoFallback(true);

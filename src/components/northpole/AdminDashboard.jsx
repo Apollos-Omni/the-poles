@@ -456,7 +456,7 @@ export default function AdminDashboard({ currentUser }) {
     setActionLoading(prev => ({ ...prev, [key]: true }));
     try {
       const result = await hydratePrizeRoomProviderImages();
-      setFulfillmentError(`Provider image refresh complete. Updated ${result.updated_room_count || 0} room(s); ${result.failed_room_count || 0} failed.`);
+      setFulfillmentError(`Provider image refresh complete. Updated ${result.updated_room_count || 0} room(s); eBay images found ${result.ebay_image_count || 0}; RAWG images found ${result.rawg_image_count || 0}; ${result.failed_room_count || 0} failed.`);
       await load();
     } catch (error) {
       setFulfillmentError(error.message || 'Could not refresh provider images.');
