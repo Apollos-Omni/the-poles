@@ -37,6 +37,7 @@ import AdminDashboard from '@/components/northpole/AdminDashboard';
 import SkillCompetitionAgreement from '@/components/northpole/SkillCompetitionAgreement';
 import { ADMIN_ROLES, userHasRole } from '@/lib/rbac';
 import { PublicBetaBadge } from '@/components/public/PublicBetaLayout';
+import { apiUrl } from '@/api/apiClient';
 import { searchProducts } from '@/functions/searchProducts';
 import { searchGames } from '@/functions/searchGames';
 import {
@@ -202,6 +203,22 @@ function prizeRoomGameImage(room = {}) {
     || room.game_snapshot?.icon_url
     || room.game_snapshot?.short_screenshots?.[0]?.image
     || defaultPrizeRoomGameImage(room.game_title);
+}
+
+function prizeRoomDisplayPrizeImage(room = {}) {
+  const resolved = prizeRoomPrizeImage(room);
+  if (resolved?.startsWith('http') && room.id) {
+    return apiUrl(`/api/prize-rooms/${encodeURIComponent(room.id)}/prize-image`);
+  }
+  return resolved;
+}
+
+function prizeRoomDisplayGameImage(room = {}) {
+  const resolved = prizeRoomGameImage(room);
+  if (resolved?.startsWith('http') && room.id) {
+    return apiUrl(`/api/prize-rooms/${encodeURIComponent(room.id)}/game-image`);
+  }
+  return resolved;
 }
 
 function isLocalPrizeRoomFallbackImage(value = '') {
@@ -712,12 +729,16 @@ function PrizeRoomCard({ room, isOpen, onToggleDetails, onJoin, joining }) {
   const fallbackGameImage = defaultPrizeRoomGameImage(room.game_title);
   const resolvedPrizeImage = prizeRoomPrizeImage(room);
   const resolvedGameImage = prizeRoomGameImage(room);
+  const displayPrizeImage = prizeRoomDisplayPrizeImage(room);
+  const displayGameImage = prizeRoomDisplayGameImage(room);
   console.log('PrizeRoom image debug', {
     title: room.title,
     prize_image: room.prize_image,
     resolved_prize_image: resolvedPrizeImage,
+    display_prize_image: displayPrizeImage,
     game_image: room.game_image,
     resolved_game_image: resolvedGameImage,
+    display_game_image: displayGameImage,
   });
   return (
     <Card className={`overflow-hidden rounded-3xl border bg-black/65 shadow-[0_0_38px_rgba(124,58,237,0.16)] transition ${
@@ -725,9 +746,9 @@ function PrizeRoomCard({ room, isOpen, onToggleDetails, onJoin, joining }) {
     }`}>
       <CardContent className="p-3">
         <PrizeRoomHeroImage
-          prizeImage={resolvedPrizeImage}
+          prizeImage={displayPrizeImage}
           prizeTitle={room.prize_title}
-          gameImage={resolvedGameImage}
+          gameImage={displayGameImage}
           gameTitle={room.game_title}
           roomTitle={room.title}
           fallbackPrizeImage={fallbackPrizeImage}
@@ -789,6 +810,8 @@ function PrizeRoomDetailsDropdown({ room, onJoin, joining }) {
   const playerCount = prizeRoomPlayerCount(room);
   const fallbackPrizeImage = defaultPrizeRoomPrizeImage(room.prize_title);
   const fallbackGameImage = defaultPrizeRoomGameImage(room.game_title);
+  const displayPrizeImage = prizeRoomDisplayPrizeImage(room);
+  const displayGameImage = prizeRoomDisplayGameImage(room);
   const fulfillmentStatus = room.fulfillment_status || (room.prize_fulfillment_id ? 'prepared fulfillment' : 'manual fulfillment pending');
   const winnerVerificationStatus = room.winner_verification_status
     || room.verification_status
@@ -797,9 +820,9 @@ function PrizeRoomDetailsDropdown({ room, onJoin, joining }) {
     <div className="md:col-span-2 xl:col-span-3">
       <div className="rounded-[2rem] border border-yellow-300/35 bg-gradient-to-br from-black via-purple-950/55 to-black p-4 shadow-[0_0_55px_rgba(250,204,21,0.14)]">
         <PrizeRoomHeroImage
-          prizeImage={prizeRoomPrizeImage(room)}
+          prizeImage={displayPrizeImage}
           prizeTitle={room.prize_title}
-          gameImage={prizeRoomGameImage(room)}
+          gameImage={displayGameImage}
           gameTitle={room.game_title}
           roomTitle={room.title}
           fallbackPrizeImage={fallbackPrizeImage}

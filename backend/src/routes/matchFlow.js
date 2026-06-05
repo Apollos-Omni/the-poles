@@ -644,6 +644,51 @@ function isExternalRawgImage(value = '') {
   return typeof value === 'string' && /^https?:\/\/media\.rawg\.io\//i.test(value);
 }
 
+const TRUSTED_PRIZE_ROOM_IMAGE_HOSTS = new Set(['i.ebayimg.com', 'media.rawg.io']);
+
+function trustedPrizeRoomImageUrl(value = '') {
+  if (typeof value !== 'string' || !value.trim()) return '';
+  try {
+    const parsed = new URL(value.trim());
+    if (parsed.protocol !== 'https:') return '';
+    if (!TRUSTED_PRIZE_ROOM_IMAGE_HOSTS.has(parsed.hostname.toLowerCase())) return '';
+    return parsed.toString();
+  } catch {
+    return '';
+  }
+}
+
+function prizeRoomPrizeImageForProxy(room = {}) {
+  return trustedPrizeRoomImageUrl(room.prize_image)
+    || trustedPrizeRoomImageUrl(room.prize_snapshot?.image)
+    || trustedPrizeRoomImageUrl(room.prize_snapshot?.image_url)
+    || '';
+}
+
+function prizeRoomGameImageForProxy(room = {}) {
+  return trustedPrizeRoomImageUrl(room.game_image)
+    || trustedPrizeRoomImageUrl(room.game_snapshot?.background_image)
+    || trustedPrizeRoomImageUrl(room.game_snapshot?.image)
+    || trustedPrizeRoomImageUrl(room.game_snapshot?.image_url)
+    || '';
+}
+
+async function proxyPrizeRoomImage(res, imageUrl) {
+  const trustedUrl = trustedPrizeRoomImageUrl(imageUrl);
+  if (!trustedUrl) return res.status(404).json({ success: false, error: 'Image not found' });
+
+  const upstream = await fetch(trustedUrl);
+  const contentType = upstream.headers.get('content-type') || '';
+  if (!upstream.ok || !contentType.toLowerCase().startsWith('image/')) {
+    return res.status(404).json({ success: false, error: 'Image not found' });
+  }
+
+  const bytes = Buffer.from(await upstream.arrayBuffer());
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.setHeader('Content-Type', contentType);
+  return res.status(200).send(bytes);
+}
+
 const STARTER_PRIZE_ROOM_TEMPLATES = [
   ['madden-gift-card', 'Madden 1v1 Headset Room', 'Madden 1v1 skill match for a gaming headset prize.', 'Madden NFL', 'console', 'Gaming Headset', 4500, 2, 2, 'Highest score wins', 'Madden NFL', 'gaming headset'],
   ['nba-2k-gift-card', 'NBA 2K Controller Room', 'NBA 2K head-to-head room for a wireless controller prize.', 'NBA 2K', 'console', 'Wireless Game Controller', 4500, 2, 2, 'Highest score wins', 'NBA 2K', 'wireless game controller'],
@@ -2996,6 +3041,18 @@ export function createMatchFlowRouter({ store }) {
         details,
       },
     });
+  }));
+
+  router.get('/prize-rooms/:roomId/prize-image', asyncHandler(async (req, res) => {
+    const room = await store.findOne('prize_rooms', { id: req.params.roomId }).catch(() => null);
+    if (!room) return res.status(404).json({ success: false, error: 'Prize Room not found' });
+    return proxyPrizeRoomImage(res, prizeRoomPrizeImageForProxy(room));
+  }));
+
+  router.get('/prize-rooms/:roomId/game-image', asyncHandler(async (req, res) => {
+    const room = await store.findOne('prize_rooms', { id: req.params.roomId }).catch(() => null);
+    if (!room) return res.status(404).json({ success: false, error: 'Prize Room not found' });
+    return proxyPrizeRoomImage(res, prizeRoomGameImageForProxy(room));
   }));
 
   router.post('/prize-rooms/:roomId/join', asyncHandler(async (req, res) => {
