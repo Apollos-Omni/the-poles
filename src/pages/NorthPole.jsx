@@ -522,15 +522,31 @@ function PrizeRoomHeroImage({
   fallbackGameImage,
   large = false,
 }) {
-  const [prizeFailed, setPrizeFailed] = useState(false);
-  const [gameFailed, setGameFailed] = useState(false);
-  useEffect(() => setPrizeFailed(false), [prizeImage]);
-  useEffect(() => setGameFailed(false), [gameImage]);
+  const [failedPrizeSources, setFailedPrizeSources] = useState({});
+  const [failedGameSources, setFailedGameSources] = useState({});
+  useEffect(() => setFailedPrizeSources({}), [prizeImage, fallbackPrizeImage]);
+  useEffect(() => setFailedGameSources({}), [gameImage, fallbackGameImage]);
 
-  const effectivePrizeImage = prizeFailed && fallbackPrizeImage && fallbackPrizeImage !== prizeImage ? fallbackPrizeImage : prizeImage;
-  const effectiveGameImage = gameFailed && fallbackGameImage && fallbackGameImage !== gameImage ? fallbackGameImage : gameImage;
-  const hasPrizeImage = effectivePrizeImage && (!prizeFailed || effectivePrizeImage === fallbackPrizeImage);
-  const hasGameImage = effectiveGameImage && (!gameFailed || effectiveGameImage === fallbackGameImage);
+  const prizePrimaryFailed = Boolean(prizeImage && failedPrizeSources[prizeImage]);
+  const gamePrimaryFailed = Boolean(gameImage && failedGameSources[gameImage]);
+  const effectivePrizeImage = prizePrimaryFailed && fallbackPrizeImage && fallbackPrizeImage !== prizeImage ? fallbackPrizeImage : prizeImage;
+  const effectiveGameImage = gamePrimaryFailed && fallbackGameImage && fallbackGameImage !== gameImage ? fallbackGameImage : gameImage;
+  const hasPrizeImage = Boolean(effectivePrizeImage && !failedPrizeSources[effectivePrizeImage]);
+  const hasGameImage = Boolean(effectiveGameImage && !failedGameSources[effectiveGameImage]);
+
+  const handlePrizeImageError = () => {
+    console.warn('Prize image failed', effectivePrizeImage, roomTitle);
+    if (effectivePrizeImage) {
+      setFailedPrizeSources((prev) => ({ ...prev, [effectivePrizeImage]: true }));
+    }
+  };
+
+  const handleGameImageError = () => {
+    console.warn('Game image failed', effectiveGameImage, roomTitle);
+    if (effectiveGameImage) {
+      setFailedGameSources((prev) => ({ ...prev, [effectiveGameImage]: true }));
+    }
+  };
 
   return (
     <div className={`relative overflow-hidden rounded-3xl border border-white/15 bg-white p-4 shadow-[0_0_36px_rgba(250,204,21,0.12)] ${
@@ -540,7 +556,7 @@ function PrizeRoomHeroImage({
         <img
           src={effectivePrizeImage}
           alt={prizeTitle || roomTitle || 'Prize Room prize'}
-          onError={() => setPrizeFailed(true)}
+          onError={handlePrizeImageError}
           className="h-full w-full object-contain"
         />
       ) : (
@@ -556,7 +572,7 @@ function PrizeRoomHeroImage({
           <img
             src={effectiveGameImage}
             alt={gameTitle || 'Prize Room game'}
-            onError={() => setGameFailed(true)}
+            onError={handleGameImageError}
             className="h-full w-full object-cover"
           />
         ) : (
@@ -694,20 +710,41 @@ function PrizeRoomCard({ room, isOpen, onToggleDetails, onJoin, joining }) {
   const canJoin = ['open', 'awaiting_contributions'].includes(room.status);
   const fallbackPrizeImage = defaultPrizeRoomPrizeImage(room.prize_title);
   const fallbackGameImage = defaultPrizeRoomGameImage(room.game_title);
+  const resolvedPrizeImage = prizeRoomPrizeImage(room);
+  const resolvedGameImage = prizeRoomGameImage(room);
+  console.log('PrizeRoom image debug', {
+    title: room.title,
+    prize_image: room.prize_image,
+    resolved_prize_image: resolvedPrizeImage,
+    game_image: room.game_image,
+    resolved_game_image: resolvedGameImage,
+  });
   return (
     <Card className={`overflow-hidden rounded-3xl border bg-black/65 shadow-[0_0_38px_rgba(124,58,237,0.16)] transition ${
       isOpen ? 'border-yellow-300/55 ring-1 ring-yellow-300/30' : 'border-white/10 hover:border-purple-300/40'
     }`}>
       <CardContent className="p-3">
         <PrizeRoomHeroImage
-          prizeImage={prizeRoomPrizeImage(room)}
+          prizeImage={resolvedPrizeImage}
           prizeTitle={room.prize_title}
-          gameImage={prizeRoomGameImage(room)}
+          gameImage={resolvedGameImage}
           gameTitle={room.game_title}
           roomTitle={room.title}
           fallbackPrizeImage={fallbackPrizeImage}
           fallbackGameImage={fallbackGameImage}
         />
+        <div className="mt-2 flex flex-wrap gap-3 px-1 text-xs font-semibold">
+          {resolvedPrizeImage && (
+            <a href={resolvedPrizeImage} target="_blank" rel="noreferrer" className="text-yellow-100 underline-offset-4 hover:text-white hover:underline">
+              Open prize image
+            </a>
+          )}
+          {resolvedGameImage && (
+            <a href={resolvedGameImage} target="_blank" rel="noreferrer" className="text-purple-100 underline-offset-4 hover:text-white hover:underline">
+              Open game image
+            </a>
+          )}
+        </div>
         <div className="space-y-3 px-1 py-4">
           <div className="flex flex-wrap gap-2">
             <Badge className={room.is_frontend_demo ? 'bg-yellow-500/20 text-yellow-100' : 'bg-purple-600/20 text-purple-100'}>{prizeRoomTypeLabel(room)}</Badge>
@@ -873,6 +910,7 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
     setLocalError('');
     try {
       const apiRooms = await listPrizeRooms();
+      console.log('PrizeRoom listPrizeRooms response', apiRooms);
       if (Array.isArray(apiRooms) && apiRooms.length) {
         setRooms(apiRooms);
         setUsingDemoFallback(false);
@@ -882,6 +920,7 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
           hydratePrizeRoomProviderImages()
             .then(async (result) => {
               const refreshedRooms = await listPrizeRooms();
+              console.log('PrizeRoom listPrizeRooms response after hydration', refreshedRooms);
               if (Array.isArray(refreshedRooms) && refreshedRooms.length) setRooms(refreshedRooms);
               const ebayCount = result.ebay_image_count || 0;
               const rawgCount = result.rawg_image_count || 0;
