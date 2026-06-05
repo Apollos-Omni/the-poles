@@ -137,11 +137,70 @@ function gameImageFromSource(source) {
     'background_image',
     'background_image_additional',
     'image',
+    'image_url',
     'icon_url',
     'cover',
     'thumbnail',
     'short_screenshots',
   ]);
+}
+
+function normalizedImageKey(value = '') {
+  return String(value || '').toLowerCase();
+}
+
+function defaultPrizeRoomGameImage(gameTitle = '') {
+  const key = normalizedImageKey(gameTitle);
+  if (key.includes('mario')) return '/images/prize-rooms/games/mario-kart.svg';
+  if (key.includes('madden')) return '/images/prize-rooms/games/madden.svg';
+  if (key.includes('nba') || key.includes('2k')) return '/images/prize-rooms/games/nba-2k.svg';
+  if (key.includes('call of duty') || key.includes('cod')) return '/images/prize-rooms/games/call-of-duty.svg';
+  if (key.includes('rocket league')) return '/images/prize-rooms/games/rocket-league.svg';
+  if (key.includes('uno')) return '/images/prize-rooms/games/uno.svg';
+  if (key.includes('chess')) return '/images/prize-rooms/games/chess.svg';
+  if (key.includes('fortnite')) return '/images/prize-rooms/games/fortnite.svg';
+  if (key.includes('mortal kombat')) return '/images/prize-rooms/games/mortal-kombat.svg';
+  if (key.includes('family')) return '/images/prize-rooms/games/family-game-night.svg';
+  return '/images/prize-rooms/games/family-game-night.svg';
+}
+
+function defaultPrizeRoomPrizeImage(prizeTitle = '') {
+  const key = normalizedImageKey(prizeTitle);
+  if (key.includes('nintendo')) return '/images/prize-rooms/prizes/nintendo-gift-card.svg';
+  if (key.includes('gamestop') || key.includes('game stop')) return '/images/prize-rooms/prizes/gamestop-gift-card.svg';
+  if (key.includes('playstation') || key.includes('psn')) return '/images/prize-rooms/prizes/playstation-store-gift-card.svg';
+  if (key.includes('xbox')) return '/images/prize-rooms/prizes/xbox-gift-card.svg';
+  if (key.includes('rocket league') || key.includes('credits')) return '/images/prize-rooms/prizes/rocket-league-credits.svg';
+  if (key.includes('family game')) return '/images/prize-rooms/prizes/family-game-night-gift-card.svg';
+  if (key.includes('v-bucks') || key.includes('vbucks')) return '/images/prize-rooms/prizes/vbucks-gift-card.svg';
+  if (key.includes('amazon') || key.includes('bookshop')) return '/images/prize-rooms/prizes/amazon-gift-card.svg';
+  if (key.includes('console store')) return '/images/prize-rooms/prizes/console-store-gift-card.svg';
+  if (key.includes('mystery')) return '/images/prize-rooms/prizes/mystery-family-prize.svg';
+  return '/images/prize-rooms/prizes/mystery-family-prize.svg';
+}
+
+function prizeRoomPrizeImage(room = {}) {
+  return room.prize_image
+    || room.prize_snapshot?.image
+    || room.prize_snapshot?.image_url
+    || room.prize_snapshot?.imageUrl
+    || room.prize_snapshot?.thumbnailImages?.[0]?.imageUrl
+    || room.prize_snapshot?.additionalImages?.[0]?.imageUrl
+    || room.prize_snapshot?.galleryURL
+    || room.prize_snapshot?.pictureURLLarge
+    || room.prize_snapshot?.pictureURLSuperSize
+    || defaultPrizeRoomPrizeImage(room.prize_title);
+}
+
+function prizeRoomGameImage(room = {}) {
+  return room.game_image
+    || room.game_snapshot?.background_image
+    || room.game_snapshot?.background_image_additional
+    || room.game_snapshot?.image
+    || room.game_snapshot?.image_url
+    || room.game_snapshot?.icon_url
+    || room.game_snapshot?.short_screenshots?.[0]?.image
+    || defaultPrizeRoomGameImage(room.game_title);
 }
 
 function calculateNorthPoleOptions({ priceCents, taxCents, shippingCents, playerCounts = PLAYER_OPTIONS }) {
@@ -280,12 +339,12 @@ const FRONTEND_DEMO_PRIZE_ROOMS = [
     room_type: 'platform_supported',
     game_id: 'mario-kart-family',
     game_title: 'Mario Kart',
-    game_image: '',
+    game_image: defaultPrizeRoomGameImage('Mario Kart'),
     game_platform: 'Nintendo Switch',
     game_description: 'Family race night. Players run the agreed track set, then submit final placement or scoreboard proof.',
     prize_id: 'nintendo-gift-card-demo',
     prize_title: 'Nintendo Gift Card',
-    prize_image: '',
+    prize_image: defaultPrizeRoomPrizeImage('Nintendo Gift Card'),
     prize_source: 'pilot_demo',
     prize_type: 'Gift Card',
     prize_url: '',
@@ -313,12 +372,12 @@ const FRONTEND_DEMO_PRIZE_ROOMS = [
     room_type: 'platform_supported',
     game_id: 'madden-1v1',
     game_title: 'Madden NFL',
-    game_image: '',
+    game_image: defaultPrizeRoomGameImage('Madden NFL'),
     game_platform: 'PlayStation / Xbox',
     game_description: 'One full game with default rules unless the room host chooses otherwise.',
     prize_id: 'sports-gift-card-demo',
     prize_title: 'Sports Gift Card',
-    prize_image: '',
+    prize_image: defaultPrizeRoomPrizeImage('Sports Gift Card'),
     prize_source: 'pilot_demo',
     prize_type: 'Gift Card',
     prize_url: '',
@@ -345,12 +404,12 @@ const FRONTEND_DEMO_PRIZE_ROOMS = [
     room_type: 'platform_supported',
     game_id: 'uno-family',
     game_title: 'Uno',
-    game_image: '',
+    game_image: defaultPrizeRoomGameImage('Uno'),
     game_platform: 'Tabletop / Mobile',
     game_description: 'Players compete in the agreed number of rounds. Submit a final score note or photo.',
     prize_id: 'family-night-prize-demo',
     prize_title: 'Family Game Night Prize',
-    prize_image: '',
+    prize_image: defaultPrizeRoomPrizeImage('Family Game Night Prize'),
     prize_source: 'pilot_demo',
     prize_type: 'Family Prize',
     prize_url: '',
@@ -381,12 +440,12 @@ const FRONTEND_DEMO_PRIZE_ROOMS = [
     room_type: 'platform_supported',
     game_id: 'chess-match',
     game_title: 'Chess',
-    game_image: '',
+    game_image: defaultPrizeRoomGameImage('Chess'),
     game_platform: 'Board / Online',
     game_description: 'One match or best-of-three, agreed before play starts.',
     prize_id: 'bookshop-gift-card-demo',
     prize_title: 'Bookshop Gift Card',
-    prize_image: '',
+    prize_image: defaultPrizeRoomPrizeImage('Bookshop Gift Card'),
     prize_source: 'pilot_demo',
     prize_type: 'Gift Card',
     prize_url: '',
@@ -444,12 +503,19 @@ function PrizeRoomHeroImage({
   gameImage,
   gameTitle,
   roomTitle,
+  fallbackPrizeImage,
+  fallbackGameImage,
   large = false,
 }) {
   const [prizeFailed, setPrizeFailed] = useState(false);
   const [gameFailed, setGameFailed] = useState(false);
-  const hasPrizeImage = prizeImage && !prizeFailed;
-  const hasGameImage = gameImage && !gameFailed;
+  useEffect(() => setPrizeFailed(false), [prizeImage]);
+  useEffect(() => setGameFailed(false), [gameImage]);
+
+  const effectivePrizeImage = prizeFailed && fallbackPrizeImage && fallbackPrizeImage !== prizeImage ? fallbackPrizeImage : prizeImage;
+  const effectiveGameImage = gameFailed && fallbackGameImage && fallbackGameImage !== gameImage ? fallbackGameImage : gameImage;
+  const hasPrizeImage = effectivePrizeImage && (!prizeFailed || effectivePrizeImage === fallbackPrizeImage);
+  const hasGameImage = effectiveGameImage && (!gameFailed || effectiveGameImage === fallbackGameImage);
 
   return (
     <div className={`relative overflow-hidden rounded-3xl border border-white/15 bg-white p-4 shadow-[0_0_36px_rgba(250,204,21,0.12)] ${
@@ -457,7 +523,7 @@ function PrizeRoomHeroImage({
     }`}>
       {hasPrizeImage ? (
         <img
-          src={prizeImage}
+          src={effectivePrizeImage}
           alt={prizeTitle || roomTitle || 'Prize Room prize'}
           onError={() => setPrizeFailed(true)}
           className="h-full w-full object-contain"
@@ -473,7 +539,7 @@ function PrizeRoomHeroImage({
       <div className="absolute right-3 top-3 h-16 w-16 overflow-hidden rounded-2xl border border-white/80 bg-black shadow-[0_0_28px_rgba(124,58,237,0.45)] sm:h-20 sm:w-20">
         {hasGameImage ? (
           <img
-            src={gameImage}
+            src={effectiveGameImage}
             alt={gameTitle || 'Prize Room game'}
             onError={() => setGameFailed(true)}
             className="h-full w-full object-cover"
@@ -592,20 +658,40 @@ function PrizeRoomCostBreakdown({ breakdown = {} }) {
   );
 }
 
+function PrizeRoomDetailCard({ label, value, tone = 'default' }) {
+  const toneClass = tone === 'green'
+    ? 'border-green-400/20 bg-green-500/10'
+    : tone === 'yellow'
+      ? 'border-yellow-300/20 bg-yellow-500/10'
+      : tone === 'purple'
+        ? 'border-purple-300/20 bg-purple-500/10'
+        : 'border-white/10 bg-white/[0.05]';
+  return (
+    <div className={`rounded-3xl border p-4 ${toneClass}`}>
+      <div className="text-xs font-bold uppercase tracking-wide text-white/45">{label}</div>
+      <div className="mt-1 text-sm font-semibold text-white">{value || 'Not set'}</div>
+    </div>
+  );
+}
+
 function PrizeRoomCard({ room, isOpen, onToggleDetails, onJoin, joining }) {
   const playerCount = prizeRoomPlayerCount(room);
   const canJoin = ['open', 'awaiting_contributions'].includes(room.status);
+  const fallbackPrizeImage = defaultPrizeRoomPrizeImage(room.prize_title);
+  const fallbackGameImage = defaultPrizeRoomGameImage(room.game_title);
   return (
     <Card className={`overflow-hidden rounded-3xl border bg-black/65 shadow-[0_0_38px_rgba(124,58,237,0.16)] transition ${
       isOpen ? 'border-yellow-300/55 ring-1 ring-yellow-300/30' : 'border-white/10 hover:border-purple-300/40'
     }`}>
       <CardContent className="p-3">
         <PrizeRoomHeroImage
-          prizeImage={room.prize_image}
+          prizeImage={prizeRoomPrizeImage(room)}
           prizeTitle={room.prize_title}
-          gameImage={room.game_image}
+          gameImage={prizeRoomGameImage(room)}
           gameTitle={room.game_title}
           roomTitle={room.title}
+          fallbackPrizeImage={fallbackPrizeImage}
+          fallbackGameImage={fallbackGameImage}
         />
         <div className="space-y-3 px-1 py-4">
           <div className="flex flex-wrap gap-2">
@@ -649,15 +735,23 @@ function PrizeRoomCard({ room, isOpen, onToggleDetails, onJoin, joining }) {
 
 function PrizeRoomDetailsDropdown({ room, onJoin, joining }) {
   const playerCount = prizeRoomPlayerCount(room);
+  const fallbackPrizeImage = defaultPrizeRoomPrizeImage(room.prize_title);
+  const fallbackGameImage = defaultPrizeRoomGameImage(room.game_title);
+  const fulfillmentStatus = room.fulfillment_status || (room.prize_fulfillment_id ? 'prepared fulfillment' : 'manual fulfillment pending');
+  const winnerVerificationStatus = room.winner_verification_status
+    || room.verification_status
+    || (room.winner_user_id ? 'winner locked' : 'not started');
   return (
     <div className="md:col-span-2 xl:col-span-3">
       <div className="rounded-[2rem] border border-yellow-300/35 bg-gradient-to-br from-black via-purple-950/55 to-black p-4 shadow-[0_0_55px_rgba(250,204,21,0.14)]">
         <PrizeRoomHeroImage
-          prizeImage={room.prize_image}
+          prizeImage={prizeRoomPrizeImage(room)}
           prizeTitle={room.prize_title}
-          gameImage={room.game_image}
+          gameImage={prizeRoomGameImage(room)}
           gameTitle={room.game_title}
           roomTitle={room.title}
+          fallbackPrizeImage={fallbackPrizeImage}
+          fallbackGameImage={fallbackGameImage}
           large
         />
         <div className="mt-5 grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
@@ -665,12 +759,35 @@ function PrizeRoomDetailsDropdown({ room, onJoin, joining }) {
             <div>
               <div className="flex flex-wrap gap-2">
                 <Badge className="bg-yellow-500/20 text-yellow-100">{prizeRoomTypeLabel(room)}</Badge>
-                <Badge className={statusClass(room.status)}>{room.status}</Badge>
+                <Badge className={statusClass(room.status)}>{String(room.status || 'open').replace(/_/g, ' ')}</Badge>
               </div>
               <h3 className="mt-3 text-2xl font-black text-white">{room.title}</h3>
               <p className="mt-2 text-sm leading-6 text-white/70">{room.description || 'A pilot Prize Room prepared for skill-based competition and manual fulfillment.'}</p>
             </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+              <PrizeRoomDetailCard label="Join cost" value={formatMoney(prizeRoomJoinCost(room))} tone="green" />
+              <PrizeRoomDetailCard label="Players" value={`${playerCount} / ${room.max_players || 'open'}`} />
+              <PrizeRoomDetailCard label="Room status" value={String(room.status || 'open').replace(/_/g, ' ')} tone="purple" />
+              <PrizeRoomDetailCard label="Fulfillment status" value={String(fulfillmentStatus).replace(/_/g, ' ')} tone="yellow" />
+              <PrizeRoomDetailCard label="Winner verification" value={String(winnerVerificationStatus).replace(/_/g, ' ')} />
+              <PrizeRoomDetailCard label="Total room cost" value={formatMoney(prizeRoomTotalCost(room))} />
+            </div>
             <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-3xl border border-yellow-300/15 bg-white/[0.05] p-4">
+                <div className="mb-2 flex items-center gap-2 text-sm font-black text-yellow-100">
+                  <Gift className="h-4 w-4" /> Prize
+                </div>
+                <p className="font-bold text-white">{room.prize_title}</p>
+                <p className="mt-1 text-sm text-white/60">{room.prize_description || `Source: ${room.prize_source || 'test mode catalog'}. Prepared order only.`}</p>
+                <a
+                  href="https://www.ebay.com/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex text-xs font-semibold text-yellow-100 underline-offset-4 hover:text-white hover:underline"
+                >
+                  Prize image/product powered by eBay
+                </a>
+              </div>
               <div className="rounded-3xl border border-purple-300/15 bg-white/[0.05] p-4">
                 <div className="mb-2 flex items-center gap-2 text-sm font-black text-purple-100">
                   <Gamepad2 className="h-4 w-4" /> Game
@@ -684,21 +801,6 @@ function PrizeRoomDetailsDropdown({ room, onJoin, joining }) {
                   className="mt-3 inline-flex text-xs font-semibold text-purple-200 underline-offset-4 hover:text-white hover:underline"
                 >
                   Game data/images powered by RAWG
-                </a>
-              </div>
-              <div className="rounded-3xl border border-yellow-300/15 bg-white/[0.05] p-4">
-                <div className="mb-2 flex items-center gap-2 text-sm font-black text-yellow-100">
-                  <Gift className="h-4 w-4" /> Prize Listing
-                </div>
-                <p className="font-bold text-white">{room.prize_title}</p>
-                <p className="mt-1 text-sm text-white/60">{room.prize_description || `Source: ${room.prize_source || 'test mode catalog'}. Prepared order only.`}</p>
-                <a
-                  href="https://www.ebay.com/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-3 inline-flex text-xs font-semibold text-yellow-100 underline-offset-4 hover:text-white hover:underline"
-                >
-                  Prize image/product powered by eBay
                 </a>
               </div>
             </div>
@@ -1636,37 +1738,66 @@ function RealNorthPoleFlow({ user }) {
     const bestOffer = bestOfferFor(product);
     const resultSource = product.source || product.provider || source;
     const sourceLabel = product.source_label || product.sourceLabel || product.provider_label || resultSource;
+    const image = product.image_url
+      || product.imageUrl
+      || product.image?.imageUrl
+      || product.thumbnailImages?.[0]?.imageUrl
+      || product.additionalImages?.[0]?.imageUrl
+      || product.images?.[0]
+      || product.image_urls?.[0]
+      || '';
     return {
+      ...product,
       id: product.id || product.product_id || product.externalId || `prize-${Date.now().toString(36)}`,
       title: product.title || 'Selected Prize',
       category: product.category || product.brand || 'Prize',
       brand: product.brand || product.category || '',
       price_cents: bestOffer?.price_cents || product.price_cents || product.price || 0,
-      image_url: product.image_url || product.imageUrl || product.images?.[0] || product.image_urls?.[0] || '',
-      images: product.images || product.image_urls || [product.image_url || product.imageUrl || ''].filter(Boolean),
+      image,
+      image_url: image,
+      imageUrl: product.imageUrl || image,
+      images: product.images || product.image_urls || [image].filter(Boolean),
+      image_urls: product.image_urls || product.images || [image].filter(Boolean),
       source: resultSource,
       source_label: sourceLabel,
       source_url: bestOffer?.product_url || product.source_url || product.product_url || null,
+      product_url: bestOffer?.product_url || product.product_url || product.raw_ebay?.itemWebUrl || null,
       offers: Array.isArray(product.offers) ? product.offers : bestOffer ? [bestOffer] : [],
       availability: bestOffer?.availability || product.availability || 'in_stock',
     };
   };
 
-  const normalizeGame = (game, source = 'game_provider') => ({
-    id: game.id || game.app_id || `game-${Date.now().toString(36)}`,
-    title: game.title || 'Selected Game',
-    developer: game.developer || game.publisher || 'Unknown',
-    description: game.description || '',
-    category: game.category || game.genre || 'Skill Challenge',
-    platform: game.platform || 'unknown',
-    store: game.store || game.store_id || 'Sample catalog',
-    skillStyle: game.skillStyle || game.skill_style || (game.skill_verifiable ? 'skill-verifiable result' : 'manual verification'),
-    skill_verifiable: Boolean(game.skill_verifiable ?? true),
-    icon_url: game.icon_url || '',
-    source: game.source || source,
-    source_label: game.source_label || game.sourceLabel || game.provider_label || game.source || source,
-    provider_ids: game.provider_ids || {},
-  });
+  const normalizeGame = (game, source = 'game_provider') => {
+    const image = game.background_image
+      || game.background_image_additional
+      || game.short_screenshots?.[0]?.image
+      || game.image
+      || game.image_url
+      || game.icon_url
+      || game.cover
+      || game.thumbnail
+      || '';
+    return {
+      ...game,
+      id: game.id || game.app_id || `game-${Date.now().toString(36)}`,
+      title: game.title || game.name || 'Selected Game',
+      developer: game.developer || game.publisher || 'Unknown',
+      description: game.description || '',
+      category: game.category || game.genre || 'Skill Challenge',
+      platform: game.platform || 'unknown',
+      store: game.store || game.store_id || 'Sample catalog',
+      skillStyle: game.skillStyle || game.skill_style || (game.skill_verifiable ? 'skill-verifiable result' : 'manual verification'),
+      skill_verifiable: Boolean(game.skill_verifiable ?? true),
+      background_image: image,
+      image,
+      image_url: image,
+      icon_url: game.icon_url || image,
+      short_screenshots: game.short_screenshots || [],
+      source: game.source || source,
+      source_label: game.source_label || game.sourceLabel || game.provider_label || game.source || source,
+      provider_ids: game.provider_ids || {},
+    };
+  };
 
   const selectPrize = (product, source) => {
     const prize = normalizePrize(product, source);
