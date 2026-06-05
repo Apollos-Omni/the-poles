@@ -915,6 +915,114 @@ function PrizeRoomDetailsDropdown({ room, onJoin, joining }) {
   );
 }
 
+function roomTextForClassification(room = {}) {
+  return `${room.prize_title || ''} ${room.prize_type || ''} ${room.game_title || ''} ${room.title || ''}`.toLowerCase();
+}
+
+function roomLooksLikeGamingGear(room = {}) {
+  return /headset|controller|earbuds|gaming|keyboard|mouse/.test(roomTextForClassification(room));
+}
+
+function roomLooksLikeSports(room = {}) {
+  return /ball|soccer|basketball|helmet|bike|outdoor|sports/.test(roomTextForClassification(room));
+}
+
+function roomLooksLikeBoardGame(room = {}) {
+  return /board|chess|uno|family|lego|art|game night/.test(roomTextForClassification(room));
+}
+
+function roomIsLowCost(room = {}) {
+  return prizeRoomJoinCost(room) <= 1500;
+}
+
+function roomIsAlmostFull(room = {}) {
+  const maxPlayers = Number(room.max_players || 0);
+  if (!maxPlayers) return false;
+  const playerCount = prizeRoomPlayerCount(room);
+  return playerCount >= Math.max(1, maxPlayers - 1) && playerCount < maxPlayers;
+}
+
+function uniquePrizeRooms(rooms = []) {
+  const seen = new Set();
+  return rooms.filter((room) => {
+    if (!room?.id || seen.has(room.id)) return false;
+    seen.add(room.id);
+    return true;
+  });
+}
+
+function PrizeRoomBrowseRow({ title, rooms, openRoomId, joiningId, onToggleDetails, onJoin }) {
+  const rowRooms = uniquePrizeRooms(rooms);
+  if (!rowRooms.length) return null;
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3 px-1">
+        <h3 className="text-xl font-black text-white">{title}</h3>
+        <span className="text-xs font-semibold uppercase tracking-wide text-white/40">{rowRooms.length} rooms</span>
+      </div>
+      <div className="-mx-2 flex snap-x gap-4 overflow-x-auto px-2 pb-3 [scrollbar-color:rgba(250,204,21,0.45)_rgba(255,255,255,0.08)]">
+        {rowRooms.map((room) => (
+          <div key={room.id} className="w-[82vw] flex-none snap-start sm:w-[360px] lg:w-[380px]">
+            <PrizeRoomCard
+              room={room}
+              isOpen={openRoomId === room.id}
+              joining={joiningId === room.id}
+              onToggleDetails={() => onToggleDetails(room)}
+              onJoin={() => onJoin(room)}
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PrizeRoomFeaturedHero({ room, isOpen, joining, onToggleDetails, onJoin }) {
+  if (!room) return null;
+  const playerCount = prizeRoomPlayerCount(room);
+  return (
+    <section className="overflow-hidden rounded-[2rem] border border-yellow-300/25 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.18),transparent_34%),linear-gradient(135deg,rgba(0,0,0,0.86),rgba(88,28,135,0.38),rgba(0,0,0,0.9))] p-4 shadow-[0_0_60px_rgba(250,204,21,0.12)]">
+      <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+        <PrizeRoomHeroImage
+          prizeImage={prizeRoomDisplayPrizeImage(room)}
+          prizeTitle={room.prize_title}
+          gameImage={prizeRoomDisplayGameImage(room)}
+          gameTitle={room.game_title}
+          roomTitle={room.title}
+          fallbackPrizeImage={defaultPrizeRoomPrizeImage(room.prize_title)}
+          fallbackGameImage={defaultPrizeRoomGameImage(room.game_title)}
+          large
+        />
+        <div className="space-y-4 rounded-3xl border border-white/10 bg-black/45 p-5">
+          <div className="flex flex-wrap gap-2">
+            <Badge className="bg-yellow-500/20 text-yellow-100">Featured Prize Room</Badge>
+            <Badge className={`border ${statusClass(room.status)}`}>{String(room.status || 'open').replace(/_/g, ' ')}</Badge>
+          </div>
+          <div>
+            <h3 className="text-3xl font-black leading-tight text-white md:text-4xl">{room.title}</h3>
+            <p className="mt-3 text-sm font-semibold text-yellow-100">Prize: {room.prize_title || 'Prize item'}</p>
+            <p className="mt-1 text-sm text-purple-100">Game: {room.game_title || 'Skill Match'}</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <PrizeRoomDetailCard label="Join cost" value={formatMoney(prizeRoomJoinCost(room))} tone="green" />
+            <PrizeRoomDetailCard label="Players joined" value={`${playerCount} / ${room.max_players || 'open'}`} />
+            <PrizeRoomDetailCard label="Room type" value={prizeRoomTypeLabel(room)} tone="purple" />
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button onClick={onToggleDetails} variant="outline" className="h-12 flex-1 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+              {isOpen ? 'Hide Details' : 'View Details'}
+            </Button>
+            <Button onClick={onJoin} disabled={joining || !['open', 'awaiting_contributions'].includes(room.status)} className="h-12 flex-1 rounded-2xl bg-green-600 font-black text-white hover:bg-green-500 disabled:bg-slate-700">
+              {joining ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <LogIn className="mr-2 h-5 w-5" />}
+              Join Room
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
   const [rooms, setRooms] = useState([]);
   const [openRoomId, setOpenRoomId] = useState('');
@@ -1111,6 +1219,37 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
     });
   }, [rooms, searchTerm, filter, secondaryFilter]);
 
+  const defaultBrowseMode = !searchTerm.trim() && filter === 'all' && secondaryFilter === 'all';
+  const featuredRoom = useMemo(() => {
+    if (!rooms.length) return null;
+    return rooms.find((room) => room.is_featured && ['open', 'awaiting_contributions'].includes(room.status))
+      || rooms.find((room) => ['open', 'awaiting_contributions'].includes(room.status))
+      || rooms[0];
+  }, [rooms]);
+
+  const browseRows = useMemo(() => {
+    const sortedNewRooms = [...rooms].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+    const platformRooms = rooms.filter((room) => room.is_featured || ['platform_supported', 'template_based'].includes(room.room_type));
+    const familyRooms = rooms.filter((room) => room.family_friendly || /family|uno|mario|chess/i.test(`${room.title} ${room.game_title}`));
+    const gameRows = gameOptions.slice(0, 4).map((gameTitle) => ({
+      title: `By Game: ${gameTitle}`,
+      rooms: rooms.filter((room) => room.game_title === gameTitle),
+    }));
+    return [
+      { title: 'Featured Rooms', rooms: platformRooms },
+      { title: 'New Rooms', rooms: sortedNewRooms },
+      { title: 'Low Cost Rooms', rooms: rooms.filter(roomIsLowCost) },
+      { title: 'Almost Full Rooms', rooms: rooms.filter(roomIsAlmostFull) },
+      { title: 'Family Friendly Rooms', rooms: familyRooms },
+      { title: 'Gaming Gear Rooms', rooms: rooms.filter(roomLooksLikeGamingGear) },
+      { title: 'Outdoor / Sports Prize Rooms', rooms: rooms.filter(roomLooksLikeSports) },
+      { title: 'Board Games / Family Night', rooms: rooms.filter(roomLooksLikeBoardGame) },
+      ...gameRows,
+    ].map((row) => ({ ...row, rooms: uniquePrizeRooms(row.rooms).slice(0, 12) }));
+  }, [rooms, gameOptions]);
+
+  const openRoom = useMemo(() => rooms.find((room) => room.id === openRoomId) || null, [rooms, openRoomId]);
+
   return (
     <Card className="overflow-hidden rounded-[2rem] border border-purple-400/20 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.35),transparent_32%),linear-gradient(135deg,#05010d,#10061f_45%,#050505)] text-white shadow-[0_0_70px_rgba(124,58,237,0.18)]">
       <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.03]">
@@ -1163,6 +1302,36 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
           <div className="grid gap-4 md:grid-cols-3">
             {[1, 2, 3].map((item) => <div key={item} className="h-80 animate-pulse rounded-3xl bg-purple-900/30" />)}
           </div>
+        ) : defaultBrowseMode && rooms.length ? (
+          <section className="space-y-7">
+            <PrizeRoomFeaturedHero
+              room={featuredRoom}
+              isOpen={openRoomId === featuredRoom?.id}
+              joining={joiningId === featuredRoom?.id}
+              onToggleDetails={() => setOpenRoomId(openRoomId === featuredRoom?.id ? '' : featuredRoom?.id)}
+              onJoin={() => featuredRoom && joinRoom(featuredRoom)}
+            />
+            <div className="space-y-8">
+              {browseRows.map((row) => (
+                <PrizeRoomBrowseRow
+                  key={row.title}
+                  title={row.title}
+                  rooms={row.rooms}
+                  openRoomId={openRoomId}
+                  joiningId={joiningId}
+                  onToggleDetails={(room) => setOpenRoomId(openRoomId === room.id ? '' : room.id)}
+                  onJoin={joinRoom}
+                />
+              ))}
+            </div>
+            {openRoom && (
+              <PrizeRoomDetailsDropdown
+                room={openRoom}
+                joining={joiningId === openRoom.id}
+                onJoin={() => joinRoom(openRoom)}
+              />
+            )}
+          </section>
         ) : filteredRooms.length ? (
           <section className="space-y-4">
             <div className="flex flex-wrap items-end justify-between gap-3">
