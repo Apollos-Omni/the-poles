@@ -32,6 +32,10 @@ import {
   PlayCircle,
   Target,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Share2,
+  ExternalLink,
 } from 'lucide-react';
 import AdminDashboard from '@/components/northpole/AdminDashboard';
 import SkillCompetitionAgreement from '@/components/northpole/SkillCompetitionAgreement';
@@ -722,8 +726,9 @@ function PrizeRoomDetailCard({ label, value, tone = 'default' }) {
   );
 }
 
-function PrizeRoomCard({ room, isOpen, onToggleDetails, onJoin, joining }) {
+function PrizeRoomCard({ room, isOpen, onOpen, onJoin, onShare, joining }) {
   const playerCount = prizeRoomPlayerCount(room);
+  const spotsRemaining = Math.max(0, Number(room.max_players || 0) - playerCount);
   const canJoin = ['open', 'awaiting_contributions'].includes(room.status);
   const fallbackPrizeImage = defaultPrizeRoomPrizeImage(room.prize_title);
   const fallbackGameImage = defaultPrizeRoomGameImage(room.game_title);
@@ -745,15 +750,17 @@ function PrizeRoomCard({ room, isOpen, onToggleDetails, onJoin, joining }) {
       isOpen ? 'border-yellow-300/55 ring-1 ring-yellow-300/30' : 'border-white/10 hover:border-purple-300/40'
     }`}>
       <CardContent className="p-3">
-        <PrizeRoomHeroImage
-          prizeImage={displayPrizeImage}
-          prizeTitle={room.prize_title}
-          gameImage={displayGameImage}
-          gameTitle={room.game_title}
-          roomTitle={room.title}
-          fallbackPrizeImage={fallbackPrizeImage}
-          fallbackGameImage={fallbackGameImage}
-        />
+        <button type="button" onClick={onOpen} className="block w-full text-left">
+          <PrizeRoomHeroImage
+            prizeImage={displayPrizeImage}
+            prizeTitle={room.prize_title}
+            gameImage={displayGameImage}
+            gameTitle={room.game_title}
+            roomTitle={room.title}
+            fallbackPrizeImage={fallbackPrizeImage}
+            fallbackGameImage={fallbackGameImage}
+          />
+        </button>
         <div className="mt-2 flex flex-wrap gap-3 px-1 text-xs font-semibold">
           {resolvedPrizeImage && (
             <a href={resolvedPrizeImage} target="_blank" rel="noreferrer" className="text-yellow-100 underline-offset-4 hover:text-white hover:underline">
@@ -769,14 +776,16 @@ function PrizeRoomCard({ room, isOpen, onToggleDetails, onJoin, joining }) {
         <div className="space-y-3 px-1 py-4">
           <div className="flex flex-wrap gap-2">
             <Badge className={room.is_frontend_demo ? 'bg-yellow-500/20 text-yellow-100' : 'bg-purple-600/20 text-purple-100'}>{prizeRoomTypeLabel(room)}</Badge>
+            {['platform_supported', 'template_based'].includes(room.room_type) && <Badge className="bg-white/10 text-white">Example Room</Badge>}
+            {canJoin && <Badge className="bg-green-600/20 text-green-100">Ready to Join</Badge>}
             <Badge className={`border ${statusClass(room.status)}`}>{String(room.status || 'open').replace(/_/g, ' ')}</Badge>
           </div>
-          <div>
+          <button type="button" onClick={onOpen} className="block w-full text-left">
             <h3 className="line-clamp-2 text-xl font-black leading-tight text-white">{room.title}</h3>
             <p className="mt-1 line-clamp-1 text-sm font-semibold text-purple-100">Game: {room.game_title || 'Skill Match'}</p>
             <p className="mt-3 text-2xl font-black text-green-200">{formatMoney(prizeRoomJoinCost(room))}</p>
             <p className="text-xs font-semibold uppercase tracking-wide text-white/45">Join cost</p>
-          </div>
+          </button>
           <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-3 text-sm">
             <div className="flex justify-between gap-3">
               <span className="text-yellow-100/75">Prize</span>
@@ -787,13 +796,21 @@ function PrizeRoomCard({ room, isOpen, onToggleDetails, onJoin, joining }) {
               <strong className="text-white">{playerCount} / {room.max_players}</strong>
             </div>
             <div className="flex justify-between gap-3">
+              <span className="text-white/55">Spots remaining</span>
+              <strong className="text-yellow-100">{spotsRemaining}</strong>
+            </div>
+            <div className="flex justify-between gap-3">
               <span className="text-white/55">Status</span>
               <strong className="capitalize text-green-200">{String(room.status || 'open').replace(/_/g, ' ')}</strong>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button onClick={onToggleDetails} variant="outline" className="flex-1 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
-              {isOpen ? 'Hide Details' : 'View Details'}
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Button onClick={onOpen} variant="outline" className="flex-1 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+              Open Room
+            </Button>
+            <Button onClick={onShare} variant="outline" className="flex-1 rounded-2xl border-yellow-300/40 bg-yellow-500/15 font-black text-yellow-50 hover:bg-yellow-500/25">
+              <Share2 className="mr-2 h-4 w-4" />
+              Promote Room
             </Button>
             <Button onClick={onJoin} disabled={joining || !canJoin} className="flex-1 rounded-2xl bg-green-600 text-white hover:bg-green-500 disabled:bg-slate-700">
               {joining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
@@ -806,7 +823,7 @@ function PrizeRoomCard({ room, isOpen, onToggleDetails, onJoin, joining }) {
   );
 }
 
-function PrizeRoomDetailsDropdown({ room, onJoin, joining }) {
+function PrizeRoomDetailsDropdown({ room, onJoin, onShare, joining }) {
   const playerCount = prizeRoomPlayerCount(room);
   const fallbackPrizeImage = defaultPrizeRoomPrizeImage(room.prize_title);
   const fallbackGameImage = defaultPrizeRoomGameImage(room.game_title);
@@ -904,10 +921,16 @@ function PrizeRoomDetailsDropdown({ room, onJoin, joining }) {
               <div className="mt-1 text-sm text-white/60">Total room cost: {formatMoney(prizeRoomTotalCost(room))}</div>
             </div>
             <PrizeRoomCostBreakdown breakdown={room.cost_breakdown} />
-            <Button onClick={onJoin} disabled={joining || !['open', 'awaiting_contributions'].includes(room.status)} className="h-12 w-full rounded-2xl bg-green-600 text-base font-black text-white hover:bg-green-500">
-              {joining ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <DoorOpen className="mr-2 h-5 w-5" />}
-              Join Room / Enter Room
-            </Button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Button onClick={onShare} variant="outline" className="h-12 rounded-2xl border-yellow-300/25 bg-yellow-500/10 text-base font-black text-yellow-50 hover:bg-yellow-500/20">
+                <Share2 className="mr-2 h-5 w-5" />
+                Share / Promote Room
+              </Button>
+              <Button onClick={onJoin} disabled={joining || !['open', 'awaiting_contributions'].includes(room.status)} className="h-12 rounded-2xl bg-green-600 text-base font-black text-white hover:bg-green-500">
+                {joining ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <DoorOpen className="mr-2 h-5 w-5" />}
+                Join Room / Enter Room
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -942,6 +965,31 @@ function roomIsAlmostFull(room = {}) {
   return playerCount >= Math.max(1, maxPlayers - 1) && playerCount < maxPlayers;
 }
 
+function prizeRoomFillPercent(room = {}) {
+  const maxPlayers = Number(room.max_players || 0);
+  if (!maxPlayers) return 0;
+  return prizeRoomPlayerCount(room) / maxPlayers;
+}
+
+function sortRoomsByPriority(rooms = []) {
+  return [...rooms].sort((a, b) => {
+    const aFull = prizeRoomFillPercent(a);
+    const bFull = prizeRoomFillPercent(b);
+    if (bFull !== aFull) return bFull - aFull;
+
+    const aOpen = ['open', 'awaiting_contributions'].includes(a.status) ? 1 : 0;
+    const bOpen = ['open', 'awaiting_contributions'].includes(b.status) ? 1 : 0;
+    if (bOpen !== aOpen) return bOpen - aOpen;
+
+    return String(b.created_at || '').localeCompare(String(a.created_at || ''));
+  });
+}
+
+function prizeRoomShareUrl(room = {}) {
+  if (!room.id || typeof window === 'undefined') return '';
+  return `${window.location.origin}/north-pole?room=${encodeURIComponent(room.id)}`;
+}
+
 function uniquePrizeRooms(rooms = []) {
   const seen = new Set();
   return rooms.filter((room) => {
@@ -951,33 +999,58 @@ function uniquePrizeRooms(rooms = []) {
   });
 }
 
-function PrizeRoomBrowseRow({ title, rooms, openRoomId, joiningId, onToggleDetails, onJoin }) {
-  const rowRooms = uniquePrizeRooms(rooms);
+function PrizeRoomBrowseRow({ title, rooms, openRoomId, joiningId, onToggleDetails, onJoin, onShare }) {
+  const scrollRef = useRef(null);
+  const rowRooms = sortRoomsByPriority(uniquePrizeRooms(rooms));
   if (!rowRooms.length) return null;
+  const scrollByCard = (direction) => {
+    scrollRef.current?.scrollBy({ left: direction * 390, behavior: 'smooth' });
+  };
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3 px-1">
         <h3 className="text-xl font-black text-white">{title}</h3>
         <span className="text-xs font-semibold uppercase tracking-wide text-white/40">{rowRooms.length} rooms</span>
       </div>
-      <div className="-mx-2 flex snap-x gap-4 overflow-x-auto px-2 pb-3 [scrollbar-color:rgba(250,204,21,0.45)_rgba(255,255,255,0.08)]">
-        {rowRooms.map((room) => (
-          <div key={room.id} className="w-[82vw] flex-none snap-start sm:w-[360px] lg:w-[380px]">
-            <PrizeRoomCard
-              room={room}
-              isOpen={openRoomId === room.id}
-              joining={joiningId === room.id}
-              onToggleDetails={() => onToggleDetails(room)}
-              onJoin={() => onJoin(room)}
-            />
-          </div>
-        ))}
+      <div className="relative">
+        <Button
+          type="button"
+          onClick={() => scrollByCard(-1)}
+          variant="outline"
+          className="absolute left-0 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex"
+          aria-label={`Scroll ${title} left`}
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </Button>
+        <div ref={scrollRef} className="-mx-2 flex snap-x gap-4 overflow-x-auto px-2 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {rowRooms.map((room) => (
+            <div key={room.id} className="w-[82vw] flex-none snap-start sm:w-[360px] lg:w-[380px]">
+              <PrizeRoomCard
+                room={room}
+                isOpen={openRoomId === room.id}
+                joining={joiningId === room.id}
+                onOpen={() => onToggleDetails(room)}
+                onJoin={() => onJoin(room)}
+                onShare={() => onShare(room)}
+              />
+            </div>
+          ))}
+        </div>
+        <Button
+          type="button"
+          onClick={() => scrollByCard(1)}
+          variant="outline"
+          className="absolute right-0 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex"
+          aria-label={`Scroll ${title} right`}
+        >
+          <ChevronRight className="h-6 w-6" />
+        </Button>
       </div>
     </section>
   );
 }
 
-function PrizeRoomFeaturedHero({ room, isOpen, joining, onToggleDetails, onJoin }) {
+function PrizeRoomFeaturedHero({ room, isOpen, joining, onToggleDetails, onJoin, onShare }) {
   if (!room) return null;
   const playerCount = prizeRoomPlayerCount(room);
   return (
@@ -1010,11 +1083,179 @@ function PrizeRoomFeaturedHero({ room, isOpen, joining, onToggleDetails, onJoin 
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button onClick={onToggleDetails} variant="outline" className="h-12 flex-1 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
-              {isOpen ? 'Hide Details' : 'View Details'}
+              Open Room
+            </Button>
+            <Button onClick={onShare} variant="outline" className="h-12 flex-1 rounded-2xl border-yellow-300/25 bg-yellow-500/10 font-black text-yellow-50 hover:bg-yellow-500/20">
+              <Share2 className="mr-2 h-5 w-5" />
+              Promote Room
             </Button>
             <Button onClick={onJoin} disabled={joining || !['open', 'awaiting_contributions'].includes(room.status)} className="h-12 flex-1 rounded-2xl bg-green-600 font-black text-white hover:bg-green-500 disabled:bg-slate-700">
               {joining ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <LogIn className="mr-2 h-5 w-5" />}
               Join Room
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function PrizeRoomDetailPage({ room, onJoin, onShare, joining, onBack }) {
+  if (!room) return null;
+  const playerCount = prizeRoomPlayerCount(room);
+  const maxPlayers = Number(room.max_players || 0);
+  const spotsRemaining = Math.max(0, maxPlayers - playerCount);
+  const breakdown = room.cost_breakdown || {};
+  const shareUrl = prizeRoomShareUrl(room);
+  const prizeUrl = room.prize_url || room.prize_snapshot?.product_url || room.prize_snapshot?.itemWebUrl || room.prize_snapshot?.raw_ebay?.itemWebUrl || '';
+  const itemCost = breakdown.item_cost_cents ?? breakdown.priceCents ?? room.prize_snapshot?.price_cents ?? 0;
+  const canJoin = ['open', 'awaiting_contributions'].includes(room.status);
+  return (
+    <section className="space-y-6">
+      <div className="overflow-hidden rounded-[2rem] border border-yellow-300/30 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.18),transparent_34%),linear-gradient(135deg,rgba(0,0,0,0.92),rgba(88,28,135,0.42),rgba(0,0,0,0.94))] p-4 shadow-[0_0_70px_rgba(250,204,21,0.13)]">
+        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
+          <PrizeRoomHeroImage
+            prizeImage={prizeRoomDisplayPrizeImage(room)}
+            prizeTitle={room.prize_title}
+            gameImage={prizeRoomDisplayGameImage(room)}
+            gameTitle={room.game_title}
+            roomTitle={room.title}
+            fallbackPrizeImage={defaultPrizeRoomPrizeImage(room.prize_title)}
+            fallbackGameImage={defaultPrizeRoomGameImage(room.game_title)}
+            large
+          />
+          <div className="space-y-4 rounded-3xl border border-white/10 bg-black/50 p-5">
+            <div className="flex flex-wrap gap-2">
+              <Badge className="bg-yellow-500/20 text-yellow-100">{prizeRoomTypeLabel(room)}</Badge>
+              {['platform_supported', 'template_based'].includes(room.room_type) && <Badge className="bg-white/10 text-white">Example Room</Badge>}
+              {canJoin && <Badge className="bg-green-600/20 text-green-100">Ready to Join</Badge>}
+              <Badge className={`border ${statusClass(room.status)}`}>{String(room.status || 'open').replace(/_/g, ' ')}</Badge>
+            </div>
+            <div>
+              <h2 className="text-3xl font-black leading-tight text-white md:text-5xl">{room.title}</h2>
+              <p className="mt-3 text-base font-bold text-yellow-100">Prize: {room.prize_title || 'Prize item'}</p>
+              <p className="mt-1 text-sm font-semibold text-purple-100">Game: {room.game_title || 'Skill Match'}</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <PrizeRoomDetailCard label="Join cost" value={formatMoney(prizeRoomJoinCost(room))} tone="green" />
+              <PrizeRoomDetailCard label="Players" value={`${playerCount} / ${maxPlayers || 'open'}`} />
+              <PrizeRoomDetailCard label="Spots left" value={String(spotsRemaining)} tone="yellow" />
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Button onClick={onJoin} disabled={joining || !canJoin} className="h-12 rounded-2xl bg-green-600 text-base font-black text-white hover:bg-green-500 disabled:bg-slate-700">
+                {joining ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <DoorOpen className="mr-2 h-5 w-5" />}
+                Join Room
+              </Button>
+              <Button onClick={onShare} variant="outline" className="h-12 rounded-2xl border-yellow-300/35 bg-yellow-500/15 text-base font-black text-yellow-50 hover:bg-yellow-500/25">
+                <Share2 className="mr-2 h-5 w-5" />
+                Promote Room
+              </Button>
+              <Button onClick={onBack} variant="outline" className="h-12 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+                <ChevronLeft className="mr-2 h-5 w-5" />
+                Back to Browse
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
+        <div className="rounded-[2rem] border border-yellow-300/20 bg-white/[0.05] p-5">
+          <div className="mb-4 flex items-center gap-2 text-lg font-black text-yellow-100">
+            <Gift className="h-5 w-5" /> Prize Details
+          </div>
+          <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+            <PrizeRoomHeroImage
+              prizeImage={prizeRoomDisplayPrizeImage(room)}
+              prizeTitle={room.prize_title}
+              gameImage={prizeRoomDisplayGameImage(room)}
+              gameTitle={room.game_title}
+              roomTitle={room.title}
+              fallbackPrizeImage={defaultPrizeRoomPrizeImage(room.prize_title)}
+              fallbackGameImage={defaultPrizeRoomGameImage(room.game_title)}
+            />
+            <div className="space-y-3">
+              <PrizeRoomDetailCard label="Prize title" value={room.prize_title} tone="yellow" />
+              <PrizeRoomDetailCard label="Estimated item cost" value={formatMoney(itemCost)} />
+              <PrizeRoomDetailCard label="Source" value={room.prize_source || room.prize_snapshot?.source || 'eBay/provider'} />
+              <PrizeRoomDetailCard label="Category / type" value={room.prize_type || room.prize_snapshot?.category || 'Prize item'} />
+              <PrizeRoomDetailCard label="Fulfillment status" value={String(room.fulfillment_status || (room.prize_fulfillment_id ? 'prepared fulfillment' : 'manual purchase required')).replace(/_/g, ' ')} tone="purple" />
+              <p className="rounded-2xl border border-orange-400/20 bg-orange-500/10 p-3 text-sm text-orange-50">
+                Test Mode: no real charge made. Manual payment confirmation and manual purchase required.
+              </p>
+              {room.prize_description && <p className="text-sm leading-6 text-white/70">{room.prize_description}</p>}
+              {prizeUrl && (
+                <Button asChild variant="outline" className="rounded-2xl border-yellow-300/25 bg-yellow-500/10 text-yellow-50 hover:bg-yellow-500/20">
+                  <a href={prizeUrl} target="_blank" rel="noreferrer">
+                    <ExternalLink className="mr-2 h-4 w-4" /> View Product
+                  </a>
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[2rem] border border-purple-300/20 bg-white/[0.05] p-5">
+          <div className="mb-4 flex items-center gap-2 text-lg font-black text-purple-100">
+            <Gamepad2 className="h-5 w-5" /> Game Details
+          </div>
+          <div className="grid gap-4 md:grid-cols-[180px_1fr]">
+            <div className="overflow-hidden rounded-3xl border border-white/10 bg-black">
+              <PrizeRoomHeroImage
+                prizeImage={prizeRoomDisplayGameImage(room)}
+                prizeTitle={room.game_title}
+                gameImage={prizeRoomDisplayGameImage(room)}
+                gameTitle={room.game_title}
+                roomTitle={room.title}
+                fallbackPrizeImage={defaultPrizeRoomGameImage(room.game_title)}
+                fallbackGameImage={defaultPrizeRoomGameImage(room.game_title)}
+              />
+            </div>
+            <div className="space-y-3">
+              <PrizeRoomDetailCard label="Game title" value={room.game_title} tone="purple" />
+              <PrizeRoomDetailCard label="Platform" value={room.game_platform || room.game_snapshot?.platform || 'Skill Match'} />
+              <PrizeRoomDetailCard label="Winning rule" value={room.winning_rule || 'Highest verified score wins'} />
+              <PrizeRoomDetailCard label="Verification method" value={room.verification_method || 'Manual score with proof URL'} />
+              <p className="rounded-2xl border border-white/10 bg-black/35 p-3 text-sm leading-6 text-white/70">
+                {room.game_description || room.game_snapshot?.description || 'Players compete under the room rules, then submit scores and proof for winner verification.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
+        <PrizeRoomCostBreakdown breakdown={breakdown} />
+        <div className="rounded-[2rem] border border-green-300/20 bg-green-500/10 p-5">
+          <div className="mb-4 flex items-center gap-2 text-lg font-black text-green-100">
+            <Users className="h-5 w-5" /> Players
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <PrizeRoomDetailCard label="Players joined" value={`${playerCount} / ${maxPlayers || 'open'}`} tone="green" />
+            <PrizeRoomDetailCard label="Spots remaining" value={String(spotsRemaining)} />
+            <PrizeRoomDetailCard label="Room status" value={String(room.status || 'open').replace(/_/g, ' ')} tone="purple" />
+          </div>
+          <div className="mt-4">
+            <PlayerListPreview room={room} />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-[2rem] border border-yellow-300/25 bg-yellow-500/10 p-5">
+        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div>
+            <div className="mb-2 flex items-center gap-2 text-lg font-black text-yellow-50">
+              <Share2 className="h-5 w-5" /> Promote This Room
+            </div>
+            <p className="text-sm text-white/70">Share this room to help fill the player spots.</p>
+            <Input readOnly value={shareUrl} className="mt-3 rounded-2xl border-white/10 bg-black/45 font-mono text-xs text-white" />
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button onClick={onShare} variant="outline" className="rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+              Copy Link
+            </Button>
+            <Button onClick={onShare} className="rounded-2xl bg-yellow-500 font-black text-black hover:bg-yellow-400">
+              <Share2 className="mr-2 h-4 w-4" /> Promote Room
             </Button>
           </div>
         </div>
@@ -1081,6 +1322,43 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
 
   useEffect(() => { loadRooms(); }, [loadRooms]);
 
+  useEffect(() => {
+    if (!rooms.length || openRoomId || typeof window === 'undefined') return;
+    const sharedRoomId = new URLSearchParams(window.location.search).get('room');
+    if (sharedRoomId && rooms.some((room) => String(room.id) === String(sharedRoomId))) {
+      setOpenRoomId(sharedRoomId);
+    }
+  }, [rooms, openRoomId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const syncRoomFromUrl = () => {
+      const sharedRoomId = new URLSearchParams(window.location.search).get('room') || '';
+      setOpenRoomId(sharedRoomId);
+    };
+    window.addEventListener('popstate', syncRoomFromUrl);
+    return () => window.removeEventListener('popstate', syncRoomFromUrl);
+  }, []);
+
+  const openPrizeRoom = useCallback((room) => {
+    if (!room?.id) return;
+    setOpenRoomId(room.id);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('room', room.id);
+      window.history.pushState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+  }, []);
+
+  const backToBrowse = useCallback(() => {
+    setOpenRoomId('');
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('room');
+      window.history.pushState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    }
+  }, []);
+
   const materializeDemoRoom = async (room) => {
     const createdRoom = await createPrizeRoom({
       title: `${room.title} - Test Mode`,
@@ -1111,8 +1389,8 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
       foundationRate: room.foundation_rate || NORTH_POLE_COST_MODEL.foundationRate,
       paymentMode: 'pilot_manual',
     });
-    onCreated(createdRoom);
-    return createdRoom;
+      onCreated(createdRoom);
+      return createdRoom;
   };
 
   const joinRoom = async (room) => {
@@ -1139,7 +1417,7 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
           ? withoutDemo.map((row) => (row.id === updatedRoom.id ? updatedRoom : row))
           : [updatedRoom, ...withoutDemo];
       });
-      setOpenRoomId(updatedRoom.id);
+      openPrizeRoom(updatedRoom);
       setUsingDemoFallback(false);
       onJoined(updatedRoom);
       const message = 'Joined Prize Room. Pilot contribution was marked for family testing; no real charge was made.';
@@ -1152,6 +1430,38 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
       onError(message);
     } finally {
       setJoiningId('');
+    }
+  };
+
+  const shareRoom = async (room) => {
+    const url = prizeRoomShareUrl(room);
+    if (!url) {
+      onError('Room link is not available yet.');
+      return;
+    }
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: room.title || 'Prize Room on The Poles',
+          text: 'Join this Prize Room on The Poles',
+          url,
+        });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      const message = 'Room link copied.';
+      setLocalMessage(message);
+      onMessage(message);
+    } catch (err) {
+      if (err?.name === 'AbortError') return;
+      try {
+        await navigator.clipboard.writeText(url);
+        const message = 'Room link copied.';
+        setLocalMessage(message);
+        onMessage(message);
+      } catch {
+        onError('Could not share or copy the room link.');
+      }
     }
   };
 
@@ -1177,7 +1487,7 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
         paymentMode: 'pilot_manual',
       });
       onCreated(room);
-      setOpenRoomId(room.id);
+      openPrizeRoom(room);
       await loadRooms();
       onMessage('Custom Prize Room created in pilot/manual mode.');
     } catch (err) {
@@ -1195,7 +1505,7 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
 
   const filteredRooms = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    return rooms.filter((room) => {
+    return sortRoomsByPriority(rooms.filter((room) => {
       const searchable = [
         room.title,
         room.game_title,
@@ -1216,39 +1526,42 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
       if (filter === 'by_game' && secondaryFilter !== 'all' && room.game_title !== secondaryFilter) return false;
       if (filter === 'by_prize_type' && secondaryFilter !== 'all' && (room.prize_type || room.prize_source || 'Pilot Prize') !== secondaryFilter) return false;
       return true;
-    });
+    }));
   }, [rooms, searchTerm, filter, secondaryFilter]);
 
   const defaultBrowseMode = !searchTerm.trim() && filter === 'all' && secondaryFilter === 'all';
   const featuredRoom = useMemo(() => {
     if (!rooms.length) return null;
-    return rooms.find((room) => room.is_featured && ['open', 'awaiting_contributions'].includes(room.status))
-      || rooms.find((room) => ['open', 'awaiting_contributions'].includes(room.status))
-      || rooms[0];
+    const sortedRooms = sortRoomsByPriority(rooms);
+    return sortedRooms.find((room) => ['open', 'awaiting_contributions'].includes(room.status))
+      || sortedRooms[0];
   }, [rooms]);
 
   const browseRows = useMemo(() => {
-    const sortedNewRooms = [...rooms].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
-    const platformRooms = rooms.filter((room) => room.is_featured || ['platform_supported', 'template_based'].includes(room.room_type));
-    const familyRooms = rooms.filter((room) => room.family_friendly || /family|uno|mario|chess/i.test(`${room.title} ${room.game_title}`));
+    const priorityRooms = sortRoomsByPriority(rooms);
+    const sortedNewRooms = sortRoomsByPriority([...rooms].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))));
+    const fillingFastRooms = priorityRooms.filter((room) => ['open', 'awaiting_contributions'].includes(room.status) && prizeRoomFillPercent(room) > 0);
+    const platformRooms = priorityRooms.filter((room) => room.is_featured || ['platform_supported', 'template_based'].includes(room.room_type));
+    const familyRooms = priorityRooms.filter((room) => room.family_friendly || /family|uno|mario|chess/i.test(`${room.title} ${room.game_title}`));
     const gameRows = gameOptions.slice(0, 4).map((gameTitle) => ({
       title: `By Game: ${gameTitle}`,
-      rooms: rooms.filter((room) => room.game_title === gameTitle),
+      rooms: priorityRooms.filter((room) => room.game_title === gameTitle),
     }));
     return [
+      { title: 'Filling Fast', rooms: fillingFastRooms },
+      { title: 'Almost Full Rooms', rooms: priorityRooms.filter(roomIsAlmostFull) },
       { title: 'Featured Rooms', rooms: platformRooms },
       { title: 'New Rooms', rooms: sortedNewRooms },
-      { title: 'Low Cost Rooms', rooms: rooms.filter(roomIsLowCost) },
-      { title: 'Almost Full Rooms', rooms: rooms.filter(roomIsAlmostFull) },
+      { title: 'Low Cost Rooms', rooms: priorityRooms.filter(roomIsLowCost) },
       { title: 'Family Friendly Rooms', rooms: familyRooms },
-      { title: 'Gaming Gear Rooms', rooms: rooms.filter(roomLooksLikeGamingGear) },
-      { title: 'Outdoor / Sports Prize Rooms', rooms: rooms.filter(roomLooksLikeSports) },
-      { title: 'Board Games / Family Night', rooms: rooms.filter(roomLooksLikeBoardGame) },
+      { title: 'Gaming Gear Rooms', rooms: priorityRooms.filter(roomLooksLikeGamingGear) },
+      { title: 'Sports / Outdoor Rooms', rooms: priorityRooms.filter(roomLooksLikeSports) },
+      { title: 'Board Games / Family Night', rooms: priorityRooms.filter(roomLooksLikeBoardGame) },
       ...gameRows,
     ].map((row) => ({ ...row, rooms: uniquePrizeRooms(row.rooms).slice(0, 12) }));
   }, [rooms, gameOptions]);
 
-  const openRoom = useMemo(() => rooms.find((room) => room.id === openRoomId) || null, [rooms, openRoomId]);
+  const selectedRoom = useMemo(() => rooms.find((room) => room.id === openRoomId) || null, [rooms, openRoomId]);
 
   return (
     <Card className="overflow-hidden rounded-[2rem] border border-purple-400/20 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.35),transparent_32%),linear-gradient(135deg,#05010d,#10061f_45%,#050505)] text-white shadow-[0_0_70px_rgba(124,58,237,0.18)]">
@@ -1270,16 +1583,18 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <PrizeRoomFilters
-          searchTerm={searchTerm}
-          onSearchTermChange={setSearchTerm}
-          filter={filter}
-          onFilterChange={setFilter}
-          secondaryValue={secondaryFilter}
-          onSecondaryValueChange={setSecondaryFilter}
-          gameOptions={gameOptions}
-          prizeTypeOptions={prizeTypeOptions}
-        />
+        {!selectedRoom && (
+          <PrizeRoomFilters
+            searchTerm={searchTerm}
+            onSearchTermChange={setSearchTerm}
+            filter={filter}
+            onFilterChange={setFilter}
+            secondaryValue={secondaryFilter}
+            onSecondaryValueChange={setSecondaryFilter}
+            gameOptions={gameOptions}
+            prizeTypeOptions={prizeTypeOptions}
+          />
+        )}
 
         {(localError || localMessage || usingDemoFallback) && (
           <div className="space-y-2">
@@ -1302,14 +1617,23 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
           <div className="grid gap-4 md:grid-cols-3">
             {[1, 2, 3].map((item) => <div key={item} className="h-80 animate-pulse rounded-3xl bg-purple-900/30" />)}
           </div>
+        ) : selectedRoom ? (
+          <PrizeRoomDetailPage
+            room={selectedRoom}
+            joining={joiningId === selectedRoom.id}
+            onJoin={() => joinRoom(selectedRoom)}
+            onShare={() => shareRoom(selectedRoom)}
+            onBack={backToBrowse}
+          />
         ) : defaultBrowseMode && rooms.length ? (
           <section className="space-y-7">
             <PrizeRoomFeaturedHero
               room={featuredRoom}
-              isOpen={openRoomId === featuredRoom?.id}
+              isOpen={false}
               joining={joiningId === featuredRoom?.id}
-              onToggleDetails={() => setOpenRoomId(openRoomId === featuredRoom?.id ? '' : featuredRoom?.id)}
+              onToggleDetails={() => featuredRoom && openPrizeRoom(featuredRoom)}
               onJoin={() => featuredRoom && joinRoom(featuredRoom)}
+              onShare={() => featuredRoom && shareRoom(featuredRoom)}
             />
             <div className="space-y-8">
               {browseRows.map((row) => (
@@ -1319,18 +1643,12 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
                   rooms={row.rooms}
                   openRoomId={openRoomId}
                   joiningId={joiningId}
-                  onToggleDetails={(room) => setOpenRoomId(openRoomId === room.id ? '' : room.id)}
+                  onToggleDetails={openPrizeRoom}
                   onJoin={joinRoom}
+                  onShare={shareRoom}
                 />
               ))}
             </div>
-            {openRoom && (
-              <PrizeRoomDetailsDropdown
-                room={openRoom}
-                joining={joiningId === openRoom.id}
-                onJoin={() => joinRoom(openRoom)}
-              />
-            )}
           </section>
         ) : filteredRooms.length ? (
           <section className="space-y-4">
@@ -1343,23 +1661,16 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
             </div>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filteredRooms.map((room) => {
-                const isOpen = openRoomId === room.id;
                 return (
                   <React.Fragment key={room.id}>
                     <PrizeRoomCard
                       room={room}
-                      isOpen={isOpen}
+                      isOpen={false}
                       joining={joiningId === room.id}
-                      onToggleDetails={() => setOpenRoomId(isOpen ? '' : room.id)}
+                      onOpen={() => openPrizeRoom(room)}
                       onJoin={() => joinRoom(room)}
+                      onShare={() => shareRoom(room)}
                     />
-                    {isOpen && (
-                      <PrizeRoomDetailsDropdown
-                        room={room}
-                        joining={joiningId === room.id}
-                        onJoin={() => joinRoom(room)}
-                      />
-                    )}
                   </React.Fragment>
                 );
               })}
