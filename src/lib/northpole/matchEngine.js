@@ -398,6 +398,8 @@ export async function listMarketplaceProducts({
     pagination: response.pagination || { limit, offset, next_offset: offset + (response.products || []).length, has_more: false },
     provider: response.provider || '',
     providerStatus: response.providerStatus || '',
+    productSource: response.productSource || '',
+    fallbackReason: response.fallbackReason || '',
     totalRequested: response.total_requested || limit,
     totalResults: response.totalResults || response.total_results || (response.products || []).length,
   };

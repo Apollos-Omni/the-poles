@@ -37,6 +37,7 @@ import {
   ChevronRight,
   Share2,
   ExternalLink,
+  Snowflake,
 } from 'lucide-react';
 import AdminDashboard from '@/components/northpole/AdminDashboard';
 import SkillCompetitionAgreement from '@/components/northpole/SkillCompetitionAgreement';
@@ -62,7 +63,7 @@ import {
   listPrizeRooms,
   joinPrizeRoom,
   createPrizeRoom,
-  listMarketplaceProductRows,
+  listMarketplaceProducts,
   hydratePrizeRoomProviderImages,
   SKILL_COMPETITION_AGREEMENT_VERSION,
 } from '@/lib/northpole/matchEngine';
@@ -712,6 +713,129 @@ function PrizeRoomCostBreakdown({ breakdown = {} }) {
   );
 }
 
+function PrizeRoomHolidayDecor() {
+  return (
+    <>
+      <style>{`
+        @keyframes northPoleSnowFall {
+          0% { transform: translate3d(0,-12px,0); opacity: 0; }
+          12% { opacity: .65; }
+          100% { transform: translate3d(18px,180px,0); opacity: 0; }
+        }
+        @keyframes northPoleGlowPulse {
+          0%, 100% { opacity: .55; filter: drop-shadow(0 0 10px rgba(250,204,21,.45)); }
+          50% { opacity: 1; filter: drop-shadow(0 0 18px rgba(250,204,21,.75)); }
+        }
+        @keyframes northPoleShimmer {
+          0% { transform: translateX(-120%); }
+          100% { transform: translateX(120%); }
+        }
+      `}</style>
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-10 items-start justify-center gap-3 overflow-hidden px-6">
+        {Array.from({ length: 18 }).map((_, index) => (
+          <span
+            key={index}
+            className={`mt-2 h-2.5 w-2.5 rounded-full ${index % 3 === 0 ? 'bg-red-400' : index % 3 === 1 ? 'bg-yellow-200' : 'bg-emerald-300'}`}
+            style={{ animation: `northPoleGlowPulse ${1.8 + (index % 5) * 0.25}s ease-in-out infinite`, animationDelay: `${index * 0.08}s` }}
+          />
+        ))}
+      </div>
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {Array.from({ length: 34 }).map((_, index) => (
+          <span
+            key={index}
+            className="absolute h-1 w-1 rounded-full bg-white/70"
+            style={{
+              left: `${(index * 29) % 100}%`,
+              top: `${(index * 17) % 84}%`,
+              animation: `northPoleSnowFall ${7 + (index % 6)}s linear infinite`,
+              animationDelay: `${index * 0.35}s`,
+            }}
+          />
+        ))}
+      </div>
+    </>
+  );
+}
+
+function FestivePanel({ children, className = '', accent = 'yellow' }) {
+  const accentClass = accent === 'green'
+    ? 'border-emerald-300/20 bg-emerald-950/20'
+    : accent === 'purple'
+      ? 'border-purple-300/20 bg-purple-950/25'
+      : accent === 'red'
+        ? 'border-red-300/20 bg-red-950/20'
+        : 'border-yellow-300/20 bg-yellow-950/15';
+  return (
+    <div className={`relative overflow-hidden rounded-[2rem] border ${accentClass} p-5 shadow-[0_24px_80px_rgba(0,0,0,0.24)] ${className}`}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
+      <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-yellow-200/10 blur-3xl" />
+      <div className="relative">{children}</div>
+    </div>
+  );
+}
+
+function prizeRoomPrizeImages(room = {}) {
+  const snapshot = room.prize_snapshot || {};
+  return [
+    room.prize_image,
+    snapshot.image,
+    snapshot.image_url,
+    snapshot.imageUrl,
+    ...(Array.isArray(snapshot.images) ? snapshot.images : []),
+    ...(Array.isArray(snapshot.image_urls) ? snapshot.image_urls : []),
+    snapshot.thumbnailImages?.[0]?.imageUrl,
+    snapshot.additionalImages?.[0]?.imageUrl,
+    snapshot.galleryURL,
+    snapshot.pictureURLLarge,
+    snapshot.pictureURLSuperSize,
+  ].filter(Boolean).filter((value, index, list) => list.indexOf(value) === index);
+}
+
+function FestiveCostBreakdown({ breakdown = {} }) {
+  const rows = [
+    ['Prize cost', breakdown.item_cost_cents ?? breakdown.priceCents],
+    ['Estimated tax', breakdown.estimated_tax_cents ?? breakdown.taxCents],
+    ['Estimated shipping', breakdown.estimated_shipping_cents ?? breakdown.shippingCents],
+    ['Fulfillment reserve', breakdown.fulfillment_reserve_cents],
+    ['Processing reserve', breakdown.payment_processing_reserve_cents],
+    ['Foundation contribution', breakdown.foundation_amount_cents ?? breakdown.donationCents],
+  ];
+  return (
+    <FestivePanel accent="red" className="bg-[linear-gradient(135deg,rgba(127,29,29,0.24),rgba(24,24,27,0.72)_48%,rgba(20,83,45,0.2))]">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-lg font-black text-yellow-50">
+            <Gift className="h-5 w-5 text-red-200" /> Holiday Room Receipt
+          </div>
+          <p className="mt-1 text-sm text-white/60">Estimated costs for this test mode Prize Room.</p>
+        </div>
+        <Badge className="border border-yellow-200/30 bg-yellow-500/20 text-yellow-50">North Pole estimate</Badge>
+      </div>
+      <div className="rounded-3xl border border-white/15 bg-white/[0.06] p-4">
+        <div className="grid gap-2 text-sm">
+          {rows.map(([label, cents]) => (
+            <div key={label} className="flex justify-between gap-4 border-b border-white/10 pb-2 last:border-b-0">
+              <span className="text-white/65">{label}</span>
+              <strong className="font-mono text-white">{formatMoney(cents || 0)}</strong>
+            </div>
+          ))}
+        </div>
+        <div className="mt-4 rounded-2xl border border-yellow-300/25 bg-yellow-500/10 p-3">
+          <div className="flex justify-between gap-4 text-base">
+            <span className="font-black text-yellow-50">Total room cost</span>
+            <strong className="font-mono text-yellow-50">{formatMoney(breakdown.total_room_cost_cents ?? breakdown.totalMatchCents)}</strong>
+          </div>
+          <div className="mt-2 flex justify-between gap-4 text-sm">
+            <span className="font-bold text-green-100">Your contribution</span>
+            <strong className="font-mono text-green-100">{formatMoney(breakdown.per_player_contribution_cents ?? breakdown.perPlayerCents)}</strong>
+          </div>
+        </div>
+      </div>
+    </FestivePanel>
+  );
+}
+
 function PrizeRoomDetailCard({ label, value, tone = 'default' }) {
   const toneClass = tone === 'green'
     ? 'border-green-400/20 bg-green-500/10'
@@ -1080,80 +1204,86 @@ function PrizeRoomDetailPage({ room, onJoin, onShare, joining, onBack }) {
   const prizeUrl = room.prize_url || room.prize_snapshot?.product_url || room.prize_snapshot?.itemWebUrl || room.prize_snapshot?.raw_ebay?.itemWebUrl || '';
   const itemCost = breakdown.item_cost_cents ?? breakdown.priceCents ?? room.prize_snapshot?.price_cents ?? 0;
   const canJoin = ['open', 'awaiting_contributions'].includes(room.status);
+  const fillPercent = maxPlayers ? Math.min(100, Math.round((playerCount / maxPlayers) * 100)) : 0;
+  const prizeImages = prizeRoomPrizeImages(room);
+  const gameImage = prizeRoomDisplayGameImage(room);
   return (
-    <section className="space-y-6">
-      <div className="overflow-hidden rounded-[2rem] border border-yellow-300/30 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.18),transparent_34%),linear-gradient(135deg,rgba(0,0,0,0.92),rgba(88,28,135,0.42),rgba(0,0,0,0.94))] p-4 shadow-[0_0_70px_rgba(250,204,21,0.13)]">
-        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
-          <PrizeRoomHeroImage
-            prizeImage={prizeRoomDisplayPrizeImage(room)}
-            prizeTitle={room.prize_title}
-            gameImage={prizeRoomDisplayGameImage(room)}
-            gameTitle={room.game_title}
-            roomTitle={room.title}
-            fallbackPrizeImage={defaultPrizeRoomPrizeImage(room.prize_title)}
-            fallbackGameImage={defaultPrizeRoomGameImage(room.game_title)}
-            large
-          />
-          <div className="space-y-4 rounded-3xl border border-white/10 bg-black/50 p-5">
-            <div className="flex flex-wrap gap-2">
-              <Badge className="bg-yellow-500/20 text-yellow-100">{prizeRoomTypeLabel(room)}</Badge>
-              {['platform_supported', 'template_based'].includes(room.room_type) && <Badge className="bg-white/10 text-white">Example Room</Badge>}
-              {canJoin && <Badge className="bg-green-600/20 text-green-100">Ready to Join</Badge>}
-              <Badge className={`border ${statusClass(room.status)}`}>{String(room.status || 'open').replace(/_/g, ' ')}</Badge>
-            </div>
-            <div>
-              <h2 className="text-3xl font-black leading-tight text-white md:text-5xl">{room.title}</h2>
-              <p className="mt-3 text-base font-bold text-yellow-100">Prize: {room.prize_title || 'Prize item'}</p>
-              <p className="mt-1 text-sm font-semibold text-purple-100">Game: {room.game_title || 'Skill Match'}</p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <PrizeRoomDetailCard label="Join cost" value={formatMoney(prizeRoomJoinCost(room))} tone="green" />
-              <PrizeRoomDetailCard label="Players" value={`${playerCount} / ${maxPlayers || 'open'}`} />
-              <PrizeRoomDetailCard label="Spots left" value={String(spotsRemaining)} tone="yellow" />
-            </div>
-            <div className="grid gap-2 sm:grid-cols-3">
-              <Button onClick={onJoin} disabled={joining || !canJoin} className="h-12 rounded-2xl bg-green-600 text-base font-black text-white hover:bg-green-500 disabled:bg-slate-700">
-                {joining ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <DoorOpen className="mr-2 h-5 w-5" />}
-                Join Room
-              </Button>
-              <Button onClick={onShare} variant="outline" className="h-12 rounded-2xl border-yellow-300/35 bg-yellow-500/15 text-base font-black text-yellow-50 hover:bg-yellow-500/25">
-                <Share2 className="mr-2 h-5 w-5" />
-                Promote Room
-              </Button>
-              <Button onClick={onBack} variant="outline" className="h-12 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
-                <ChevronLeft className="mr-2 h-5 w-5" />
-                Back to Browse
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+    <section className="relative overflow-hidden rounded-[2.25rem] border border-white/10 bg-[radial-gradient(circle_at_18%_8%,rgba(250,204,21,0.22),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(34,197,94,0.13),transparent_28%),linear-gradient(145deg,#06111f_0%,#160821_45%,#050508_100%)] p-3 shadow-[0_0_90px_rgba(15,23,42,0.7)] sm:p-5">
+      <PrizeRoomHolidayDecor />
+      <div className="pointer-events-none absolute right-10 top-14 hidden text-xs font-black uppercase tracking-[0.45em] text-white/10 lg:block">Sleigh Route</div>
+      <div className="pointer-events-none absolute bottom-8 left-8 h-28 w-28 rounded-full bg-red-500/10 blur-3xl" />
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
-        <div className="rounded-[2rem] border border-yellow-300/20 bg-white/[0.05] p-5">
-          <div className="mb-4 flex items-center gap-2 text-lg font-black text-yellow-100">
-            <Gift className="h-5 w-5" /> Prize Details
-          </div>
-          <div className="grid gap-4 md:grid-cols-[220px_1fr]">
+      <div className="relative z-20 space-y-6">
+        <div className="grid gap-6 pt-8 lg:grid-cols-[1.12fr_0.88fr] lg:items-center">
+          <div className="relative">
+            <div className="absolute -inset-3 rounded-[2.25rem] bg-gradient-to-br from-yellow-300/20 via-transparent to-emerald-300/10 blur-xl" />
             <PrizeRoomHeroImage
               prizeImage={prizeRoomDisplayPrizeImage(room)}
               prizeTitle={room.prize_title}
-              gameImage={prizeRoomDisplayGameImage(room)}
+              gameImage={gameImage}
               gameTitle={room.game_title}
               roomTitle={room.title}
               fallbackPrizeImage={defaultPrizeRoomPrizeImage(room.prize_title)}
               fallbackGameImage={defaultPrizeRoomGameImage(room.game_title)}
+              large
             />
-            <div className="space-y-3">
-              <PrizeRoomDetailCard label="Prize title" value={room.prize_title} tone="yellow" />
-              <PrizeRoomDetailCard label="Estimated item cost" value={formatMoney(itemCost)} />
-              <PrizeRoomDetailCard label="Source" value={room.prize_source || room.prize_snapshot?.source || 'eBay/provider'} />
-              <PrizeRoomDetailCard label="Category / type" value={room.prize_type || room.prize_snapshot?.category || 'Prize item'} />
-              <PrizeRoomDetailCard label="Fulfillment status" value={String(room.fulfillment_status || (room.prize_fulfillment_id ? 'prepared fulfillment' : 'manual purchase required')).replace(/_/g, ' ')} tone="purple" />
-              <p className="rounded-2xl border border-orange-400/20 bg-orange-500/10 p-3 text-sm text-orange-50">
-                Test Mode: no real charge made. Manual payment confirmation and manual purchase required.
-              </p>
-              {room.prize_description && <p className="text-sm leading-6 text-white/70">{room.prize_description}</p>}
+            {prizeImages.length > 1 && (
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {prizeImages.slice(0, 6).map((image) => (
+                  <div key={image} className="h-16 w-16 flex-none rounded-2xl border border-white/15 bg-white p-1.5">
+                    <img src={image} alt="" className="h-full w-full object-contain" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/15 bg-black/50 p-5 shadow-[0_0_48px_rgba(250,204,21,0.12)] backdrop-blur">
+            <div className="pointer-events-none absolute inset-y-0 -left-1/3 w-2/3 bg-gradient-to-r from-transparent via-white/10 to-transparent" style={{ animation: 'northPoleShimmer 7s ease-in-out infinite' }} />
+            <div className="relative space-y-5">
+              <div className="flex flex-wrap gap-2">
+                <Badge className="bg-yellow-500/20 text-yellow-100">{prizeRoomTypeLabel(room)}</Badge>
+                {canJoin && <Badge className="bg-green-600/20 text-green-100">Ready to Join</Badge>}
+                <Badge className={`border ${statusClass(room.status)}`}>{String(room.status || 'open').replace(/_/g, ' ')}</Badge>
+              </div>
+              <div>
+                <div className="mb-2 flex items-center gap-2 text-xs font-black uppercase tracking-[0.24em] text-yellow-100/80">
+                  <Snowflake className="h-4 w-4" /> North Pole Prize Room
+                </div>
+                <h2 className="text-3xl font-black leading-tight text-white md:text-5xl">{room.title}</h2>
+                <p className="mt-3 text-base font-semibold leading-7 text-white/72">
+                  Win {room.prize_title || 'the featured prize'} by competing in {room.game_title || 'this skill match'}.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <PrizeRoomDetailCard label="Join cost" value={formatMoney(prizeRoomJoinCost(room))} tone="green" />
+                <PrizeRoomDetailCard label="Players joined" value={`${playerCount} / ${maxPlayers || 'open'}`} />
+                <PrizeRoomDetailCard label="Spots left" value={String(spotsRemaining)} tone="yellow" />
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Button onClick={onJoin} disabled={joining || !canJoin} className="h-12 rounded-2xl bg-green-600 text-base font-black text-white shadow-[0_0_24px_rgba(34,197,94,0.24)] hover:bg-green-500 disabled:bg-slate-700">
+                  {joining ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <DoorOpen className="mr-2 h-5 w-5" />}
+                  Join Room
+                </Button>
+                <Button onClick={onShare} variant="outline" className="h-12 rounded-2xl border-yellow-300/35 bg-yellow-500/15 text-base font-black text-yellow-50 hover:bg-yellow-500/25">
+                  <Share2 className="mr-2 h-5 w-5" />
+                  Promote Room
+                </Button>
+                <Button onClick={onBack} variant="outline" className="h-12 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+                  <ChevronLeft className="mr-2 h-5 w-5" />
+                  Back to Browse
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
+          <FestivePanel>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-lg font-black text-yellow-100">
+                <Gift className="h-5 w-5" /> Prize Workshop
+              </div>
               {prizeUrl && (
                 <Button asChild variant="outline" className="rounded-2xl border-yellow-300/25 bg-yellow-500/10 text-yellow-50 hover:bg-yellow-500/20">
                   <a href={prizeUrl} target="_blank" rel="noreferrer">
@@ -1162,73 +1292,86 @@ function PrizeRoomDetailPage({ room, onJoin, onShare, joining, onBack }) {
                 </Button>
               )}
             </div>
-          </div>
+            <div className="grid gap-4 md:grid-cols-[210px_1fr]">
+              <div className="rounded-3xl border border-white/15 bg-white p-3">
+                <img src={prizeRoomDisplayPrizeImage(room)} alt={room.prize_title || 'Prize'} className="h-56 w-full object-contain" />
+              </div>
+              <div className="space-y-3">
+                <PrizeRoomDetailCard label="Prize title" value={room.prize_title} tone="yellow" />
+                <PrizeRoomDetailCard label="Estimated item cost" value={formatMoney(itemCost)} />
+                <PrizeRoomDetailCard label="Source / provider" value={room.prize_source || room.prize_snapshot?.source || 'eBay/provider'} />
+                <PrizeRoomDetailCard label="Category / type" value={room.prize_type || room.prize_snapshot?.category || 'Prize item'} />
+                {room.prize_description && <p className="rounded-2xl border border-white/10 bg-black/35 p-3 text-sm leading-6 text-white/70">{room.prize_description}</p>}
+              </div>
+            </div>
+          </FestivePanel>
+
+          <FestivePanel accent="purple">
+            <div className="mb-4 flex items-center gap-2 text-lg font-black text-purple-100">
+              <Gamepad2 className="h-5 w-5" /> Game Challenge
+            </div>
+            <div className="grid gap-4 md:grid-cols-[180px_1fr]">
+              <div className="overflow-hidden rounded-3xl border border-white/15 bg-black">
+                <img src={gameImage} alt={room.game_title || 'Game'} className="h-full min-h-48 w-full object-cover" />
+              </div>
+              <div className="space-y-3">
+                <PrizeRoomDetailCard label="Game title" value={room.game_title} tone="purple" />
+                <PrizeRoomDetailCard label="Platform" value={room.game_platform || room.game_snapshot?.platform || 'Skill Match'} />
+                <PrizeRoomDetailCard label="Winning rule" value={room.winning_rule || 'Highest verified score wins'} />
+                <PrizeRoomDetailCard label="Verification method" value={room.verification_method || 'Manual score with proof URL'} />
+                <p className="rounded-2xl border border-white/10 bg-black/35 p-3 text-sm leading-6 text-white/70">
+                  {room.game_description || room.game_snapshot?.description || 'Players compete under the room rules, then submit scores and proof for winner verification.'}
+                </p>
+              </div>
+            </div>
+          </FestivePanel>
         </div>
 
-        <div className="rounded-[2rem] border border-purple-300/20 bg-white/[0.05] p-5">
-          <div className="mb-4 flex items-center gap-2 text-lg font-black text-purple-100">
-            <Gamepad2 className="h-5 w-5" /> Game Details
-          </div>
-          <div className="grid gap-4 md:grid-cols-[180px_1fr]">
-            <div className="overflow-hidden rounded-3xl border border-white/10 bg-black">
-              <PrizeRoomHeroImage
-                prizeImage={prizeRoomDisplayGameImage(room)}
-                prizeTitle={room.game_title}
-                gameImage={prizeRoomDisplayGameImage(room)}
-                gameTitle={room.game_title}
-                roomTitle={room.title}
-                fallbackPrizeImage={defaultPrizeRoomGameImage(room.game_title)}
-                fallbackGameImage={defaultPrizeRoomGameImage(room.game_title)}
-              />
+        <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
+          <FestiveCostBreakdown breakdown={breakdown} />
+          <FestivePanel accent="green">
+            <div className="mb-4 flex items-center gap-2 text-lg font-black text-green-100">
+              <Users className="h-5 w-5" /> Players
             </div>
-            <div className="space-y-3">
-              <PrizeRoomDetailCard label="Game title" value={room.game_title} tone="purple" />
-              <PrizeRoomDetailCard label="Platform" value={room.game_platform || room.game_snapshot?.platform || 'Skill Match'} />
-              <PrizeRoomDetailCard label="Winning rule" value={room.winning_rule || 'Highest verified score wins'} />
-              <PrizeRoomDetailCard label="Verification method" value={room.verification_method || 'Manual score with proof URL'} />
-              <p className="rounded-2xl border border-white/10 bg-black/35 p-3 text-sm leading-6 text-white/70">
-                {room.game_description || room.game_snapshot?.description || 'Players compete under the room rules, then submit scores and proof for winner verification.'}
-              </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <PrizeRoomDetailCard label="Players joined" value={`${playerCount} / ${maxPlayers || 'open'}`} tone="green" />
+              <PrizeRoomDetailCard label="Spots remaining" value={String(spotsRemaining)} />
+              <PrizeRoomDetailCard label="Room status" value={String(room.status || 'open').replace(/_/g, ' ')} tone="purple" />
             </div>
-          </div>
+            <div className="mt-4">
+              <div className="mb-3 flex items-center justify-between text-xs font-bold uppercase tracking-wide text-white/55">
+                <span>Room fill</span>
+                <span>{fillPercent}%</span>
+              </div>
+              <div className="h-3 overflow-hidden rounded-full border border-white/10 bg-black/45">
+                <div className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-yellow-200 to-red-300 shadow-[0_0_20px_rgba(250,204,21,0.35)]" style={{ width: `${fillPercent}%` }} />
+              </div>
+            </div>
+            <div className="mt-4">
+              <PlayerListPreview room={room} />
+            </div>
+          </FestivePanel>
         </div>
-      </div>
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
-        <PrizeRoomCostBreakdown breakdown={breakdown} />
-        <div className="rounded-[2rem] border border-green-300/20 bg-green-500/10 p-5">
-          <div className="mb-4 flex items-center gap-2 text-lg font-black text-green-100">
-            <Users className="h-5 w-5" /> Players
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <PrizeRoomDetailCard label="Players joined" value={`${playerCount} / ${maxPlayers || 'open'}`} tone="green" />
-            <PrizeRoomDetailCard label="Spots remaining" value={String(spotsRemaining)} />
-            <PrizeRoomDetailCard label="Room status" value={String(room.status || 'open').replace(/_/g, ' ')} tone="purple" />
-          </div>
-          <div className="mt-4">
-            <PlayerListPreview room={room} />
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-[2rem] border border-yellow-300/25 bg-yellow-500/10 p-5">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
-          <div>
-            <div className="mb-2 flex items-center gap-2 text-lg font-black text-yellow-50">
-              <Share2 className="h-5 w-5" /> Promote This Room
+        <FestivePanel className="bg-[linear-gradient(135deg,rgba(250,204,21,0.14),rgba(0,0,0,0.5),rgba(34,197,94,0.12))]">
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div>
+              <div className="mb-2 flex items-center gap-2 text-lg font-black text-yellow-50">
+                <Share2 className="h-5 w-5" /> Promote This Room
+              </div>
+              <p className="text-sm text-white/70">Share this room to help fill the player spots and bring more competitors into the workshop.</p>
+              <Input readOnly value={shareUrl} className="mt-3 rounded-2xl border-white/10 bg-black/45 font-mono text-xs text-white" />
             </div>
-            <p className="text-sm text-white/70">Share this room to help fill the player spots.</p>
-            <Input readOnly value={shareUrl} className="mt-3 rounded-2xl border-white/10 bg-black/45 font-mono text-xs text-white" />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button onClick={onShare} variant="outline" className="rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+                Copy Link
+              </Button>
+              <Button onClick={onShare} className="rounded-2xl bg-yellow-500 font-black text-black hover:bg-yellow-400">
+                <Share2 className="mr-2 h-4 w-4" /> Promote Room
+              </Button>
+            </div>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button onClick={onShare} variant="outline" className="rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
-              Copy Link
-            </Button>
-            <Button onClick={onShare} className="rounded-2xl bg-yellow-500 font-black text-black hover:bg-yellow-400">
-              <Share2 className="mr-2 h-4 w-4" /> Promote Room
-            </Button>
-          </div>
-        </div>
+        </FestivePanel>
       </div>
     </section>
   );
@@ -1252,11 +1395,7 @@ const BAD_PRIZE_CONDITION_PATTERN = /\b(broken|for parts|not working|untested|as
 const PRIZE_PART_PATTERN = /\b(replacement|spare|repair|part only|parts only|shell only|case only|cover only|manual only)\b/i;
 
 function marketplaceProductImage(product = {}) {
-  const image = product.image_url || product.images?.[0] || '';
-  if (/^https:\/\/(i\.ebayimg\.com|media\.rawg\.io)\//i.test(image) && product.id) {
-    return apiUrl(`/api/prize-products/${encodeURIComponent(product.id)}/image`);
-  }
-  return image;
+  return product.image_url || product.images?.[0] || '';
 }
 
 function marketplaceProductImages(product = {}) {
@@ -1313,31 +1452,49 @@ function productFilterMatches(product = {}, filters = {}) {
   return productIsPrizeQuality(product);
 }
 
+function ProductImagePanel({ src, alt, className = 'h-52' }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
+
+  return (
+    <div className={`flex w-full items-center justify-center rounded-xl bg-white p-4 ${className}`}>
+      {src && !failed ? (
+        <img
+          loading="lazy"
+          src={src}
+          alt={alt}
+          onError={() => setFailed(true)}
+          className="h-full w-full object-contain"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center rounded-lg border border-purple-100 bg-purple-50 px-4 text-center text-sm font-black text-purple-950">
+          Product image unavailable
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PrizeProductCard({ product, onOpen }) {
   const image = marketplaceProductImage(product);
   return (
-    <Card className="h-full overflow-hidden rounded-xl border-white/10 bg-black/65 text-white shadow-[0_0_18px_rgba(124,58,237,0.10)]">
-      <button type="button" onClick={onOpen} className="block w-full bg-white p-2 text-left">
-        {image ? (
-          <img loading="lazy" src={image} alt={product.title} className="h-[118px] w-full object-contain sm:h-[112px] md:h-[120px]" />
-        ) : (
-          <div className="flex h-[118px] items-center justify-center rounded-lg bg-purple-100 text-xs font-black text-purple-950">Prize Image</div>
-        )}
+    <Card className="h-full overflow-hidden rounded-2xl border-white/10 bg-white/[0.04] text-white shadow-[0_0_30px_rgba(124,58,237,0.10)]">
+      <button type="button" onClick={onOpen} className="block w-full p-3 text-left">
+        <ProductImagePanel src={image} alt={product.title || 'Prize product'} />
       </button>
-      <CardContent className="space-y-2 p-2.5">
+      <CardContent className="space-y-3 p-4 pt-1">
         <div>
-          <Badge className="max-w-full truncate bg-yellow-500/20 px-2 py-0.5 text-[10px] text-yellow-100">{product.category || 'Prize'}</Badge>
           <button type="button" onClick={onOpen} className="mt-1.5 block w-full text-left">
-            <h3 className="line-clamp-2 min-h-9 text-xs font-black leading-tight">{product.title}</h3>
+            <h3 className="line-clamp-2 min-h-[3rem] text-base font-black leading-tight">{product.title}</h3>
           </button>
-          <p className="mt-1 line-clamp-1 text-[11px] text-white/50">{marketplaceProductSource(product)}</p>
+          <p className="mt-1 line-clamp-1 text-sm text-white/55">{marketplaceProductSource(product)}</p>
         </div>
-        <div className="flex items-center justify-between gap-2 text-xs">
-          <strong className="text-sm text-green-200">{formatMoney(product.price_cents)}</strong>
-          <span className="line-clamp-1 text-[11px] text-white/45">{marketplaceProductCondition(product) || 'Available'}</span>
+        <div className="flex items-center justify-between gap-3">
+          <strong className="text-xl text-green-200">{formatMoney(product.price_cents)}</strong>
+          <Badge className="max-w-[45%] truncate bg-yellow-500/20 text-yellow-100">{product.category || 'Prize'}</Badge>
         </div>
-        <Button onClick={onOpen} className="h-8 w-full rounded-lg bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
-          Product detail
+        <Button onClick={onOpen} className="w-full rounded-xl bg-yellow-500 font-black text-black hover:bg-yellow-400">
+          View Prize
         </Button>
       </CardContent>
     </Card>
@@ -1465,9 +1622,7 @@ function PrizeProductDetail({ product, user, onBack, onCreated, onError, onMessa
       </Button>
       <div className="grid gap-6 rounded-[2rem] border border-white/10 bg-white/[0.04] p-4 lg:grid-cols-[1fr_1.05fr]">
         <div className="space-y-3">
-          <div className="rounded-3xl bg-white p-5">
-            <img src={marketplaceProductImage(product)} alt={product.title} className="h-[360px] w-full object-contain" />
-          </div>
+          <ProductImagePanel src={marketplaceProductImage(product)} alt={product.title || 'Prize product'} className="h-[360px] rounded-3xl p-5" />
           {productImages.length > 1 && (
             <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {productImages.slice(0, 8).map((image) => (
@@ -1542,9 +1697,9 @@ function PrizeProductDetail({ product, user, onBack, onCreated, onError, onMessa
 }
 
 function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
-  const [prizeRows, setPrizeRows] = useState([]);
+  const [products, setProducts] = useState([]);
   const [category, setCategory] = useState('all');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState('gaming prizes');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [playerCount, setPlayerCount] = useState('all');
@@ -1552,30 +1707,44 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState('');
-  const [rowDebug, setRowDebug] = useState(null);
+  const [providerStatus, setProviderStatus] = useState('');
+  const [productSource, setProductSource] = useState('');
   const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
-  const [queryOffset, setQueryOffset] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [localError, setLocalError] = useState('');
 
-  const loadProducts = useCallback(async () => {
+  const loadProducts = useCallback(async ({ reset = false, searchQuery = query } = {}) => {
     setLoading(true);
+    setLocalError('');
     try {
-      const result = await listMarketplaceProductRows({ rowLimit: 50, queryOffset });
-      const nextRows = (result.rows || []).map((row) => ({
-        ...row,
-        products: Array.isArray(row.products) ? row.products.filter(Boolean) : [],
-      })).filter((row) => row.products.length);
-      setPrizeRows(nextRows);
-      setProvider(result.provider || result.providerStatus || '');
-      setRowDebug(result.debug || null);
+      const nextOffset = reset ? 0 : offset;
+      const result = await listMarketplaceProducts({
+        q: searchQuery || 'gaming prizes',
+        limit: 24,
+        offset: nextOffset,
+        endpoint: '/api/prize-products',
+      });
+      const nextProducts = Array.isArray(result.products) ? result.products.filter(Boolean) : [];
+      setProducts((prev) => reset
+        ? nextProducts
+        : [...prev, ...nextProducts.filter((item) => !prev.some((row) => row.id === item.id))]);
+      setOffset(result.pagination?.next_offset ?? nextOffset + nextProducts.length);
+      setHasMore(result.pagination?.has_more ?? nextProducts.length >= 24);
+      setProvider(result.provider || '');
+      setProviderStatus(result.providerStatus || '');
+      setProductSource(result.productSource || '');
       setLastRefreshedAt(new Date());
     } catch (error) {
-      onError(error.message || 'Could not load prize catalog.');
+      const message = error.message || 'Could not load live prize products.';
+      setLocalError(message);
+      onError(message);
     } finally {
       setLoading(false);
     }
-  }, [onError, queryOffset]);
+  }, [offset, onError, query]);
 
-  useEffect(() => { loadProducts(); }, [loadProducts]);
+  useEffect(() => { loadProducts({ reset: true }); }, []);
 
   const filterProduct = useCallback((product) => {
       const option = calculateNorthPoleOptions({ priceCents: product.price_cents, playerCounts: PLAYER_OPTIONS }).find((entry) => String(entry.players) === String(playerCount));
@@ -1586,32 +1755,31 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
       return productFilterMatches(product, { minPrice, maxPrice });
   }, [joinCost, maxPrice, minPrice, playerCount]);
 
-  const productRows = useMemo(() => {
-    const search = query.trim().toLowerCase();
-    return prizeRows.map((row) => {
-      const rowMatchesCategory = category === 'all'
-        || row.category === category
-        || row.title === category
-        || row.id === category;
-      const products = rowMatchesCategory ? row.products.filter((product) => {
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) => {
+        const rowMatchesCategory = category === 'all'
+          || product.category === category
+          || product.prize_row_title === category
+          || product.prize_row_id === category;
+        if (!rowMatchesCategory) return false;
         if (!filterProduct(product)) return false;
-        if (!search) return true;
-        const text = `${product.title || ''} ${product.category || ''} ${marketplaceProductSource(product)}`.toLowerCase();
-        return text.includes(search);
-      }) : [];
-      return {
-        ...row,
-        products,
-      };
-    }).filter((row) => row.products.length);
-  }, [category, filterProduct, prizeRows, query]);
+        return true;
+      });
+  }, [category, filterProduct, products]);
 
-  const filteredProductCount = useMemo(() => productRows.reduce((total, row) => total + row.products.length, 0), [productRows]);
-  const loadedProductCount = useMemo(() => prizeRows.reduce((total, row) => total + row.products.length, 0), [prizeRows]);
-  const categoryOptions = useMemo(() => [...new Set(prizeRows.map((row) => row.category || row.title).filter(Boolean))], [prizeRows]);
+  const filteredProductCount = filteredProducts.length;
+  const loadedProductCount = products.length;
+  const categoryOptions = useMemo(() => [...new Set(products.map((product) => product.category).filter(Boolean))], [products]);
 
   const refreshProducts = () => {
-    setQueryOffset((value) => value + 1);
+    loadProducts({ reset: true });
+  };
+
+  const submitSearch = (event) => {
+    event.preventDefault();
+    setOffset(0);
+    setHasMore(true);
+    loadProducts({ reset: true, searchQuery: query });
   };
 
   if (selectedProduct) {
@@ -1632,21 +1800,21 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
 
   return (
     <section className="space-y-5">
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <form onSubmit={submitSearch} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
         <div className="mb-4 rounded-2xl border border-green-300/20 bg-green-500/10 p-3">
           <div className="mb-2 text-sm font-black text-green-100">Live marketplace results</div>
           <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs font-semibold text-white/70">
-            <span>Loaded rows: <strong className="text-white">{rowDebug?.total_rows ?? prizeRows.length}</strong></span>
-            <span>Total products: <strong className="text-white">{rowDebug?.total_products ?? loadedProductCount}</strong></span>
-            <span>Endpoint: <strong className="text-white">/api/prize-catalog/rows</strong></span>
+            <span>Total products: <strong className="text-white">{loadedProductCount}</strong></span>
+            <span>Endpoint: <strong className="text-white">/api/prize-products</strong></span>
             <span>Provider: <strong className="text-white">{provider || 'eBay/provider'}</strong></span>
+            <span>Status: <strong className="text-white">{providerStatus || productSource || 'loading'}</strong></span>
             <span>Last refreshed: <strong className="text-white">{lastRefreshedAt ? lastRefreshedAt.toLocaleTimeString() : 'Loading'}</strong></span>
           </div>
         </div>
         <div className="grid gap-3 lg:grid-cols-[1fr_180px_140px_140px]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-300" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search loaded products..." className="h-11 rounded-xl border-white/10 bg-black/45 pl-9 text-white" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search live products..." className="h-11 rounded-xl border-white/10 bg-black/45 pl-9 text-white" />
           </div>
           <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-xl border border-white/10 bg-black/45 px-3 text-sm text-white">
             <option value="all">All categories</option>
@@ -1669,21 +1837,38 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
           <Button onClick={refreshProducts} disabled={loading} className="h-10 rounded-xl bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Refresh Products
           </Button>
+          <Button type="submit" disabled={loading} className="h-10 rounded-xl bg-green-600 text-xs font-black text-white hover:bg-green-500">
+            <Search className="mr-2 h-4 w-4" /> Search eBay
+          </Button>
           <Badge className="flex h-10 items-center justify-center rounded-xl bg-white/10 text-white">{filteredProductCount} prizes</Badge>
         </div>
-      </div>
+      </form>
+      {localError && (
+        <div className="rounded-2xl border border-orange-500/40 bg-orange-950/30 p-4 text-sm text-orange-50">
+          {localError}
+        </div>
+      )}
       {loading ? (
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[1, 2, 3, 4, 5].map((item) => <div key={item} className="h-80 animate-pulse rounded-2xl bg-purple-900/30" />)}
         </div>
       ) : (
-        <div className="space-y-8">
-          {productRows.map((row) => (
-            <PrizeProductBrowseRow key={row.id || row.title} title={row.title} products={row.products} onOpen={setSelectedProduct} />
-          ))}
-          {!productRows.length && (
+        <div className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {filteredProducts.map((product) => (
+              <PrizeProductCard key={product.id || product.marketplace_key} product={product} onOpen={() => setSelectedProduct(product)} />
+            ))}
+          </div>
+          {!filteredProducts.length && (
             <div className="rounded-2xl border border-white/10 bg-black/35 p-6 text-center text-sm text-white/60">
-              No prizes match the current filters.
+              No live prize products match the current search and filters.
+            </div>
+          )}
+          {hasMore && filteredProducts.length > 0 && (
+            <div className="flex justify-center">
+              <Button onClick={() => loadProducts()} disabled={loading} variant="outline" className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+                Load More Products
+              </Button>
             </div>
           )}
         </div>
