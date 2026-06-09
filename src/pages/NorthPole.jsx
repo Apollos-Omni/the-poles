@@ -1404,15 +1404,42 @@ function PrizeRoomDetailPage({ room, onJoin, onShare, joining, onBack }) {
 const PRIZE_CATEGORIES = [
   'Electronics',
   'Gaming Gear',
-  'Toys',
-  'Sports / Outdoor',
+  'Toys & Family',
+  'Sports / Outdoors',
   'Clothing',
   'Shoes',
-  'Home',
+  'Home / Lifestyle',
   'Art / Creative',
   'Books / Education',
   'Collectibles',
 ];
+
+function categoryToPrizeSearchQuery(category = 'all') {
+  const normalized = String(category || 'all').toLowerCase();
+  const categoryQueries = {
+    electronics: 'electronics prize',
+    'gaming gear': 'gaming headset controller keyboard',
+    toys: 'lego rc car drone toy',
+    'toys & family': 'lego rc car drone toy',
+    'sports / outdoor': 'basketball soccer outdoor game',
+    'sports / outdoors': 'basketball soccer outdoor game',
+    home: 'home gadget kitchen gift',
+    'home / lifestyle': 'home gadget kitchen gift',
+    'books / education': 'kids science kit educational book',
+    clothing: 'clothing gift hoodie jersey',
+    shoes: 'sneakers athletic shoes prize',
+    'art / creative': 'art kit drawing tablet creative gift',
+    collectibles: 'collectible figure trading card prize',
+  };
+  return categoryQueries[normalized] || (category === 'all' ? 'gaming prizes' : `${category} prize`);
+}
+
+function marketplaceProductKey(product = {}) {
+  return product.id
+    || product.marketplace_key
+    || product.product_url
+    || `${product.title || 'product'}-${product.price_cents || 0}`;
+}
 
 const UNSAFE_PRIZE_PATTERN = /\b(adult|alcohol|beer|wine|liquor|tobacco|cigar|cigarette|nicotine|vape|weapon|knife|knives|gun|firearm|ammo|ammunition|cbd|thc|supplement|diet pill|gambling|lottery|mystery box|used underwear)\b/i;
 const BAD_PRIZE_CONDITION_PATTERN = /\b(broken|for parts|not working|untested|as-is|as is|repair only|parts only)\b/i;
@@ -1741,6 +1768,7 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
   const [maxPrice, setMaxPrice] = useState('');
   const [playerCount, setPlayerCount] = useState('all');
   const [joinCost, setJoinCost] = useState('all');
+  const [sortBy, setSortBy] = useState('relevance');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState('');
@@ -1765,9 +1793,12 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
       const nextProducts = Array.isArray(result.products) ? result.products.filter(Boolean) : [];
       setProducts((prev) => reset
         ? nextProducts
-        : [...prev, ...nextProducts.filter((item) => !prev.some((row) => row.id === item.id))]);
+        : [...prev, ...nextProducts.filter((item) => !prev.some((row) => marketplaceProductKey(row) === marketplaceProductKey(item)))]);
       setOffset(result.pagination?.next_offset ?? nextOffset + nextProducts.length);
-      setHasMore(result.pagination?.has_more ?? nextProducts.length >= MARKETPLACE_INITIAL_LIMIT);
+      const loadedThrough = Number(result.pagination?.next_offset ?? nextOffset + nextProducts.length);
+      setHasMore(Boolean(result.pagination?.has_more)
+        || nextProducts.length >= MARKETPLACE_INITIAL_LIMIT
+        || Number(result.totalResults || 0) > loadedThrough);
       setProvider(result.provider || '');
       setProviderStatus(result.providerStatus || '');
       setProductSource(result.productSource || '');
@@ -1794,17 +1825,20 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
-        const rowMatchesCategory = category === 'all'
-          || product.category === category
-          || product.prize_row_title === category
-          || product.prize_row_id === category;
-        if (!rowMatchesCategory) return false;
         if (!filterProduct(product)) return false;
         return true;
       });
-  }, [category, filterProduct, products]);
+  }, [filterProduct, products]);
 
-  const filteredProductCount = filteredProducts.length;
+  const visibleProducts = useMemo(() => {
+    const rows = [...filteredProducts];
+    if (sortBy === 'price_low') return rows.sort((a, b) => Number(a.price_cents || 0) - Number(b.price_cents || 0));
+    if (sortBy === 'price_high') return rows.sort((a, b) => Number(b.price_cents || 0) - Number(a.price_cents || 0));
+    if (sortBy === 'title') return rows.sort((a, b) => String(a.title || '').localeCompare(String(b.title || '')));
+    return rows;
+  }, [filteredProducts, sortBy]);
+
+  const filteredProductCount = visibleProducts.length;
   const loadedProductCount = products.length;
   const categoryOptions = useMemo(() => (
     [...new Set([
@@ -1815,6 +1849,16 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
 
   const refreshProducts = () => {
     loadProducts({ reset: true });
+  };
+
+  const handleCategoryChange = (event) => {
+    const nextCategory = event.target.value;
+    const nextQuery = categoryToPrizeSearchQuery(nextCategory);
+    setCategory(nextCategory);
+    setQuery(nextQuery);
+    setOffset(0);
+    setHasMore(true);
+    loadProducts({ reset: true, searchQuery: nextQuery });
   };
 
   const submitSearch = (event) => {
@@ -1846,9 +1890,9 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
         <div className="mb-4 rounded-2xl border border-green-300/20 bg-green-500/10 p-3">
           <div className="mb-2 text-sm font-black text-green-100">Live marketplace results</div>
           <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs font-semibold text-white/70">
-            <span>Total products: <strong className="text-white">{loadedProductCount}</strong></span>
-            <span>Endpoint: <strong className="text-white">/api/prize-products</strong></span>
-            <span>Provider: <strong className="text-white">{provider || 'eBay/provider'}</strong></span>
+            <span>Loaded products: <strong className="text-white">{loadedProductCount}</strong></span>
+            <span>Visible after filters: <strong className="text-white">{filteredProductCount}</strong></span>
+            <span>Source: <strong className="text-white">{provider || 'eBay/provider'}</strong></span>
             <span>Status: <strong className="text-white">{providerStatus || productSource || 'loading'}</strong></span>
             <span>Last refreshed: <strong className="text-white">{lastRefreshedAt ? lastRefreshedAt.toLocaleTimeString() : 'Loading'}</strong></span>
           </div>
@@ -1858,14 +1902,14 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-300" />
             <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search live products..." className="h-11 rounded-xl border-white/10 bg-black/45 pl-9 text-white" />
           </div>
-          <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-xl border border-white/10 bg-black/45 px-3 text-sm text-white">
+          <select value={category} onChange={handleCategoryChange} className="h-11 rounded-xl border border-white/10 bg-black/45 px-3 text-sm text-white">
             <option value="all">All categories</option>
-            {(categoryOptions.length ? categoryOptions : PRIZE_CATEGORIES).map((item) => <option key={item} value={item}>{item}</option>)}
+            {categoryOptions.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
           <Input inputMode="decimal" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="Min $" className="h-11 rounded-xl border-white/10 bg-black/45 text-white" />
           <Input inputMode="decimal" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Max $" className="h-11 rounded-xl border-white/10 bg-black/45 text-white" />
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
           <select value={playerCount} onChange={(event) => setPlayerCount(event.target.value)} className="h-10 rounded-xl border border-white/10 bg-black/45 px-3 text-xs text-white">
             <option value="all">Any player count</option>
             {PLAYER_OPTIONS.map((count) => <option key={count} value={count}>{count} players</option>)}
@@ -1876,13 +1920,19 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
             <option value="under_25">Under $25</option>
             <option value="over_25">$25+</option>
           </select>
-          <Button onClick={refreshProducts} disabled={loading} className="h-10 rounded-xl bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
+          <select value={sortBy} onChange={(event) => setSortBy(event.target.value)} className="h-10 rounded-xl border border-white/10 bg-black/45 px-3 text-xs text-white">
+            <option value="relevance">Sort: Relevance</option>
+            <option value="price_low">Price: Low to High</option>
+            <option value="price_high">Price: High to Low</option>
+            <option value="title">Title A-Z</option>
+          </select>
+          <Button type="button" onClick={refreshProducts} disabled={loading} className="h-10 rounded-xl bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Refresh Products
           </Button>
           <Button type="submit" disabled={loading} className="h-10 rounded-xl bg-green-600 text-xs font-black text-white hover:bg-green-500">
             <Search className="mr-2 h-4 w-4" /> Search eBay
           </Button>
-          <Badge className="flex h-10 items-center justify-center rounded-xl bg-white/10 text-white">{filteredProductCount} prizes</Badge>
+          <Badge className="flex h-10 items-center justify-center rounded-xl bg-white/10 text-white">{filteredProductCount} shown</Badge>
         </div>
       </form>
       {localError && (
@@ -1897,16 +1947,16 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
       ) : (
         <div className="space-y-5">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {filteredProducts.map((product) => (
-              <PrizeProductCard key={product.id || product.marketplace_key} product={product} onOpen={() => setSelectedProduct(product)} />
+            {visibleProducts.map((product) => (
+              <PrizeProductCard key={marketplaceProductKey(product)} product={product} onOpen={() => setSelectedProduct(product)} />
             ))}
           </div>
-          {!filteredProducts.length && (
+          {!visibleProducts.length && (
             <div className="rounded-2xl border border-white/10 bg-black/35 p-6 text-center text-sm text-white/60">
               No live prize products match the current search and filters.
             </div>
           )}
-          {hasMore && filteredProducts.length > 0 && (
+          {hasMore && visibleProducts.length > 0 && (
             <div className="flex justify-center">
               <Button onClick={() => loadProducts()} disabled={loading} variant="outline" className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10">
                 Load More Products
