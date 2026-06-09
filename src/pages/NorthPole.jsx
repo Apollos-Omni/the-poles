@@ -81,6 +81,8 @@ const NORTH_POLE_COST_MODEL = {
 
 const REAL_BACKEND_API_BASE = 'https://the-poles-backend.onrender.com';
 const MARKETPLACE_INITIAL_LIMIT = 48;
+const MARKETPLACE_AUTO_LOAD_TARGET = 200;
+const MARKETPLACE_MAX_PRODUCTS = 500;
 
 function trimTrailingSlash(value = '') {
   return String(value || '').replace(/\/$/, '');
@@ -1441,6 +1443,18 @@ function marketplaceProductKey(product = {}) {
     || `${product.title || 'product'}-${product.price_cents || 0}`;
 }
 
+function mergeMarketplaceProducts(existingProducts = [], incomingProducts = []) {
+  const seen = new Set(existingProducts.map(marketplaceProductKey).filter(Boolean));
+  const merged = [...existingProducts];
+  incomingProducts.filter(Boolean).forEach((product) => {
+    const key = marketplaceProductKey(product);
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push(product);
+  });
+  return merged.slice(0, MARKETPLACE_MAX_PRODUCTS);
+}
+
 const UNSAFE_PRIZE_PATTERN = /\b(adult|alcohol|beer|wine|liquor|tobacco|cigar|cigarette|nicotine|vape|weapon|knife|knives|gun|firearm|ammo|ammunition|cbd|thc|supplement|diet pill|gambling|lottery|mystery box|used underwear)\b/i;
 const BAD_PRIZE_CONDITION_PATTERN = /\b(broken|for parts|not working|untested|as-is|as is|repair only|parts only)\b/i;
 const PRIZE_PART_PATTERN = /\b(replacement|spare|repair|part only|parts only|shell only|case only|cover only|manual only)\b/i;
@@ -1778,31 +1792,62 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [localError, setLocalError] = useState('');
+  const [activeLoadTarget, setActiveLoadTarget] = useState(MARKETPLACE_AUTO_LOAD_TARGET);
+  const stopMarketplaceLoadRef = useRef(false);
+  const marketplaceLoadIdRef = useRef(0);
 
-  const loadProducts = useCallback(async ({ reset = false, searchQuery = query } = {}) => {
+  const loadProducts = useCallback(async ({
+    reset = false,
+    searchQuery = query,
+    targetTotal = reset ? MARKETPLACE_AUTO_LOAD_TARGET : Math.min(products.length + MARKETPLACE_INITIAL_LIMIT, MARKETPLACE_MAX_PRODUCTS),
+  } = {}) => {
+    const loadId = marketplaceLoadIdRef.current + 1;
+    marketplaceLoadIdRef.current = loadId;
+    stopMarketplaceLoadRef.current = false;
+    const cappedTarget = Math.min(Math.max(targetTotal, MARKETPLACE_INITIAL_LIMIT), MARKETPLACE_MAX_PRODUCTS);
     setLoading(true);
+    setActiveLoadTarget(cappedTarget);
     setLocalError('');
     try {
-      const nextOffset = reset ? 0 : offset;
-      const result = await listMarketplaceProducts({
-        q: searchQuery || 'gaming prizes',
-        limit: MARKETPLACE_INITIAL_LIMIT,
-        offset: nextOffset,
-        endpoint: '/api/prize-products',
-      });
-      const nextProducts = Array.isArray(result.products) ? result.products.filter(Boolean) : [];
-      setProducts((prev) => reset
-        ? nextProducts
-        : [...prev, ...nextProducts.filter((item) => !prev.some((row) => marketplaceProductKey(row) === marketplaceProductKey(item)))]);
-      setOffset(result.pagination?.next_offset ?? nextOffset + nextProducts.length);
-      const loadedThrough = Number(result.pagination?.next_offset ?? nextOffset + nextProducts.length);
-      setHasMore(Boolean(result.pagination?.has_more)
-        || nextProducts.length >= MARKETPLACE_INITIAL_LIMIT
-        || Number(result.totalResults || 0) > loadedThrough);
-      setProvider(result.provider || '');
-      setProviderStatus(result.providerStatus || '');
-      setProductSource(result.productSource || '');
-      setLastRefreshedAt(new Date());
+      let nextOffset = reset ? 0 : offset;
+      let mergedProducts = reset ? [] : products;
+      let nextHasMore = true;
+
+      while (mergedProducts.length < cappedTarget && nextHasMore && !stopMarketplaceLoadRef.current) {
+        const result = await listMarketplaceProducts({
+          q: searchQuery || 'gaming prizes',
+          limit: Math.min(MARKETPLACE_INITIAL_LIMIT, cappedTarget - mergedProducts.length, MARKETPLACE_MAX_PRODUCTS - mergedProducts.length),
+          offset: nextOffset,
+          endpoint: '/api/prize-products',
+        });
+        if (loadId !== marketplaceLoadIdRef.current) return;
+
+        const nextProducts = Array.isArray(result.products) ? result.products.filter(Boolean) : [];
+        const beforeCount = mergedProducts.length;
+        mergedProducts = mergeMarketplaceProducts(mergedProducts, nextProducts);
+        nextOffset = Number(result.pagination?.next_offset ?? nextOffset + nextProducts.length);
+
+        setProducts(mergedProducts);
+        setOffset(nextOffset);
+        setProvider(result.provider || '');
+        setProviderStatus(result.providerStatus || '');
+        setProductSource(result.productSource || '');
+        setLastRefreshedAt(new Date());
+
+        const totalResults = Number(result.totalResults || 0);
+        nextHasMore = (
+          Boolean(result.pagination?.has_more)
+          || nextProducts.length >= MARKETPLACE_INITIAL_LIMIT
+          || (totalResults > 0 && totalResults > nextOffset)
+        ) && nextProducts.length > 0 && mergedProducts.length < MARKETPLACE_MAX_PRODUCTS;
+
+        if (nextProducts.length === 0 || (mergedProducts.length === beforeCount && nextProducts.length < MARKETPLACE_INITIAL_LIMIT)) {
+          nextHasMore = false;
+        }
+        setHasMore(nextHasMore);
+      }
+
+      setHasMore(nextHasMore && mergedProducts.length < MARKETPLACE_MAX_PRODUCTS);
     } catch (error) {
       const message = error.message || 'Could not load live prize products.';
       setLocalError(message);
@@ -1810,9 +1855,9 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
     } finally {
       setLoading(false);
     }
-  }, [offset, onError, query]);
+  }, [offset, onError, products, query]);
 
-  useEffect(() => { loadProducts({ reset: true }); }, []);
+  useEffect(() => { loadProducts({ reset: true, targetTotal: MARKETPLACE_AUTO_LOAD_TARGET }); }, []);
 
   const filterProduct = useCallback((product) => {
       const option = calculateNorthPoleOptions({ priceCents: product.price_cents, playerCounts: PLAYER_OPTIONS }).find((entry) => String(entry.players) === String(playerCount));
@@ -1848,7 +1893,14 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
   ), [products]);
 
   const refreshProducts = () => {
-    loadProducts({ reset: true });
+    loadProducts({ reset: true, targetTotal: MARKETPLACE_AUTO_LOAD_TARGET });
+  };
+
+  const stopLoadingProducts = () => {
+    stopMarketplaceLoadRef.current = true;
+    marketplaceLoadIdRef.current += 1;
+    setLoading(false);
+    setHasMore(products.length < MARKETPLACE_MAX_PRODUCTS);
   };
 
   const handleCategoryChange = (event) => {
@@ -1858,14 +1910,14 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
     setQuery(nextQuery);
     setOffset(0);
     setHasMore(true);
-    loadProducts({ reset: true, searchQuery: nextQuery });
+    loadProducts({ reset: true, searchQuery: nextQuery, targetTotal: MARKETPLACE_AUTO_LOAD_TARGET });
   };
 
   const submitSearch = (event) => {
     event.preventDefault();
     setOffset(0);
     setHasMore(true);
-    loadProducts({ reset: true, searchQuery: query });
+    loadProducts({ reset: true, searchQuery: query, targetTotal: MARKETPLACE_AUTO_LOAD_TARGET });
   };
 
   if (selectedProduct) {
@@ -1892,6 +1944,7 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
           <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs font-semibold text-white/70">
             <span>Loaded products: <strong className="text-white">{loadedProductCount}</strong></span>
             <span>Visible after filters: <strong className="text-white">{filteredProductCount}</strong></span>
+            <span>Load target: <strong className="text-white">{Math.min(activeLoadTarget, MARKETPLACE_MAX_PRODUCTS)}</strong></span>
             <span>Source: <strong className="text-white">{provider || 'eBay/provider'}</strong></span>
             <span>Status: <strong className="text-white">{providerStatus || productSource || 'loading'}</strong></span>
             <span>Last refreshed: <strong className="text-white">{lastRefreshedAt ? lastRefreshedAt.toLocaleTimeString() : 'Loading'}</strong></span>
@@ -1934,18 +1987,39 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
           </Button>
           <Badge className="flex h-10 items-center justify-center rounded-xl bg-white/10 text-white">{filteredProductCount} shown</Badge>
         </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button type="button" onClick={() => loadProducts({ targetTotal: Math.min(products.length + MARKETPLACE_INITIAL_LIMIT, MARKETPLACE_MAX_PRODUCTS) })} disabled={loading || !hasMore || products.length >= MARKETPLACE_MAX_PRODUCTS} variant="outline" className="h-10 rounded-xl border-white/15 bg-white/5 text-xs font-black text-white hover:bg-white/10">
+            Load More Products
+          </Button>
+          <Button type="button" onClick={() => loadProducts({ targetTotal: MARKETPLACE_MAX_PRODUCTS })} disabled={loading || products.length >= MARKETPLACE_MAX_PRODUCTS} className="h-10 rounded-xl bg-purple-600 text-xs font-black text-white hover:bg-purple-500">
+            {loading && activeLoadTarget === MARKETPLACE_MAX_PRODUCTS ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShoppingCart className="mr-2 h-4 w-4" />} Load 500 Prize Products
+          </Button>
+          {loading && (
+            <Button type="button" onClick={stopLoadingProducts} variant="outline" className="h-10 rounded-xl border-orange-300/30 bg-orange-500/10 text-xs font-black text-orange-50 hover:bg-orange-500/20">
+              Stop Loading
+            </Button>
+          )}
+          <span className="text-xs font-semibold text-white/55">
+            Loaded {loadedProductCount} of {MARKETPLACE_MAX_PRODUCTS} max; {filteredProductCount} visible with current filters.
+          </span>
+        </div>
       </form>
       {localError && (
         <div className="rounded-2xl border border-orange-500/40 bg-orange-950/30 p-4 text-sm text-orange-50">
           {localError}
         </div>
       )}
-      {loading ? (
+      {loading && !products.length ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {[1, 2, 3, 4, 5].map((item) => <div key={item} className="h-80 animate-pulse rounded-2xl bg-purple-900/30" />)}
         </div>
       ) : (
         <div className="space-y-5">
+          {loading && (
+            <div className="rounded-2xl border border-purple-300/20 bg-purple-950/25 p-3 text-sm font-semibold text-purple-50">
+              Loading marketplace pages... {loadedProductCount} products loaded.
+            </div>
+          )}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {visibleProducts.map((product) => (
               <PrizeProductCard key={marketplaceProductKey(product)} product={product} onOpen={() => setSelectedProduct(product)} />
@@ -1957,9 +2031,12 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
             </div>
           )}
           {hasMore && visibleProducts.length > 0 && (
-            <div className="flex justify-center">
-              <Button onClick={() => loadProducts()} disabled={loading} variant="outline" className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button onClick={() => loadProducts({ targetTotal: Math.min(products.length + MARKETPLACE_INITIAL_LIMIT, MARKETPLACE_MAX_PRODUCTS) })} disabled={loading} variant="outline" className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10">
                 Load More Products
+              </Button>
+              <Button onClick={() => loadProducts({ targetTotal: MARKETPLACE_MAX_PRODUCTS })} disabled={loading || products.length >= MARKETPLACE_MAX_PRODUCTS} className="rounded-xl bg-purple-600 font-black text-white hover:bg-purple-500">
+                Load 500 Prize Products
               </Button>
             </div>
           )}
