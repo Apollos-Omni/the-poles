@@ -17,12 +17,12 @@ import { DEMO_EVENTS, DEMO_MATCHES, PRIZE_CATEGORIES, DEMO_PRIZES } from "@/comp
 
 // ─── Dropdown menu items ───────────────────────────────────────────────────────
 const MENU_ITEMS = [
-  { id: "home",     label: "🏠 Home" },
-  { id: "prizes",   label: "🛍️ Prize Shop" },
-  { id: "gameroom", label: "🎮 Game Room" },
-  { id: "create",   label: "➕ Create" },
-  { id: "profile",  label: "👤 Profile" },
-  { id: "settings", label: "⚙️ Settings" },
+  { id: "home", label: "Home" },
+  { id: "prizes", label: "Browse Prizes" },
+  { id: "gameroom", label: "Game Room" },
+  { id: "create", label: "Create" },
+  { id: "profile", label: "Profile" },
+  { id: "settings", label: "Settings" },
 ];
 
 // ─── Top Header with dropdown ──────────────────────────────────────────────────
@@ -162,7 +162,7 @@ function HomeScreen({ onCreateMatch, onNavigate }) {
          <p className="text-purple-300/60 text-xs">Select your prize. Compete in a digital skill match based on preparation and performance. The verified winner takes the prize.</p>
           <div className="flex gap-2">
             <Link to="/NorthPole"><Button size="sm" className="bg-purple-700 hover:bg-purple-600 text-white text-xs">Browse Matches</Button></Link>
-            <Link to="/NorthPole"><Button size="sm" variant="outline" className="border-purple-700/40 text-purple-300 text-xs">Shop & Create</Button></Link>
+            <Link to="/NorthPole#north-pole-flow"><Button size="sm" variant="outline" className="border-purple-700/40 text-purple-300 text-xs">Browse Prizes</Button></Link>
           </div>
         </div>
         <div className="bg-gradient-to-br from-cyan-900/20 to-teal-900/20 border border-cyan-700/20 rounded-2xl p-5 space-y-3">
@@ -307,7 +307,9 @@ export default function ThePoles() {
   const navigate = useNavigate();
 
   const handleNavigate = (tabId) => {
-    if (tabId === 'create') {
+    if (tabId === 'prizes') {
+      navigate('/NorthPole#north-pole-flow');
+    } else if (tabId === 'create') {
       // Go directly to the full North Pole match flow
       navigate('/NorthPole');
     } else {
@@ -354,3 +356,4 @@ export default function ThePoles() {
     </div>
   );
 }
+

@@ -20,7 +20,7 @@ const mobileNavItems = [
   { title: "South", href: "/SouthPole", icon: Mountain },
   { title: "Fund", href: "/ThePolesFund", icon: Heart },
   { title: "Ledger", href: "/MissionLedger", icon: ReceiptText },
-  { title: "Build", href: "/NorthPole#north-pole-flow", icon: Trophy },
+  { title: "Browse Prizes", href: "/NorthPole#north-pole-flow", icon: Trophy },
   { title: "Profile", href: createPageUrl("Profile"), icon: UserIcon },
 ];
 

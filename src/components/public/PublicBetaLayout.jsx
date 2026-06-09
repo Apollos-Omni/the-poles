@@ -66,6 +66,7 @@ export default function PublicBetaLayout({ children, maxWidth = 'max-w-4xl' }) {
           <nav className="flex flex-wrap items-center gap-3 text-sm text-purple-100/75">
             <Link to="/About" className="hover:text-white">About</Link>
             <Link to="/NorthPole" className="hover:text-white">North Pole</Link>
+            <Link to="/NorthPole#north-pole-flow" className="hover:text-white">Browse Prizes</Link>
             <Link to="/SouthPole" className="hover:text-white">South Pole</Link>
             <Link to="/SignIn" className="hover:text-white">Sign in</Link>
           </nav>

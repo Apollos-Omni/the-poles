@@ -54,8 +54,8 @@ const actionCards = [
     border: "border-purple-300/25",
   },
   {
-    title: "Build a Prize Room",
-    description: "Choose a game, set rules, and build a verified challenge.",
+    title: "Browse Prizes",
+    description: "Pick a live prize product, choose a game, and create a verified prize room.",
     href: "/NorthPole#north-pole-flow",
     icon: Trophy,
     image: mediaImages.northPrize,

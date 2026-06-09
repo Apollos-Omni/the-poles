@@ -1891,6 +1891,15 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
   const [browseTab, setBrowseTab] = useState('active');
   const providerHydrationAttemptedRef = useRef(false);
 
+  useEffect(() => {
+    const openHashTab = () => {
+      if (window.location.hash === '#north-pole-flow') setBrowseTab('prizes');
+    };
+    openHashTab();
+    window.addEventListener('hashchange', openHashTab);
+    return () => window.removeEventListener('hashchange', openHashTab);
+  }, []);
+
   const loadRooms = useCallback(async () => {
     setLoading(true);
     setLocalError('');
@@ -2390,7 +2399,7 @@ function NorthPoleLandingHero() {
               href="#north-pole-flow"
               className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg bg-purple-700 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-purple-900/20 transition hover:bg-purple-600"
             >
-              Build a Prize Room
+              Browse Prizes
               <ArrowRight className="h-4 w-4" />
             </a>
             <a
@@ -4000,6 +4009,19 @@ export default function NorthPole() {
     return () => {
       mounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    const handleHashNavigation = () => {
+      if (window.location.hash !== '#north-pole-flow') return;
+      setActiveTab('build');
+      window.requestAnimationFrame(() => {
+        document.getElementById('north-pole-flow')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    };
+    handleHashNavigation();
+    window.addEventListener('hashchange', handleHashNavigation);
+    return () => window.removeEventListener('hashchange', handleHashNavigation);
   }, []);
 
   const isAdmin = userHasRole(user, ADMIN_ROLES);
