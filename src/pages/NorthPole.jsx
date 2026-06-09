@@ -37,6 +37,7 @@ import {
   ChevronRight,
   Share2,
   ExternalLink,
+  Shuffle,
 } from 'lucide-react';
 import AdminDashboard from '@/components/northpole/AdminDashboard';
 import SkillCompetitionAgreement from '@/components/northpole/SkillCompetitionAgreement';
@@ -63,6 +64,7 @@ import {
   joinPrizeRoom,
   createPrizeRoom,
   listMarketplaceProducts,
+  listMarketplaceProductRows,
   hydratePrizeRoomProviderImages,
   SKILL_COMPETITION_AGREEMENT_VERSION,
 } from '@/lib/northpole/matchEngine';
@@ -1242,12 +1244,27 @@ const PRIZE_CATEGORIES = [
   'Clothing',
   'Shoes',
   'Home',
-  'Beauty / Grooming',
-  'Tools',
   'Art / Creative',
   'Books / Education',
   'Collectibles',
 ];
+
+const PRIZE_ROW_DEFINITIONS = [
+  { id: 'electronics', title: 'Popular Electronics', category: 'Electronics', queryTerms: ['wireless earbuds', 'bluetooth speaker', 'portable charger', 'smart watch', 'tablet stand'] },
+  { id: 'gaming_gear', title: 'Gaming Gear', category: 'Gaming Gear', queryTerms: ['gaming headset', 'wireless controller', 'gaming keyboard', 'gaming mouse', 'controller charging dock'] },
+  { id: 'toys_family', title: 'Toys & Family Prizes', category: 'Toys', queryTerms: ['LEGO set', 'RC car', 'drone toy', 'kids science kit', 'building blocks'] },
+  { id: 'sports_outdoor', title: 'Sports & Outdoor', category: 'Sports / Outdoor', queryTerms: ['basketball', 'soccer ball', 'bike helmet', 'skateboard', 'insulated water bottle'] },
+  { id: 'style_clothing', title: 'Style & Clothing', category: 'Clothing', queryTerms: ['hoodie', 'graphic t shirt', 'baseball cap', 'backpack'] },
+  { id: 'shoes', title: 'Shoes', category: 'Shoes', queryTerms: ['running shoes', 'sneakers', 'slides'] },
+  { id: 'home_desk', title: 'Home & Desk', category: 'Home', queryTerms: ['throw blanket', 'desk organizer', 'LED desk lamp', 'wall clock'] },
+  { id: 'art_creative', title: 'Art & Creative', category: 'Art / Creative', queryTerms: ['art supply kit', 'sketchbook', 'markers', 'colored pencils', 'paint set'] },
+  { id: 'books_education', title: 'Books & Education', category: 'Books / Education', queryTerms: ['children book set', 'workbook', 'science kit', 'chess book'] },
+  { id: 'collectibles', title: 'Collectibles', category: 'Collectibles', queryTerms: ['trading cards', 'action figure', 'comic book', 'collectible figure'] },
+];
+
+const UNSAFE_PRIZE_PATTERN = /\b(adult|alcohol|beer|wine|liquor|tobacco|cigar|cigarette|nicotine|vape|weapon|knife|knives|gun|firearm|ammo|ammunition|cbd|thc|supplement|diet pill|gambling|lottery|mystery box|used underwear)\b/i;
+const BAD_PRIZE_CONDITION_PATTERN = /\b(broken|for parts|not working|untested|as-is|as is|repair only|parts only)\b/i;
+const PRIZE_PART_PATTERN = /\b(replacement|spare|repair|part only|parts only|shell only|case only|cover only|manual only)\b/i;
 
 function marketplaceProductImage(product = {}) {
   const image = product.image_url || product.images?.[0] || '';
@@ -1257,36 +1274,141 @@ function marketplaceProductImage(product = {}) {
   return image;
 }
 
+function marketplaceProductImages(product = {}) {
+  const images = [
+    product.image_url,
+    ...(Array.isArray(product.images) ? product.images : []),
+    ...(Array.isArray(product.image_urls) ? product.image_urls : []),
+    product.raw_product?.raw_ebay?.imageUrl,
+  ].filter(Boolean);
+  return [...new Set(images)];
+}
+
+function marketplaceProductCondition(product = {}) {
+  return product.condition
+    || product.raw_product?.condition
+    || product.raw_product?.raw_ebay?.condition
+    || product.raw_ebay?.condition
+    || '';
+}
+
+function marketplaceProductSource(product = {}) {
+  return product.source_label || product.seller || product.source || product.merchant || 'Provider';
+}
+
+function marketplaceProductShippingCents(product = {}) {
+  const value = product.shipping_estimate_cents
+    ?? product.raw_product?.shipping_estimate_cents
+    ?? product.raw_product?.raw_ebay?.shippingCostValue * 100
+    ?? product.raw_ebay?.shippingCostValue * 100;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : null;
+}
+
+function cleanPrizeTitle(value = '') {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function productDedupKey(product = {}) {
+  const price = Number(product.price_cents || product.offers?.[0]?.price_cents || 0);
+  return product.raw_ebay?.itemId
+    || product.provider_ids?.ebay_item_id
+    || product.itemId
+    || product.marketplace_key
+    || product.product_url
+    || product.productUrl
+    || product.offers?.[0]?.product_url
+    || `${cleanPrizeTitle(product.title).toLowerCase()}:${Math.round(price || 0)}`;
+}
+
+function productTitleMatchesQueryTerm(product = {}, queryTerms = []) {
+  const title = cleanPrizeTitle(product.title).toLowerCase();
+  return queryTerms.some((term) => String(term || '').toLowerCase().split(/\s+/).some((word) => word.length > 2 && title.includes(word)));
+}
+
+function productPrizeScore(product = {}) {
+  const title = cleanPrizeTitle(product.title);
+  const condition = marketplaceProductCondition(product).toLowerCase();
+  const price = Number(product.price_cents || 0);
+  const shipping = marketplaceProductShippingCents(product);
+  let score = Number(product.prize_score || 0);
+  if (marketplaceProductImage(product)) score += 30;
+  if (price >= 1500 && price <= 15000) score += 28;
+  else if (price >= 500 && price <= 30000) score += 14;
+  if (/\b(new|brand new|open box)\b/i.test(condition)) score += 18;
+  if (productTitleMatchesQueryTerm(product, product.prize_query_terms || [])) score += 18;
+  if (product.product_url) score += 8;
+  if (shipping !== null) score += 8;
+  if (product.category) score += 5;
+  if (title.length > 120) score -= 10;
+  if (/\b(refurbished|renewed|pre-owned|preowned)\b/i.test(condition)) score -= 10;
+  if (/\b(bundle|lot of|random|assorted)\b/i.test(title.toLowerCase())) score -= 8;
+  if (!product.category) score -= 6;
+  return score;
+}
+
+function productIsPrizeQuality(product = {}) {
+  const title = cleanPrizeTitle(product.title);
+  const price = Number(product.price_cents || 0);
+  const condition = marketplaceProductCondition(product);
+  const searchable = `${title} ${product.category || ''} ${condition} ${product.description || ''}`;
+  if (!marketplaceProductImage(product) || !price) return false;
+  if (price < 500 || price > 50000) return false;
+  if (UNSAFE_PRIZE_PATTERN.test(searchable) || BAD_PRIZE_CONDITION_PATTERN.test(searchable)) return false;
+  if (PRIZE_PART_PATTERN.test(searchable)) return false;
+  return title.length > 0 && title.length <= 180;
+}
+
+function uniquePrizeProducts(products = []) {
+  const seen = new Set();
+  return products.filter((product) => {
+    const key = productDedupKey(product);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function shufflePrizeProducts(products = []) {
+  const shuffled = [...products];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
 function productFilterMatches(product = {}, filters = {}) {
   const price = Number(product.price_cents || 0) / 100;
   if (filters.minPrice && price < Number(filters.minPrice)) return false;
   if (filters.maxPrice && price > Number(filters.maxPrice)) return false;
-  return Boolean(marketplaceProductImage(product) && Number(product.price_cents || 0) > 0);
+  return productIsPrizeQuality(product);
 }
 
 function PrizeProductCard({ product, onOpen }) {
+  const image = marketplaceProductImage(product);
   return (
-    <Card className="h-full overflow-hidden rounded-2xl border-white/10 bg-black/65 text-white shadow-[0_0_24px_rgba(124,58,237,0.10)]">
-      <button type="button" onClick={onOpen} className="block w-full bg-white p-3 text-left">
-        {marketplaceProductImage(product) ? (
-          <img loading="lazy" src={marketplaceProductImage(product)} alt={product.title} className="h-[160px] w-full object-contain sm:h-[150px] md:h-[160px]" />
+    <Card className="h-full overflow-hidden rounded-xl border-white/10 bg-black/65 text-white shadow-[0_0_18px_rgba(124,58,237,0.10)]">
+      <button type="button" onClick={onOpen} className="block w-full bg-white p-2 text-left">
+        {image ? (
+          <img loading="lazy" src={image} alt={product.title} className="h-[118px] w-full object-contain sm:h-[112px] md:h-[120px]" />
         ) : (
-          <div className="flex h-[160px] items-center justify-center rounded-xl bg-purple-100 text-sm font-black text-purple-950">Prize Image</div>
+          <div className="flex h-[118px] items-center justify-center rounded-lg bg-purple-100 text-xs font-black text-purple-950">Prize Image</div>
         )}
       </button>
-      <CardContent className="space-y-3 p-3">
+      <CardContent className="space-y-2 p-2.5">
         <div>
-          <Badge className="bg-yellow-500/20 text-yellow-100">{product.category || product.source_label || 'Prize'}</Badge>
-          <button type="button" onClick={onOpen} className="mt-2 block w-full text-left">
-            <h3 className="line-clamp-2 min-h-10 text-sm font-black leading-tight">{product.title}</h3>
+          <Badge className="max-w-full truncate bg-yellow-500/20 px-2 py-0.5 text-[10px] text-yellow-100">{product.category || 'Prize'}</Badge>
+          <button type="button" onClick={onOpen} className="mt-1.5 block w-full text-left">
+            <h3 className="line-clamp-2 min-h-9 text-xs font-black leading-tight">{product.title}</h3>
           </button>
-          <p className="mt-1 line-clamp-1 text-xs text-white/50">{product.seller || product.source_label || product.source || 'Provider'}</p>
+          <p className="mt-1 line-clamp-1 text-[11px] text-white/50">{marketplaceProductSource(product)}</p>
         </div>
-        <div className="flex items-center justify-between gap-2">
-          <strong className="text-base text-green-200">{formatMoney(product.price_cents)}</strong>
-          <span className="text-xs text-white/45">{product.condition || product.raw_product?.raw_ebay?.condition || 'Available'}</span>
+        <div className="flex items-center justify-between gap-2 text-xs">
+          <strong className="text-sm text-green-200">{formatMoney(product.price_cents)}</strong>
+          <span className="line-clamp-1 text-[11px] text-white/45">{marketplaceProductCondition(product) || 'Available'}</span>
         </div>
-        <Button onClick={onOpen} className="h-9 w-full rounded-xl bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
+        <Button onClick={onOpen} className="h-8 w-full rounded-lg bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
           Open
         </Button>
       </CardContent>
@@ -1298,20 +1420,20 @@ function PrizeProductBrowseRow({ title, products, onOpen }) {
   const scrollRef = useRef(null);
   const rowProducts = products.filter(Boolean);
   if (!rowProducts.length) return null;
-  const scrollByCard = (direction) => scrollRef.current?.scrollBy({ left: direction * 260, behavior: 'smooth' });
+  const scrollByCard = (direction) => scrollRef.current?.scrollBy({ left: direction * 205, behavior: 'smooth' });
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3 px-1">
-        <h3 className="text-xl font-black text-white">{title}</h3>
+        <h3 className="text-lg font-black text-white">{title}</h3>
         <span className="text-xs font-semibold uppercase tracking-wide text-white/40">{rowProducts.length} products</span>
       </div>
       <div className="relative">
         <Button type="button" onClick={() => scrollByCard(-1)} variant="outline" className="absolute left-0 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex" aria-label={`Scroll ${title} left`}>
           <ChevronLeft className="h-6 w-6" />
         </Button>
-        <div ref={scrollRef} className="-mx-2 flex snap-x gap-3 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div ref={scrollRef} className="-mx-2 flex snap-x gap-2.5 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {rowProducts.map((product) => (
-            <div key={product.id || product.marketplace_key} className="w-[72vw] max-w-[260px] flex-none snap-start sm:w-[230px] lg:w-[240px] xl:w-[250px]">
+            <div key={product.id || product.marketplace_key} className="w-[64vw] max-w-[210px] flex-none snap-start sm:w-[185px] lg:w-[190px] xl:w-[200px]">
               <PrizeProductCard product={product} onOpen={() => onOpen(product)} />
             </div>
           ))}
@@ -1331,12 +1453,15 @@ function PrizeProductDetail({ product, user, onBack, onCreated, onError, onMessa
   const [players, setPlayers] = useState(4);
   const [loadingGames, setLoadingGames] = useState(false);
   const [creating, setCreating] = useState(false);
+  const productImages = marketplaceProductImages(product);
+  const condition = marketplaceProductCondition(product);
+  const shippingCents = marketplaceProductShippingCents(product);
   const options = useMemo(() => calculateNorthPoleOptions({
     priceCents: product.price_cents,
     taxCents: product.tax_estimate_cents || 0,
-    shippingCents: product.shipping_estimate_cents || NORTH_POLE_COST_MODEL.defaultShippingCents,
+    shippingCents: shippingCents ?? NORTH_POLE_COST_MODEL.defaultShippingCents,
     playerCounts: PLAYER_OPTIONS,
-  }), [product]);
+  }), [product, shippingCents]);
   const selectedPlan = options.find((option) => option.players === players) || options[0];
 
   const loadGames = async (query = gameQuery) => {
@@ -1411,18 +1536,29 @@ function PrizeProductDetail({ product, user, onBack, onCreated, onError, onMessa
         <ArrowLeft className="mr-2 h-4 w-4" /> Back to Browse Prizes
       </Button>
       <div className="grid gap-6 rounded-[2rem] border border-white/10 bg-white/[0.04] p-4 lg:grid-cols-[1fr_1.05fr]">
-        <div className="rounded-3xl bg-white p-5">
-          <img src={marketplaceProductImage(product)} alt={product.title} className="h-[360px] w-full object-contain" />
+        <div className="space-y-3">
+          <div className="rounded-3xl bg-white p-5">
+            <img src={marketplaceProductImage(product)} alt={product.title} className="h-[360px] w-full object-contain" />
+          </div>
+          {productImages.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {productImages.slice(0, 8).map((image) => (
+                <div key={image} className="h-20 w-20 flex-none rounded-xl bg-white p-2">
+                  <img src={image} alt="" loading="lazy" className="h-full w-full object-contain" />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
         <div className="space-y-4">
           <Badge className="bg-yellow-500/20 text-yellow-100">Product Detail</Badge>
           <h2 className="text-3xl font-black text-white">{product.title}</h2>
           <p className="text-3xl font-black text-green-200">{formatMoney(product.price_cents)}</p>
-          <p className="text-sm leading-6 text-white/65">{product.description || 'Use this product as the prize for a skill-based Prize Room. No active room is created until you choose a game and create it.'}</p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <PrizeRoomDetailCard label="Source" value={product.seller || product.source_label || product.source} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <PrizeRoomDetailCard label="Source / provider" value={marketplaceProductSource(product)} />
             <PrizeRoomDetailCard label="Category" value={product.category || 'Prize'} tone="purple" />
-            <PrizeRoomDetailCard label="Estimated join" value={formatMoney(selectedPlan?.perPlayerCents || 0)} tone="green" />
+            <PrizeRoomDetailCard label="Condition" value={condition || 'Not listed'} />
+            <PrizeRoomDetailCard label="Shipping estimate" value={shippingCents === null ? 'Not listed' : formatMoney(shippingCents)} tone="yellow" />
           </div>
           {product.product_url && (
             <Button asChild variant="outline" className="rounded-xl border-yellow-300/25 bg-yellow-500/10 text-yellow-50 hover:bg-yellow-500/20">
@@ -1454,14 +1590,18 @@ function PrizeProductDetail({ product, user, onBack, onCreated, onError, onMessa
         </div>
         <div className="rounded-[2rem] border border-green-300/20 bg-green-500/10 p-4">
           <h3 className="mb-3 text-xl font-black text-green-100">Room Setup</h3>
-          <Label className="text-sm font-semibold text-white/70">Players</Label>
+          <Label className="text-sm font-semibold text-white/70">Choose Player Count</Label>
           <select value={players} onChange={(event) => setPlayers(Number(event.target.value))} className="mt-1 h-11 w-full rounded-xl border border-white/10 bg-black/45 px-3 text-white">
             {PLAYER_OPTIONS.map((count) => <option key={count} value={count}>{count} players</option>)}
           </select>
           <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-3">
-            <div className="text-xs uppercase tracking-wide text-white/45">Calculated join cost</div>
+            <div className="text-xs uppercase tracking-wide text-white/45">Join Cost estimate</div>
             <div className="mt-1 text-3xl font-black text-green-100">{formatMoney(selectedPlan?.perPlayerCents || 0)}</div>
             <div className="mt-1 text-sm text-white/60">Total room estimate: {formatMoney(selectedPlan?.total_room_cost_cents || 0)}</div>
+            <div className="mt-2 flex justify-between gap-3 border-t border-white/10 pt-2 text-sm">
+              <span className="text-white/60">Foundation contribution</span>
+              <strong className="text-yellow-100">{formatMoney(selectedPlan?.foundation_amount_cents || 0)}</strong>
+            </div>
           </div>
           <Button onClick={createRoomForProduct} disabled={creating || !selectedGame} className="mt-4 w-full rounded-xl bg-green-600 font-black text-white hover:bg-green-500">
             {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
@@ -1474,71 +1614,129 @@ function PrizeProductDetail({ product, user, onBack, onCreated, onError, onMessa
 }
 
 function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
-  const [products, setProducts] = useState([]);
-  const [category, setCategory] = useState('Electronics');
+  const [prizeRows, setPrizeRows] = useState([]);
+  const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
-  const [gameGenre, setGameGenre] = useState('all');
   const [playerCount, setPlayerCount] = useState('all');
   const [joinCost, setJoinCost] = useState('all');
-  const [sortMode, setSortMode] = useState('newest');
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [visibleLimit, setVisibleLimit] = useState(120);
   const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState('');
+  const [queryOffset, setQueryOffset] = useState(0);
+  const [shuffleSeed, setShuffleSeed] = useState(0);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await listMarketplaceProducts({
-        q: query || category,
-        category,
-        minPrice,
-        maxPrice,
-        limit: 500,
-        offset: 0,
-      });
-      setProducts(result.products.filter((product) => productFilterMatches(product, { minPrice, maxPrice })));
+      let result;
+      try {
+        result = await listMarketplaceProductRows({ rowLimit: 42, queryOffset });
+      } catch {
+        const rows = await Promise.all(PRIZE_ROW_DEFINITIONS.map(async (row, rowIndex) => {
+          const terms = row.queryTerms.map((_, index, list) => list[(index + queryOffset + rowIndex) % list.length]).slice(0, 3);
+          const products = [];
+          for (const term of terms) {
+            const response = await listMarketplaceProducts({ q: term, limit: 16, offset: 0 });
+            products.push(...(response.products || []).map((product) => ({
+              ...product,
+              category: row.category,
+              prize_row_id: row.id,
+              prize_row_title: row.title,
+              prize_query_terms: row.queryTerms,
+            })));
+          }
+          return {
+            id: row.id,
+            title: row.title,
+            category: row.category,
+            query_terms: row.queryTerms,
+            products,
+          };
+        }));
+        result = { rows, provider: 'row_fallback' };
+      }
+
+      const globalKeys = new Set();
+      const nextRows = (result.rows || []).map((row) => {
+        const products = uniquePrizeProducts(row.products || [])
+          .filter((product) => productFilterMatches(product, { minPrice: '', maxPrice: '' }))
+          .sort((a, b) => productPrizeScore(b) - productPrizeScore(a))
+          .filter((product) => {
+            const key = productDedupKey(product);
+            if (!key || globalKeys.has(key)) return false;
+            globalKeys.add(key);
+            return true;
+          });
+        return { ...row, products };
+      }).filter((row) => row.products.length);
+      setPrizeRows(nextRows);
       setProvider(result.provider || result.providerStatus || '');
-      setVisibleLimit(120);
     } catch (error) {
       onError(error.message || 'Could not load prize catalog.');
     } finally {
       setLoading(false);
     }
-  }, [category, maxPrice, minPrice, onError, query]);
+  }, [onError, queryOffset]);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
 
-  const filteredProducts = useMemo(() => {
-    const rows = products.filter((product) => {
+  const filterProduct = useCallback((product) => {
       const option = calculateNorthPoleOptions({ priceCents: product.price_cents, playerCounts: PLAYER_OPTIONS }).find((entry) => String(entry.players) === String(playerCount));
       const estimatedJoin = option?.perPlayerCents || calculateNorthPoleOptions({ priceCents: product.price_cents, playerCounts: [4] })[0]?.perPlayerCents || 0;
       if (joinCost === 'under_10' && estimatedJoin > 1000) return false;
       if (joinCost === 'under_25' && estimatedJoin > 2500) return false;
       if (joinCost === 'over_25' && estimatedJoin <= 2500) return false;
-      if (gameGenre !== 'all') {
-        const text = `${product.title} ${product.category}`.toLowerCase();
-        if (gameGenre === 'family' && !/toy|book|education|family|art|creative|lego|game/i.test(text)) return false;
-        if (gameGenre === 'competitive' && !/gaming|sport|controller|keyboard|headset|electronics/i.test(text)) return false;
-      }
-      return true;
-    });
-    if (sortMode === 'price_low') return [...rows].sort((a, b) => Number(a.price_cents || 0) - Number(b.price_cents || 0));
-    if (sortMode === 'price_high') return [...rows].sort((a, b) => Number(b.price_cents || 0) - Number(a.price_cents || 0));
-    return rows;
-  }, [gameGenre, joinCost, playerCount, products, sortMode]);
+      return productFilterMatches(product, { minPrice, maxPrice });
+  }, [joinCost, maxPrice, minPrice, playerCount]);
 
   const productRows = useMemo(() => {
-    const visible = filteredProducts.slice(0, visibleLimit);
-    return PRIZE_CATEGORIES.map((rowCategory) => ({
-      title: rowCategory,
-      products: visible.filter((product) => `${product.category} ${product.title}`.toLowerCase().includes(rowCategory.split('/')[0].trim().toLowerCase())),
-    })).filter((row) => row.products.length).concat([
-      { title: query ? `Search: ${query}` : 'More Prizes', products: visible },
-    ]);
-  }, [filteredProducts, query, visibleLimit]);
+    const search = query.trim().toLowerCase();
+    const filteredRows = prizeRows.map((row) => {
+      const rowMatchesCategory = category === 'all'
+        || row.category === category
+        || row.title === category
+        || row.id === category;
+      const products = rowMatchesCategory ? row.products.filter(filterProduct) : [];
+      return {
+        ...row,
+        products: shuffleSeed ? shufflePrizeProducts(products) : products,
+      };
+    }).filter((row) => row.products.length);
+
+    if (!search) return filteredRows;
+
+    const searchProducts = uniquePrizeProducts(filteredRows.flatMap((row) => row.products).filter((product) => {
+      const text = `${product.title || ''} ${product.category || ''} ${marketplaceProductSource(product)}`.toLowerCase();
+      return text.includes(search);
+    })).sort((a, b) => productPrizeScore(b) - productPrizeScore(a));
+
+    const rowsBelow = filteredRows.map((row) => ({
+      ...row,
+      products: row.products.filter((product) => {
+        const text = `${product.title || ''} ${product.category || ''} ${marketplaceProductSource(product)}`.toLowerCase();
+        return text.includes(search);
+      }),
+    })).filter((row) => row.products.length);
+
+    return [
+      { id: 'search_results', title: 'Search Results', products: searchProducts },
+      ...rowsBelow,
+    ].filter((row) => row.products.length);
+  }, [category, filterProduct, prizeRows, query, shuffleSeed]);
+
+  const filteredProductCount = useMemo(() => productRows.reduce((total, row) => (
+    row.id === 'search_results' ? total : total + row.products.length
+  ), 0), [productRows]);
+
+  const refreshProducts = () => {
+    setQueryOffset((value) => value + 1);
+  };
+
+  const shuffleProducts = () => {
+    setShuffleSeed((value) => value + 1);
+  };
 
   if (selectedProduct) {
     return (
@@ -1562,20 +1760,16 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
         <div className="grid gap-3 lg:grid-cols-[1fr_180px_140px_140px]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-300" />
-            <Input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') loadProducts(); }} placeholder="Search products..." className="h-11 rounded-xl border-white/10 bg-black/45 pl-9 text-white" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search loaded products..." className="h-11 rounded-xl border-white/10 bg-black/45 pl-9 text-white" />
           </div>
           <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-xl border border-white/10 bg-black/45 px-3 text-sm text-white">
+            <option value="all">All categories</option>
             {PRIZE_CATEGORIES.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
           <Input inputMode="decimal" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="Min $" className="h-11 rounded-xl border-white/10 bg-black/45 text-white" />
           <Input inputMode="decimal" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Max $" className="h-11 rounded-xl border-white/10 bg-black/45 text-white" />
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
-          <select value={gameGenre} onChange={(event) => setGameGenre(event.target.value)} className="h-10 rounded-xl border border-white/10 bg-black/45 px-3 text-xs text-white">
-            <option value="all">All game genres</option>
-            <option value="family">Family friendly</option>
-            <option value="competitive">Competitive</option>
-          </select>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
           <select value={playerCount} onChange={(event) => setPlayerCount(event.target.value)} className="h-10 rounded-xl border border-white/10 bg-black/45 px-3 text-xs text-white">
             <option value="all">Any player count</option>
             {PLAYER_OPTIONS.map((count) => <option key={count} value={count}>{count} players</option>)}
@@ -1586,16 +1780,13 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
             <option value="under_25">Under $25</option>
             <option value="over_25">$25+</option>
           </select>
-          <select value={sortMode} onChange={(event) => setSortMode(event.target.value)} className="h-10 rounded-xl border border-white/10 bg-black/45 px-3 text-xs text-white">
-            <option value="newest">Newest</option>
-            <option value="price_low">Price low</option>
-            <option value="price_high">Price high</option>
-            <option value="filling_fast">Filling fast</option>
-          </select>
-          <Button onClick={loadProducts} disabled={loading} className="h-10 rounded-xl bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />} Apply
+          <Button onClick={refreshProducts} disabled={loading} className="h-10 rounded-xl bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Refresh Products
           </Button>
-          <Badge className="flex h-10 items-center justify-center rounded-xl bg-white/10 text-white">{filteredProducts.length} prizes</Badge>
+          <Button onClick={shuffleProducts} disabled={loading || !prizeRows.length} variant="outline" className="h-10 rounded-xl border-white/15 bg-white/5 text-xs font-black text-white hover:bg-white/10">
+            <Shuffle className="mr-2 h-4 w-4" /> Shuffle Products
+          </Button>
+          <Badge className="flex h-10 items-center justify-center rounded-xl bg-white/10 text-white">{filteredProductCount} prizes</Badge>
         </div>
         {provider && <p className="mt-2 text-xs text-white/45">Provider: {provider}</p>}
       </div>
@@ -1606,13 +1797,11 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
       ) : (
         <div className="space-y-8">
           {productRows.map((row) => (
-            <PrizeProductBrowseRow key={row.title} title={row.title} products={row.products.slice(0, 30)} onOpen={setSelectedProduct} />
+            <PrizeProductBrowseRow key={row.id || row.title} title={row.title} products={row.products.slice(0, 30)} onOpen={setSelectedProduct} />
           ))}
-          {visibleLimit < filteredProducts.length && (
-            <div className="flex justify-center">
-              <Button onClick={() => setVisibleLimit((value) => value + 120)} variant="outline" className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10">
-                Load More Prizes
-              </Button>
+          {!productRows.length && (
+            <div className="rounded-2xl border border-white/10 bg-black/35 p-6 text-center text-sm text-white/60">
+              No prizes match the current filters.
             </div>
           )}
         </div>

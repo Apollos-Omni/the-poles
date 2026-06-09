@@ -57,6 +57,24 @@ const PRIZE_ROOM_STATUSES = [
   'cancelled',
 ];
 
+const PRIZE_CATALOG_ROWS = [
+  { id: 'electronics', title: 'Popular Electronics', category: 'Electronics', query_terms: ['wireless earbuds', 'bluetooth speaker', 'portable charger', 'smart watch', 'tablet stand'] },
+  { id: 'gaming_gear', title: 'Gaming Gear', category: 'Gaming Gear', query_terms: ['gaming headset', 'wireless controller', 'gaming keyboard', 'gaming mouse', 'controller charging dock'] },
+  { id: 'toys_family', title: 'Toys & Family Prizes', category: 'Toys', query_terms: ['LEGO set', 'RC car', 'drone toy', 'kids science kit', 'building blocks'] },
+  { id: 'sports_outdoor', title: 'Sports & Outdoor', category: 'Sports / Outdoor', query_terms: ['basketball', 'soccer ball', 'bike helmet', 'skateboard', 'insulated water bottle'] },
+  { id: 'style_clothing', title: 'Style & Clothing', category: 'Clothing', query_terms: ['hoodie', 'graphic t shirt', 'baseball cap', 'backpack'] },
+  { id: 'shoes', title: 'Shoes', category: 'Shoes', query_terms: ['running shoes', 'sneakers', 'slides'] },
+  { id: 'home_desk', title: 'Home & Desk', category: 'Home', query_terms: ['throw blanket', 'desk organizer', 'LED desk lamp', 'wall clock'] },
+  { id: 'art_creative', title: 'Art & Creative', category: 'Art / Creative', query_terms: ['art supply kit', 'sketchbook', 'markers', 'colored pencils', 'paint set'] },
+  { id: 'books_education', title: 'Books & Education', category: 'Books / Education', query_terms: ['children book set', 'workbook', 'science kit', 'chess book'] },
+  { id: 'collectibles', title: 'Collectibles', category: 'Collectibles', query_terms: ['trading cards', 'action figure', 'comic book', 'collectible figure'] },
+];
+
+const UNSAFE_PRIZE_TERMS = /\b(adult|alcohol|beer|wine|liquor|whiskey|vodka|tobacco|cigar|cigarette|nicotine|vape|weapon|knife|knives|gun|firearm|ammo|ammunition|cbd|thc|hemp|supplement|diet pill|weight loss|gambling|lottery|mystery box|used underwear)\b/i;
+const BAD_CONDITION_TERMS = /\b(broken|for parts|not working|untested|as-is|as is|salvage|repair only|parts only)\b/i;
+const REPLACEMENT_PART_TERMS = /\b(replacement|spare|repair|part only|parts only|shell only|case only|cover only|charger cable only|manual only)\b/i;
+const ACCESSORY_PART_TERMS = /\b(cable|adapter|skin|sticker|sleeve|protector|replacement|spare|case only|cover only|strap only|screen protector)\b/i;
+
 const joinSchema = z.object({
   entryAmount: z.number().int().nonnegative().optional(),
   entry_amount: z.number().int().nonnegative().optional(),
@@ -711,6 +729,79 @@ function productMarketplaceKey(product = {}) {
     || product.product_url
     || product.title
     || '';
+}
+
+function normalizedPrizeTitle(value = '') {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function productConditionText(product = {}) {
+  return String(product.condition
+    || product.raw_product?.condition
+    || product.raw_product?.raw_ebay?.condition
+    || product.raw_ebay?.condition
+    || product.description
+    || '').toLowerCase();
+}
+
+function productDedupKey(product = {}) {
+  const priceCents = Number(product.price_cents || product.offers?.[0]?.price_cents || 0);
+  return product.raw_ebay?.itemId
+    || product.provider_ids?.ebay_item_id
+    || product.itemId
+    || product.marketplace_key
+    || product.product_url
+    || product.productUrl
+    || product.offers?.[0]?.product_url
+    || `${normalizedPrizeTitle(product.title || product.name).toLowerCase()}:${Math.round(priceCents || 0)}`;
+}
+
+function productTitleMatchesAnyQuery(product = {}, queryTerms = []) {
+  const title = normalizedPrizeTitle(product.title || product.name).toLowerCase();
+  return queryTerms.some((term) => {
+    const words = String(term || '').toLowerCase().split(/\s+/).filter((word) => word.length > 2);
+    return words.length && words.some((word) => title.includes(word));
+  });
+}
+
+function productIsSafePrize(product = {}, row = {}) {
+  const title = normalizedPrizeTitle(product.title || product.name);
+  const condition = productConditionText(product);
+  const category = String(product.category || row.category || '').toLowerCase();
+  const searchable = `${title} ${product.description || ''} ${category} ${condition}`;
+  const priceCents = Number(product.price_cents || product.offers?.[0]?.price_cents || 0);
+  if (!productImageFromSnapshot(product)) return false;
+  if (!priceCents || priceCents < 500 || priceCents > 50000) return false;
+  if (UNSAFE_PRIZE_TERMS.test(searchable) || BAD_CONDITION_TERMS.test(searchable)) return false;
+  if (!category.includes('tools') && REPLACEMENT_PART_TERMS.test(searchable)) return false;
+  if (title.length > 180) return false;
+  return true;
+}
+
+function productPrizeScore(product = {}, row = {}) {
+  const title = normalizedPrizeTitle(product.title || product.name);
+  const titleLower = title.toLowerCase();
+  const condition = productConditionText(product);
+  const priceCents = Number(product.price_cents || product.offers?.[0]?.price_cents || 0);
+  const shipping = product.shipping_estimate_cents ?? product.raw_product?.shipping_estimate_cents ?? product.raw_product?.raw_ebay?.shippingCostValue;
+  let score = 0;
+
+  if (productImageFromSnapshot(product)) score += 30;
+  if (priceCents >= 1500 && priceCents <= 15000) score += 28;
+  else if (priceCents >= 500 && priceCents <= 30000) score += 14;
+  if (/\b(new|brand new|open box)\b/i.test(condition)) score += 18;
+  if (productTitleMatchesAnyQuery(product, row.query_terms || [])) score += 18;
+  if (product.product_url || product.productUrl || product.offers?.[0]?.product_url) score += 8;
+  if (shipping !== null && shipping !== undefined && shipping !== '') score += 8;
+  if (product.category || row.category) score += 5;
+  if (title.length > 120) score -= 10;
+  if (/\b(refurbished|renewed|pre-owned|preowned)\b/i.test(condition)) score -= 10;
+  if (BAD_CONDITION_TERMS.test(`${titleLower} ${condition}`)) score -= 50;
+  if (/\b(bundle|lot of|random|assorted)\b/i.test(titleLower)) score -= 8;
+  if (ACCESSORY_PART_TERMS.test(titleLower)) score -= 12;
+  if (!product.category) score -= 6;
+
+  return score;
 }
 
 function normalizeMarketplaceProduct(product = {}) {
@@ -3031,6 +3122,73 @@ export function createMatchFlowRouter({ store }) {
       provider,
       providerStatus,
       totalResults: totalResults || products.length,
+    });
+  }));
+
+  router.get('/prize-catalog/rows', asyncHandler(async (req, res) => {
+    const rowLimit = Math.min(Math.max(Number(req.query.rowLimit || req.query.limit) || 40, 12), 50);
+    const queryOffset = Math.max(Number(req.query.queryOffset || req.query.seed) || 0, 0);
+    const rows = [];
+    const globalKeys = new Set();
+    let provider = '';
+    let providerStatus = '';
+
+    for (const row of PRIZE_CATALOG_ROWS) {
+      const rowProductsByKey = new Map();
+      const queryTerms = row.query_terms.map((_, index, terms) => terms[(index + queryOffset) % terms.length]);
+      const activeTerms = queryTerms.slice(0, Math.min(3, queryTerms.length));
+      const perTermLimit = Math.min(200, Math.ceil(rowLimit / activeTerms.length) + 8);
+
+      for (const term of activeTerms) {
+        const result = await searchProductsAcrossProviders({
+          q: term,
+          minPrice: 5,
+          maxPrice: 500,
+          limit: perTermLimit,
+          offset: 0,
+        }, process.env);
+        provider = result.provider || provider;
+        providerStatus = result.providerStatus || result.externalProviderStatus || providerStatus;
+
+        const providerProducts = Array.isArray(result.products) ? result.products : [];
+        for (const product of providerProducts) {
+          const normalized = await persistMarketplaceProduct(store, product).catch(() => normalizeMarketplaceProduct(product));
+          const key = productDedupKey(normalized);
+          if (!key || globalKeys.has(key) || rowProductsByKey.has(key)) continue;
+          if (!productIsSafePrize(normalized, row)) continue;
+          const score = productPrizeScore(normalized, row);
+          rowProductsByKey.set(key, {
+            ...normalized,
+            title: normalizedPrizeTitle(normalized.title).slice(0, 140),
+            category: row.category,
+            prize_row_id: row.id,
+            prize_row_title: row.title,
+            prize_query_terms: row.query_terms,
+            prize_score: score,
+          });
+        }
+      }
+
+      const products = [...rowProductsByKey.values()]
+        .sort((a, b) => Number(b.prize_score || 0) - Number(a.prize_score || 0))
+        .slice(0, rowLimit);
+      products.forEach((product) => globalKeys.add(productDedupKey(product)));
+      rows.push({
+        id: row.id,
+        title: row.title,
+        category: row.category,
+        query_terms: row.query_terms,
+        products,
+      });
+    }
+
+    ok(res, {
+      success: true,
+      rows,
+      data: rows,
+      provider,
+      providerStatus,
+      rowLimit,
     });
   }));
 

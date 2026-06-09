@@ -403,6 +403,22 @@ export async function listMarketplaceProducts({
   };
 }
 
+export async function listMarketplaceProductRows({
+  rowLimit = 40,
+  queryOffset = 0,
+  endpoint = '/api/prize-catalog/rows',
+} = {}) {
+  const params = new URLSearchParams();
+  params.set('rowLimit', String(rowLimit));
+  params.set('queryOffset', String(queryOffset));
+  const response = await apiRequest(`${endpoint}?${params.toString()}`);
+  return {
+    rows: response.rows || response.data || [],
+    provider: response.provider || '',
+    providerStatus: response.providerStatus || '',
+  };
+}
+
 export async function getMarketplaceProduct({ productId }) {
   const response = await apiRequest(`/api/prize-products/${encodeURIComponent(productId)}`);
   return response.product || response.data;
