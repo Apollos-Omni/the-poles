@@ -416,6 +416,8 @@ export async function listMarketplaceProductRows({
     rows: response.rows || response.data || [],
     provider: response.provider || '',
     providerStatus: response.providerStatus || '',
+    debug: response.debug || null,
+    rowLimit: response.rowLimit || rowLimit,
   };
 }
 

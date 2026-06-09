@@ -37,7 +37,6 @@ import {
   ChevronRight,
   Share2,
   ExternalLink,
-  Shuffle,
 } from 'lucide-react';
 import AdminDashboard from '@/components/northpole/AdminDashboard';
 import SkillCompetitionAgreement from '@/components/northpole/SkillCompetitionAgreement';
@@ -63,7 +62,6 @@ import {
   listPrizeRooms,
   joinPrizeRoom,
   createPrizeRoom,
-  listMarketplaceProducts,
   listMarketplaceProductRows,
   hydratePrizeRoomProviderImages,
   SKILL_COMPETITION_AGREEMENT_VERSION,
@@ -1249,19 +1247,6 @@ const PRIZE_CATEGORIES = [
   'Collectibles',
 ];
 
-const PRIZE_ROW_DEFINITIONS = [
-  { id: 'electronics', title: 'Popular Electronics', category: 'Electronics', queryTerms: ['wireless earbuds', 'bluetooth speaker', 'portable charger', 'smart watch', 'tablet stand'] },
-  { id: 'gaming_gear', title: 'Gaming Gear', category: 'Gaming Gear', queryTerms: ['gaming headset', 'wireless controller', 'gaming keyboard', 'gaming mouse', 'controller charging dock'] },
-  { id: 'toys_family', title: 'Toys & Family Prizes', category: 'Toys', queryTerms: ['LEGO set', 'RC car', 'drone toy', 'kids science kit', 'building blocks'] },
-  { id: 'sports_outdoor', title: 'Sports & Outdoor', category: 'Sports / Outdoor', queryTerms: ['basketball', 'soccer ball', 'bike helmet', 'skateboard', 'insulated water bottle'] },
-  { id: 'style_clothing', title: 'Style & Clothing', category: 'Clothing', queryTerms: ['hoodie', 'graphic t shirt', 'baseball cap', 'backpack'] },
-  { id: 'shoes', title: 'Shoes', category: 'Shoes', queryTerms: ['running shoes', 'sneakers', 'slides'] },
-  { id: 'home_desk', title: 'Home & Desk', category: 'Home', queryTerms: ['throw blanket', 'desk organizer', 'LED desk lamp', 'wall clock'] },
-  { id: 'art_creative', title: 'Art & Creative', category: 'Art / Creative', queryTerms: ['art supply kit', 'sketchbook', 'markers', 'colored pencils', 'paint set'] },
-  { id: 'books_education', title: 'Books & Education', category: 'Books / Education', queryTerms: ['children book set', 'workbook', 'science kit', 'chess book'] },
-  { id: 'collectibles', title: 'Collectibles', category: 'Collectibles', queryTerms: ['trading cards', 'action figure', 'comic book', 'collectible figure'] },
-];
-
 const UNSAFE_PRIZE_PATTERN = /\b(adult|alcohol|beer|wine|liquor|tobacco|cigar|cigarette|nicotine|vape|weapon|knife|knives|gun|firearm|ammo|ammunition|cbd|thc|supplement|diet pill|gambling|lottery|mystery box|used underwear)\b/i;
 const BAD_PRIZE_CONDITION_PATTERN = /\b(broken|for parts|not working|untested|as-is|as is|repair only|parts only)\b/i;
 const PRIZE_PART_PATTERN = /\b(replacement|spare|repair|part only|parts only|shell only|case only|cover only|manual only)\b/i;
@@ -1309,44 +1294,6 @@ function cleanPrizeTitle(value = '') {
   return String(value || '').replace(/\s+/g, ' ').trim();
 }
 
-function productDedupKey(product = {}) {
-  const price = Number(product.price_cents || product.offers?.[0]?.price_cents || 0);
-  return product.raw_ebay?.itemId
-    || product.provider_ids?.ebay_item_id
-    || product.itemId
-    || product.marketplace_key
-    || product.product_url
-    || product.productUrl
-    || product.offers?.[0]?.product_url
-    || `${cleanPrizeTitle(product.title).toLowerCase()}:${Math.round(price || 0)}`;
-}
-
-function productTitleMatchesQueryTerm(product = {}, queryTerms = []) {
-  const title = cleanPrizeTitle(product.title).toLowerCase();
-  return queryTerms.some((term) => String(term || '').toLowerCase().split(/\s+/).some((word) => word.length > 2 && title.includes(word)));
-}
-
-function productPrizeScore(product = {}) {
-  const title = cleanPrizeTitle(product.title);
-  const condition = marketplaceProductCondition(product).toLowerCase();
-  const price = Number(product.price_cents || 0);
-  const shipping = marketplaceProductShippingCents(product);
-  let score = Number(product.prize_score || 0);
-  if (marketplaceProductImage(product)) score += 30;
-  if (price >= 1500 && price <= 15000) score += 28;
-  else if (price >= 500 && price <= 30000) score += 14;
-  if (/\b(new|brand new|open box)\b/i.test(condition)) score += 18;
-  if (productTitleMatchesQueryTerm(product, product.prize_query_terms || [])) score += 18;
-  if (product.product_url) score += 8;
-  if (shipping !== null) score += 8;
-  if (product.category) score += 5;
-  if (title.length > 120) score -= 10;
-  if (/\b(refurbished|renewed|pre-owned|preowned)\b/i.test(condition)) score -= 10;
-  if (/\b(bundle|lot of|random|assorted)\b/i.test(title.toLowerCase())) score -= 8;
-  if (!product.category) score -= 6;
-  return score;
-}
-
 function productIsPrizeQuality(product = {}) {
   const title = cleanPrizeTitle(product.title);
   const price = Number(product.price_cents || 0);
@@ -1357,25 +1304,6 @@ function productIsPrizeQuality(product = {}) {
   if (UNSAFE_PRIZE_PATTERN.test(searchable) || BAD_PRIZE_CONDITION_PATTERN.test(searchable)) return false;
   if (PRIZE_PART_PATTERN.test(searchable)) return false;
   return title.length > 0 && title.length <= 180;
-}
-
-function uniquePrizeProducts(products = []) {
-  const seen = new Set();
-  return products.filter((product) => {
-    const key = productDedupKey(product);
-    if (!key || seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-function shufflePrizeProducts(products = []) {
-  const shuffled = [...products];
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1));
-    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
-  }
-  return shuffled;
 }
 
 function productFilterMatches(product = {}, filters = {}) {
@@ -1409,7 +1337,7 @@ function PrizeProductCard({ product, onOpen }) {
           <span className="line-clamp-1 text-[11px] text-white/45">{marketplaceProductCondition(product) || 'Available'}</span>
         </div>
         <Button onClick={onOpen} className="h-8 w-full rounded-lg bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
-          Open
+          Product detail
         </Button>
       </CardContent>
     </Card>
@@ -1425,7 +1353,7 @@ function PrizeProductBrowseRow({ title, products, onOpen }) {
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3 px-1">
         <h3 className="text-lg font-black text-white">{title}</h3>
-        <span className="text-xs font-semibold uppercase tracking-wide text-white/40">{rowProducts.length} products</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-white/40">Live marketplace row  {rowProducts.length} products</span>
       </div>
       <div className="relative">
         <Button type="button" onClick={() => scrollByCard(-1)} variant="outline" className="absolute left-0 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex" aria-label={`Scroll ${title} left`}>
@@ -1562,7 +1490,7 @@ function PrizeProductDetail({ product, user, onBack, onCreated, onError, onMessa
           </div>
           {product.product_url && (
             <Button asChild variant="outline" className="rounded-xl border-yellow-300/25 bg-yellow-500/10 text-yellow-50 hover:bg-yellow-500/20">
-              <a href={product.product_url} target="_blank" rel="noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> View Source Listing</a>
+              <a href={product.product_url} target="_blank" rel="noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> Source listing</a>
             </Button>
           )}
         </div>
@@ -1624,55 +1552,22 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState('');
+  const [rowDebug, setRowDebug] = useState(null);
+  const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
   const [queryOffset, setQueryOffset] = useState(0);
-  const [shuffleSeed, setShuffleSeed] = useState(0);
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
-      let result;
-      try {
-        result = await listMarketplaceProductRows({ rowLimit: 42, queryOffset });
-      } catch {
-        const rows = await Promise.all(PRIZE_ROW_DEFINITIONS.map(async (row, rowIndex) => {
-          const terms = row.queryTerms.map((_, index, list) => list[(index + queryOffset + rowIndex) % list.length]).slice(0, 3);
-          const products = [];
-          for (const term of terms) {
-            const response = await listMarketplaceProducts({ q: term, limit: 16, offset: 0 });
-            products.push(...(response.products || []).map((product) => ({
-              ...product,
-              category: row.category,
-              prize_row_id: row.id,
-              prize_row_title: row.title,
-              prize_query_terms: row.queryTerms,
-            })));
-          }
-          return {
-            id: row.id,
-            title: row.title,
-            category: row.category,
-            query_terms: row.queryTerms,
-            products,
-          };
-        }));
-        result = { rows, provider: 'row_fallback' };
-      }
-
-      const globalKeys = new Set();
-      const nextRows = (result.rows || []).map((row) => {
-        const products = uniquePrizeProducts(row.products || [])
-          .filter((product) => productFilterMatches(product, { minPrice: '', maxPrice: '' }))
-          .sort((a, b) => productPrizeScore(b) - productPrizeScore(a))
-          .filter((product) => {
-            const key = productDedupKey(product);
-            if (!key || globalKeys.has(key)) return false;
-            globalKeys.add(key);
-            return true;
-          });
-        return { ...row, products };
-      }).filter((row) => row.products.length);
+      const result = await listMarketplaceProductRows({ rowLimit: 50, queryOffset });
+      const nextRows = (result.rows || []).map((row) => ({
+        ...row,
+        products: Array.isArray(row.products) ? row.products.filter(Boolean) : [],
+      })).filter((row) => row.products.length);
       setPrizeRows(nextRows);
       setProvider(result.provider || result.providerStatus || '');
+      setRowDebug(result.debug || null);
+      setLastRefreshedAt(new Date());
     } catch (error) {
       onError(error.message || 'Could not load prize catalog.');
     } finally {
@@ -1693,49 +1588,30 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
 
   const productRows = useMemo(() => {
     const search = query.trim().toLowerCase();
-    const filteredRows = prizeRows.map((row) => {
+    return prizeRows.map((row) => {
       const rowMatchesCategory = category === 'all'
         || row.category === category
         || row.title === category
         || row.id === category;
-      const products = rowMatchesCategory ? row.products.filter(filterProduct) : [];
-      return {
-        ...row,
-        products: shuffleSeed ? shufflePrizeProducts(products) : products,
-      };
-    }).filter((row) => row.products.length);
-
-    if (!search) return filteredRows;
-
-    const searchProducts = uniquePrizeProducts(filteredRows.flatMap((row) => row.products).filter((product) => {
-      const text = `${product.title || ''} ${product.category || ''} ${marketplaceProductSource(product)}`.toLowerCase();
-      return text.includes(search);
-    })).sort((a, b) => productPrizeScore(b) - productPrizeScore(a));
-
-    const rowsBelow = filteredRows.map((row) => ({
-      ...row,
-      products: row.products.filter((product) => {
+      const products = rowMatchesCategory ? row.products.filter((product) => {
+        if (!filterProduct(product)) return false;
+        if (!search) return true;
         const text = `${product.title || ''} ${product.category || ''} ${marketplaceProductSource(product)}`.toLowerCase();
         return text.includes(search);
-      }),
-    })).filter((row) => row.products.length);
+      }) : [];
+      return {
+        ...row,
+        products,
+      };
+    }).filter((row) => row.products.length);
+  }, [category, filterProduct, prizeRows, query]);
 
-    return [
-      { id: 'search_results', title: 'Search Results', products: searchProducts },
-      ...rowsBelow,
-    ].filter((row) => row.products.length);
-  }, [category, filterProduct, prizeRows, query, shuffleSeed]);
-
-  const filteredProductCount = useMemo(() => productRows.reduce((total, row) => (
-    row.id === 'search_results' ? total : total + row.products.length
-  ), 0), [productRows]);
+  const filteredProductCount = useMemo(() => productRows.reduce((total, row) => total + row.products.length, 0), [productRows]);
+  const loadedProductCount = useMemo(() => prizeRows.reduce((total, row) => total + row.products.length, 0), [prizeRows]);
+  const categoryOptions = useMemo(() => [...new Set(prizeRows.map((row) => row.category || row.title).filter(Boolean))], [prizeRows]);
 
   const refreshProducts = () => {
     setQueryOffset((value) => value + 1);
-  };
-
-  const shuffleProducts = () => {
-    setShuffleSeed((value) => value + 1);
   };
 
   if (selectedProduct) {
@@ -1757,6 +1633,16 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
   return (
     <section className="space-y-5">
       <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="mb-4 rounded-2xl border border-green-300/20 bg-green-500/10 p-3">
+          <div className="mb-2 text-sm font-black text-green-100">Live marketplace results</div>
+          <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs font-semibold text-white/70">
+            <span>Loaded rows: <strong className="text-white">{rowDebug?.total_rows ?? prizeRows.length}</strong></span>
+            <span>Total products: <strong className="text-white">{rowDebug?.total_products ?? loadedProductCount}</strong></span>
+            <span>Endpoint: <strong className="text-white">/api/prize-catalog/rows</strong></span>
+            <span>Provider: <strong className="text-white">{provider || 'eBay/provider'}</strong></span>
+            <span>Last refreshed: <strong className="text-white">{lastRefreshedAt ? lastRefreshedAt.toLocaleTimeString() : 'Loading'}</strong></span>
+          </div>
+        </div>
         <div className="grid gap-3 lg:grid-cols-[1fr_180px_140px_140px]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-300" />
@@ -1764,7 +1650,7 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
           </div>
           <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-xl border border-white/10 bg-black/45 px-3 text-sm text-white">
             <option value="all">All categories</option>
-            {PRIZE_CATEGORIES.map((item) => <option key={item} value={item}>{item}</option>)}
+            {(categoryOptions.length ? categoryOptions : PRIZE_CATEGORIES).map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
           <Input inputMode="decimal" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="Min $" className="h-11 rounded-xl border-white/10 bg-black/45 text-white" />
           <Input inputMode="decimal" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Max $" className="h-11 rounded-xl border-white/10 bg-black/45 text-white" />
@@ -1783,12 +1669,8 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
           <Button onClick={refreshProducts} disabled={loading} className="h-10 rounded-xl bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />} Refresh Products
           </Button>
-          <Button onClick={shuffleProducts} disabled={loading || !prizeRows.length} variant="outline" className="h-10 rounded-xl border-white/15 bg-white/5 text-xs font-black text-white hover:bg-white/10">
-            <Shuffle className="mr-2 h-4 w-4" /> Shuffle Products
-          </Button>
           <Badge className="flex h-10 items-center justify-center rounded-xl bg-white/10 text-white">{filteredProductCount} prizes</Badge>
         </div>
-        {provider && <p className="mt-2 text-xs text-white/45">Provider: {provider}</p>}
       </div>
       {loading ? (
         <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
@@ -1797,7 +1679,7 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
       ) : (
         <div className="space-y-8">
           {productRows.map((row) => (
-            <PrizeProductBrowseRow key={row.id || row.title} title={row.title} products={row.products.slice(0, 30)} onOpen={setSelectedProduct} />
+            <PrizeProductBrowseRow key={row.id || row.title} title={row.title} products={row.products} onOpen={setSelectedProduct} />
           ))}
           {!productRows.length && (
             <div className="rounded-2xl border border-white/10 bg-black/35 p-6 text-center text-sm text-white/60">

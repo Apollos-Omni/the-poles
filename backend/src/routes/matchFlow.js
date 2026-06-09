@@ -735,6 +735,15 @@ function normalizedPrizeTitle(value = '') {
   return String(value || '').replace(/\s+/g, ' ').trim();
 }
 
+function normalizedPrizeTitleForDedupe(value = '') {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 90);
+}
+
 function productConditionText(product = {}) {
   return String(product.condition
     || product.raw_product?.condition
@@ -754,6 +763,27 @@ function productDedupKey(product = {}) {
     || product.productUrl
     || product.offers?.[0]?.product_url
     || `${normalizedPrizeTitle(product.title || product.name).toLowerCase()}:${Math.round(priceCents || 0)}`;
+}
+
+function productDedupeKeys(product = {}) {
+  const title = normalizedPrizeTitleForDedupe(product.title || product.name);
+  const priceCents = Math.round(Number(product.price_cents || product.offers?.[0]?.price_cents || 0) || 0);
+  const imageUrl = productImageFromSnapshot(product);
+  return [
+    product.raw_ebay?.itemId && `item:${product.raw_ebay.itemId}`,
+    product.raw_product?.raw_ebay?.itemId && `item:${product.raw_product.raw_ebay.itemId}`,
+    product.provider_ids?.ebay_item_id && `item:${product.provider_ids.ebay_item_id}`,
+    product.itemId && `item:${product.itemId}`,
+    product.marketplace_key && `marketplace:${product.marketplace_key}`,
+    product.product_url && `url:${String(product.product_url).toLowerCase()}`,
+    product.productUrl && `url:${String(product.productUrl).toLowerCase()}`,
+    product.offers?.[0]?.product_url && `url:${String(product.offers[0].product_url).toLowerCase()}`,
+    product.raw_ebay?.itemWebUrl && `url:${String(product.raw_ebay.itemWebUrl).toLowerCase()}`,
+    product.raw_product?.raw_ebay?.itemWebUrl && `url:${String(product.raw_product.raw_ebay.itemWebUrl).toLowerCase()}`,
+    title && `title:${title}`,
+    title && priceCents ? `title_price:${title}:${priceCents}` : '',
+    imageUrl && `image:${String(imageUrl).toLowerCase()}`,
+  ].filter(Boolean);
 }
 
 function productTitleMatchesAnyQuery(product = {}, queryTerms = []) {
@@ -3129,17 +3159,23 @@ export function createMatchFlowRouter({ store }) {
     const rowLimit = Math.min(Math.max(Number(req.query.rowLimit || req.query.limit) || 40, 12), 50);
     const queryOffset = Math.max(Number(req.query.queryOffset || req.query.seed) || 0, 0);
     const rows = [];
-    const globalKeys = new Set();
+    const globalDedupeKeys = new Set();
     let provider = '';
     let providerStatus = '';
+    let totalDuplicatesRemoved = 0;
 
     for (const row of PRIZE_CATALOG_ROWS) {
-      const rowProductsByKey = new Map();
+      const rowProducts = [];
+      const rowDedupeKeys = new Set();
       const queryTerms = row.query_terms.map((_, index, terms) => terms[(index + queryOffset) % terms.length]);
-      const activeTerms = queryTerms.slice(0, Math.min(3, queryTerms.length));
-      const perTermLimit = Math.min(200, Math.ceil(rowLimit / activeTerms.length) + 8);
+      const queryTermsUsed = [];
+      const perTermLimit = Math.min(200, Math.max(rowLimit, 50));
+      let rawCount = 0;
+      let afterSafetyFilterCount = 0;
+      let duplicateCountRemoved = 0;
 
-      for (const term of activeTerms) {
+      for (const term of queryTerms) {
+        queryTermsUsed.push(term);
         const result = await searchProductsAcrossProviders({
           q: term,
           minPrice: 5,
@@ -3151,13 +3187,20 @@ export function createMatchFlowRouter({ store }) {
         providerStatus = result.providerStatus || result.externalProviderStatus || providerStatus;
 
         const providerProducts = Array.isArray(result.products) ? result.products : [];
+        rawCount += providerProducts.length;
         for (const product of providerProducts) {
           const normalized = await persistMarketplaceProduct(store, product).catch(() => normalizeMarketplaceProduct(product));
-          const key = productDedupKey(normalized);
-          if (!key || globalKeys.has(key) || rowProductsByKey.has(key)) continue;
           if (!productIsSafePrize(normalized, row)) continue;
+          afterSafetyFilterCount += 1;
+
+          const keys = productDedupeKeys(normalized);
+          if (!keys.length || keys.some((key) => rowDedupeKeys.has(key) || globalDedupeKeys.has(key))) {
+            duplicateCountRemoved += 1;
+            continue;
+          }
+
           const score = productPrizeScore(normalized, row);
-          rowProductsByKey.set(key, {
+          rowProducts.push({
             ...normalized,
             title: normalizedPrizeTitle(normalized.title).slice(0, 140),
             category: row.category,
@@ -3166,22 +3209,36 @@ export function createMatchFlowRouter({ store }) {
             prize_query_terms: row.query_terms,
             prize_score: score,
           });
+          keys.forEach((key) => rowDedupeKeys.add(key));
+          if (rowProducts.length >= rowLimit) break;
         }
+        if (rowProducts.length >= rowLimit) break;
       }
 
-      const products = [...rowProductsByKey.values()]
+      totalDuplicatesRemoved += duplicateCountRemoved;
+      const products = rowProducts
         .sort((a, b) => Number(b.prize_score || 0) - Number(a.prize_score || 0))
         .slice(0, rowLimit);
-      products.forEach((product) => globalKeys.add(productDedupKey(product)));
+      products.forEach((product) => productDedupeKeys(product).forEach((key) => globalDedupeKeys.add(key)));
       rows.push({
         id: row.id,
         title: row.title,
         category: row.category,
         query_terms: row.query_terms,
         products,
+        debug: {
+          query_terms_used: queryTermsUsed,
+          provider,
+          raw_count: rawCount,
+          after_safety_filter_count: afterSafetyFilterCount,
+          after_dedupe_count: products.length,
+          duplicate_count_removed: duplicateCountRemoved,
+          first_titles: products.slice(0, 8).map((product) => product.title),
+        },
       });
     }
 
+    const totalProducts = rows.reduce((total, row) => total + row.products.length, 0);
     ok(res, {
       success: true,
       rows,
@@ -3189,6 +3246,11 @@ export function createMatchFlowRouter({ store }) {
       provider,
       providerStatus,
       rowLimit,
+      debug: {
+        total_rows: rows.length,
+        total_products: totalProducts,
+        total_duplicates_removed: totalDuplicatesRemoved,
+      },
     });
   }));
 
