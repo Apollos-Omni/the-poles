@@ -1806,7 +1806,12 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
 
   const filteredProductCount = filteredProducts.length;
   const loadedProductCount = products.length;
-  const categoryOptions = useMemo(() => [...new Set(products.map((product) => product.category).filter(Boolean))], [products]);
+  const categoryOptions = useMemo(() => (
+    [...new Set([
+      ...PRIZE_CATEGORIES,
+      ...products.map((product) => product.category).filter(Boolean),
+    ])]
+  ), [products]);
 
   const refreshProducts = () => {
     loadProducts({ reset: true });
