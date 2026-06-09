@@ -79,6 +79,30 @@ const NORTH_POLE_COST_MODEL = {
   processingPerPlayerCents: 30,
 };
 
+const REAL_BACKEND_API_BASE = 'https://the-poles-backend.onrender.com';
+const MARKETPLACE_INITIAL_LIMIT = 48;
+
+function trimTrailingSlash(value = '') {
+  return String(value || '').replace(/\/$/, '');
+}
+
+function marketplaceImageApiBase() {
+  const configuredBase = trimTrailingSlash(import.meta.env.VITE_API_BASE_URL || '');
+  if (!configuredBase) return REAL_BACKEND_API_BASE;
+
+  try {
+    const host = new URL(configuredBase).host;
+    return host === 'the-poles-backend.onrender.com' ? configuredBase : REAL_BACKEND_API_BASE;
+  } catch {
+    return REAL_BACKEND_API_BASE;
+  }
+}
+
+function marketplaceImageApiUrl(path) {
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return `${marketplaceImageApiBase()}${normalized}`;
+}
+
 const emptyPrizeForm = {
   title: '',
   category: 'Custom Prize',
@@ -1394,8 +1418,16 @@ const UNSAFE_PRIZE_PATTERN = /\b(adult|alcohol|beer|wine|liquor|tobacco|cigar|ci
 const BAD_PRIZE_CONDITION_PATTERN = /\b(broken|for parts|not working|untested|as-is|as is|repair only|parts only)\b/i;
 const PRIZE_PART_PATTERN = /\b(replacement|spare|repair|part only|parts only|shell only|case only|cover only|manual only)\b/i;
 
-function marketplaceProductImage(product = {}) {
+function marketplaceProductRawImage(product = {}) {
   return product.image_url || product.images?.[0] || '';
+}
+
+function marketplaceProductImage(product = {}) {
+  const image = marketplaceProductRawImage(product);
+  if (/^https:\/\/i\.ebayimg\.com\//i.test(image) && product.id) {
+    return marketplaceImageApiUrl(`/api/prize-products/${encodeURIComponent(product.id)}/image`);
+  }
+  return image;
 }
 
 function marketplaceProductImages(product = {}) {
@@ -1438,7 +1470,7 @@ function productIsPrizeQuality(product = {}) {
   const price = Number(product.price_cents || 0);
   const condition = marketplaceProductCondition(product);
   const searchable = `${title} ${product.category || ''} ${condition} ${product.description || ''}`;
-  if (!marketplaceProductImage(product) || !price) return false;
+  if (!marketplaceProductRawImage(product) || !price) return false;
   if (price < 500 || price > 50000) return false;
   if (UNSAFE_PRIZE_PATTERN.test(searchable) || BAD_PRIZE_CONDITION_PATTERN.test(searchable)) return false;
   if (PRIZE_PART_PATTERN.test(searchable)) return false;
@@ -1627,7 +1659,12 @@ function PrizeProductDetail({ product, user, onBack, onCreated, onError, onMessa
             <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {productImages.slice(0, 8).map((image) => (
                 <div key={image} className="h-20 w-20 flex-none rounded-xl bg-white p-2">
-                  <img src={image} alt="" loading="lazy" className="h-full w-full object-contain" />
+                  <img
+                    src={/^https:\/\/i\.ebayimg\.com\//i.test(image) && product.id ? marketplaceImageApiUrl(`/api/prize-products/${encodeURIComponent(product.id)}/image`) : image}
+                    alt=""
+                    loading="lazy"
+                    className="h-full w-full object-contain"
+                  />
                 </div>
               ))}
             </div>
@@ -1721,7 +1758,7 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
       const nextOffset = reset ? 0 : offset;
       const result = await listMarketplaceProducts({
         q: searchQuery || 'gaming prizes',
-        limit: 24,
+        limit: MARKETPLACE_INITIAL_LIMIT,
         offset: nextOffset,
         endpoint: '/api/prize-products',
       });
@@ -1730,7 +1767,7 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
         ? nextProducts
         : [...prev, ...nextProducts.filter((item) => !prev.some((row) => row.id === item.id))]);
       setOffset(result.pagination?.next_offset ?? nextOffset + nextProducts.length);
-      setHasMore(result.pagination?.has_more ?? nextProducts.length >= 24);
+      setHasMore(result.pagination?.has_more ?? nextProducts.length >= MARKETPLACE_INITIAL_LIMIT);
       setProvider(result.provider || '');
       setProviderStatus(result.providerStatus || '');
       setProductSource(result.productSource || '');
