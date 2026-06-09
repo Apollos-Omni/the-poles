@@ -28,6 +28,7 @@ import {
   ClipboardList,
   Trash2,
   DoorOpen,
+  ArrowLeft,
   ArrowRight,
   PlayCircle,
   Target,
@@ -61,6 +62,7 @@ import {
   listPrizeRooms,
   joinPrizeRoom,
   createPrizeRoom,
+  listMarketplaceProducts,
   hydratePrizeRoomProviderImages,
   SKILL_COMPETITION_AGREEMENT_VERSION,
 } from '@/lib/northpole/matchEngine';
@@ -732,64 +734,38 @@ function PrizeRoomCard({ room, isOpen, onOpen, onJoin, onShare, joining }) {
   const canJoin = ['open', 'awaiting_contributions'].includes(room.status);
   const fallbackPrizeImage = defaultPrizeRoomPrizeImage(room.prize_title);
   const fallbackGameImage = defaultPrizeRoomGameImage(room.game_title);
-  const resolvedPrizeImage = prizeRoomPrizeImage(room);
-  const resolvedGameImage = prizeRoomGameImage(room);
   const displayPrizeImage = prizeRoomDisplayPrizeImage(room);
   const displayGameImage = prizeRoomDisplayGameImage(room);
-  console.log('PrizeRoom image debug', {
-    title: room.title,
-    prize_image: room.prize_image,
-    resolved_prize_image: resolvedPrizeImage,
-    display_prize_image: displayPrizeImage,
-    game_image: room.game_image,
-    resolved_game_image: resolvedGameImage,
-    display_game_image: displayGameImage,
-  });
   return (
-    <Card className={`overflow-hidden rounded-3xl border bg-black/65 shadow-[0_0_38px_rgba(124,58,237,0.16)] transition ${
+    <Card className={`h-full overflow-hidden rounded-2xl border bg-black/65 shadow-[0_0_24px_rgba(124,58,237,0.12)] transition ${
       isOpen ? 'border-yellow-300/55 ring-1 ring-yellow-300/30' : 'border-white/10 hover:border-purple-300/40'
     }`}>
       <CardContent className="p-3">
         <button type="button" onClick={onOpen} className="block w-full text-left">
-          <PrizeRoomHeroImage
-            prizeImage={displayPrizeImage}
-            prizeTitle={room.prize_title}
-            gameImage={displayGameImage}
-            gameTitle={room.game_title}
-            roomTitle={room.title}
-            fallbackPrizeImage={fallbackPrizeImage}
-            fallbackGameImage={fallbackGameImage}
-          />
-        </button>
-        <div className="mt-2 flex flex-wrap gap-3 px-1 text-xs font-semibold">
-          {resolvedPrizeImage && (
-            <a href={resolvedPrizeImage} target="_blank" rel="noreferrer" className="text-yellow-100 underline-offset-4 hover:text-white hover:underline">
-              Open prize image
-            </a>
-          )}
-          {resolvedGameImage && (
-            <a href={resolvedGameImage} target="_blank" rel="noreferrer" className="text-purple-100 underline-offset-4 hover:text-white hover:underline">
-              Open game image
-            </a>
-          )}
-        </div>
-        <div className="space-y-3 px-1 py-4">
-          <div className="flex flex-wrap gap-2">
-            <Badge className={room.is_frontend_demo ? 'bg-yellow-500/20 text-yellow-100' : 'bg-purple-600/20 text-purple-100'}>{prizeRoomTypeLabel(room)}</Badge>
-            {['platform_supported', 'template_based'].includes(room.room_type) && <Badge className="bg-white/10 text-white">Example Room</Badge>}
-            {canJoin && <Badge className="bg-green-600/20 text-green-100">Ready to Join</Badge>}
-            <Badge className={`border ${statusClass(room.status)}`}>{String(room.status || 'open').replace(/_/g, ' ')}</Badge>
+          <div className="h-[160px] overflow-hidden rounded-xl bg-white sm:h-[150px] md:h-[160px]">
+            <PrizeRoomHeroImage
+              prizeImage={displayPrizeImage}
+              prizeTitle={room.prize_title}
+              gameImage={displayGameImage}
+              gameTitle={room.game_title}
+              roomTitle={room.title}
+              fallbackPrizeImage={fallbackPrizeImage}
+              fallbackGameImage={fallbackGameImage}
+            />
           </div>
+        </button>
+        <div className="space-y-3 px-1 pt-3">
+          <Badge className={room.is_frontend_demo ? 'bg-yellow-500/20 text-yellow-100' : 'bg-purple-600/20 text-purple-100'}>
+            {prizeRoomTypeLabel(room)}
+          </Badge>
           <button type="button" onClick={onOpen} className="block w-full text-left">
-            <h3 className="line-clamp-2 text-xl font-black leading-tight text-white">{room.title}</h3>
-            <p className="mt-1 line-clamp-1 text-sm font-semibold text-purple-100">Game: {room.game_title || 'Skill Match'}</p>
-            <p className="mt-3 text-2xl font-black text-green-200">{formatMoney(prizeRoomJoinCost(room))}</p>
-            <p className="text-xs font-semibold uppercase tracking-wide text-white/45">Join cost</p>
+            <h3 className="line-clamp-2 min-h-10 text-sm font-black leading-tight text-white">{room.prize_title || room.title}</h3>
+            <p className="mt-1 line-clamp-1 text-xs font-semibold text-purple-100">{room.game_title || 'Skill Match'}</p>
           </button>
-          <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/[0.05] p-3 text-sm">
-            <div className="flex justify-between gap-3">
-              <span className="text-yellow-100/75">Prize</span>
-              <strong className="line-clamp-1 text-right text-white">{room.prize_title}</strong>
+          <div className="space-y-1 rounded-xl border border-white/10 bg-white/[0.05] p-2 text-xs">
+            <div className="flex justify-between gap-2">
+              <span className="text-white/55">Join cost</span>
+              <strong className="text-green-200">{formatMoney(prizeRoomJoinCost(room))}</strong>
             </div>
             <div className="flex justify-between gap-3">
               <span className="text-white/55">Players</span>
@@ -799,22 +775,16 @@ function PrizeRoomCard({ room, isOpen, onOpen, onJoin, onShare, joining }) {
               <span className="text-white/55">Spots remaining</span>
               <strong className="text-yellow-100">{spotsRemaining}</strong>
             </div>
-            <div className="flex justify-between gap-3">
-              <span className="text-white/55">Status</span>
-              <strong className="capitalize text-green-200">{String(room.status || 'open').replace(/_/g, ' ')}</strong>
-            </div>
           </div>
-          <div className="grid gap-2 sm:grid-cols-3">
-            <Button onClick={onOpen} variant="outline" className="flex-1 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
-              Open Room
+          <div className="grid grid-cols-3 gap-1.5">
+            <Button onClick={onOpen} variant="outline" className="h-9 rounded-xl border-white/15 bg-white/5 px-2 text-xs text-white hover:bg-white/10">
+              Open
             </Button>
-            <Button onClick={onShare} variant="outline" className="flex-1 rounded-2xl border-yellow-300/40 bg-yellow-500/15 font-black text-yellow-50 hover:bg-yellow-500/25">
-              <Share2 className="mr-2 h-4 w-4" />
-              Promote Room
+            <Button onClick={onJoin} disabled={joining || !canJoin} className="h-9 rounded-xl bg-green-600 px-2 text-xs text-white hover:bg-green-500 disabled:bg-slate-700">
+              {joining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Join'}
             </Button>
-            <Button onClick={onJoin} disabled={joining || !canJoin} className="flex-1 rounded-2xl bg-green-600 text-white hover:bg-green-500 disabled:bg-slate-700">
-              {joining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogIn className="mr-2 h-4 w-4" />}
-              Join Room
+            <Button onClick={onShare} variant="outline" className="h-9 rounded-xl border-yellow-300/40 bg-yellow-500/15 px-2 text-xs font-black text-yellow-50 hover:bg-yellow-500/25">
+              Promote
             </Button>
           </div>
         </div>
@@ -1004,7 +974,7 @@ function PrizeRoomBrowseRow({ title, rooms, openRoomId, joiningId, onToggleDetai
   const rowRooms = sortRoomsByPriority(uniquePrizeRooms(rooms));
   if (!rowRooms.length) return null;
   const scrollByCard = (direction) => {
-    scrollRef.current?.scrollBy({ left: direction * 390, behavior: 'smooth' });
+    scrollRef.current?.scrollBy({ left: direction * 260, behavior: 'smooth' });
   };
   return (
     <section className="space-y-3">
@@ -1022,9 +992,9 @@ function PrizeRoomBrowseRow({ title, rooms, openRoomId, joiningId, onToggleDetai
         >
           <ChevronLeft className="h-6 w-6" />
         </Button>
-        <div ref={scrollRef} className="-mx-2 flex snap-x gap-4 overflow-x-auto px-2 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div ref={scrollRef} className="-mx-2 flex snap-x gap-3 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {rowRooms.map((room) => (
-            <div key={room.id} className="w-[82vw] flex-none snap-start sm:w-[360px] lg:w-[380px]">
+            <div key={room.id} className="w-[72vw] max-w-[260px] flex-none snap-start sm:w-[230px] lg:w-[240px] xl:w-[250px]">
               <PrizeRoomCard
                 room={room}
                 isOpen={openRoomId === room.id}
@@ -1264,6 +1234,393 @@ function PrizeRoomDetailPage({ room, onJoin, onShare, joining, onBack }) {
   );
 }
 
+const PRIZE_CATEGORIES = [
+  'Electronics',
+  'Gaming Gear',
+  'Toys',
+  'Sports / Outdoor',
+  'Clothing',
+  'Shoes',
+  'Home',
+  'Beauty / Grooming',
+  'Tools',
+  'Art / Creative',
+  'Books / Education',
+  'Collectibles',
+];
+
+function marketplaceProductImage(product = {}) {
+  const image = product.image_url || product.images?.[0] || '';
+  if (/^https:\/\/(i\.ebayimg\.com|media\.rawg\.io)\//i.test(image) && product.id) {
+    return apiUrl(`/api/prize-products/${encodeURIComponent(product.id)}/image`);
+  }
+  return image;
+}
+
+function productFilterMatches(product = {}, filters = {}) {
+  const price = Number(product.price_cents || 0) / 100;
+  if (filters.minPrice && price < Number(filters.minPrice)) return false;
+  if (filters.maxPrice && price > Number(filters.maxPrice)) return false;
+  return Boolean(marketplaceProductImage(product) && Number(product.price_cents || 0) > 0);
+}
+
+function PrizeProductCard({ product, onOpen }) {
+  return (
+    <Card className="h-full overflow-hidden rounded-2xl border-white/10 bg-black/65 text-white shadow-[0_0_24px_rgba(124,58,237,0.10)]">
+      <button type="button" onClick={onOpen} className="block w-full bg-white p-3 text-left">
+        {marketplaceProductImage(product) ? (
+          <img loading="lazy" src={marketplaceProductImage(product)} alt={product.title} className="h-[160px] w-full object-contain sm:h-[150px] md:h-[160px]" />
+        ) : (
+          <div className="flex h-[160px] items-center justify-center rounded-xl bg-purple-100 text-sm font-black text-purple-950">Prize Image</div>
+        )}
+      </button>
+      <CardContent className="space-y-3 p-3">
+        <div>
+          <Badge className="bg-yellow-500/20 text-yellow-100">{product.category || product.source_label || 'Prize'}</Badge>
+          <button type="button" onClick={onOpen} className="mt-2 block w-full text-left">
+            <h3 className="line-clamp-2 min-h-10 text-sm font-black leading-tight">{product.title}</h3>
+          </button>
+          <p className="mt-1 line-clamp-1 text-xs text-white/50">{product.seller || product.source_label || product.source || 'Provider'}</p>
+        </div>
+        <div className="flex items-center justify-between gap-2">
+          <strong className="text-base text-green-200">{formatMoney(product.price_cents)}</strong>
+          <span className="text-xs text-white/45">{product.condition || product.raw_product?.raw_ebay?.condition || 'Available'}</span>
+        </div>
+        <Button onClick={onOpen} className="h-9 w-full rounded-xl bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
+          Open
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PrizeProductBrowseRow({ title, products, onOpen }) {
+  const scrollRef = useRef(null);
+  const rowProducts = products.filter(Boolean);
+  if (!rowProducts.length) return null;
+  const scrollByCard = (direction) => scrollRef.current?.scrollBy({ left: direction * 260, behavior: 'smooth' });
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3 px-1">
+        <h3 className="text-xl font-black text-white">{title}</h3>
+        <span className="text-xs font-semibold uppercase tracking-wide text-white/40">{rowProducts.length} products</span>
+      </div>
+      <div className="relative">
+        <Button type="button" onClick={() => scrollByCard(-1)} variant="outline" className="absolute left-0 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex" aria-label={`Scroll ${title} left`}>
+          <ChevronLeft className="h-6 w-6" />
+        </Button>
+        <div ref={scrollRef} className="-mx-2 flex snap-x gap-3 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {rowProducts.map((product) => (
+            <div key={product.id || product.marketplace_key} className="w-[72vw] max-w-[260px] flex-none snap-start sm:w-[230px] lg:w-[240px] xl:w-[250px]">
+              <PrizeProductCard product={product} onOpen={() => onOpen(product)} />
+            </div>
+          ))}
+        </div>
+        <Button type="button" onClick={() => scrollByCard(1)} variant="outline" className="absolute right-0 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex" aria-label={`Scroll ${title} right`}>
+          <ChevronRight className="h-6 w-6" />
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function PrizeProductDetail({ product, user, onBack, onCreated, onError, onMessage }) {
+  const [gameQuery, setGameQuery] = useState('Mario Kart');
+  const [games, setGames] = useState([]);
+  const [selectedGame, setSelectedGame] = useState(null);
+  const [players, setPlayers] = useState(4);
+  const [loadingGames, setLoadingGames] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const options = useMemo(() => calculateNorthPoleOptions({
+    priceCents: product.price_cents,
+    taxCents: product.tax_estimate_cents || 0,
+    shippingCents: product.shipping_estimate_cents || NORTH_POLE_COST_MODEL.defaultShippingCents,
+    playerCounts: PLAYER_OPTIONS,
+  }), [product]);
+  const selectedPlan = options.find((option) => option.players === players) || options[0];
+
+  const loadGames = async (query = gameQuery) => {
+    setLoadingGames(true);
+    try {
+      const { data } = await searchGames({ q: query || 'skill game', limit: 8 });
+      const found = data.games || data.data || data.results || [];
+      setGames((Array.isArray(found) ? found : []).map((game) => ({
+        ...game,
+        id: game.id || game.slug || game.title || game.name,
+        title: game.title || game.name || 'Skill Match',
+        image: game.background_image || game.image || game.image_url || game.icon_url || '',
+        platform: game.platform || game.store || 'Skill Match',
+      })));
+    } catch {
+      setGames(['Mario Kart', 'Madden NFL', 'NBA 2K', 'Rocket League', 'Chess'].map((title) => ({ id: title, title, platform: 'Skill Match' })));
+    } finally {
+      setLoadingGames(false);
+    }
+  };
+
+  useEffect(() => { loadGames('Mario Kart'); }, [product.id]);
+
+  const createRoomForProduct = async () => {
+    if (!user?.id) return onError('Sign in before creating a Prize Room.');
+    if (!selectedGame) return onError('Choose a game before creating this Prize Room.');
+    setCreating(true);
+    try {
+      const room = await createPrizeRoom({
+        roomType: 'user_created',
+        title: `${selectedGame.title} Prize Room: ${product.title}`,
+        description: `Community-created pilot Prize Room for ${product.title}. Manual payment and fulfillment required.`,
+        gameId: selectedGame.id,
+        gameTitle: selectedGame.title,
+        gameImage: selectedGame.image || selectedGame.image_url || '',
+        gamePlatform: selectedGame.platform || 'Skill Match',
+        gameSnapshot: selectedGame,
+        prizeId: product.id,
+        prizeTitle: product.title,
+        prizeImage: product.image_url || product.images?.[0] || '',
+        prizeSource: product.source || product.source_label || 'provider',
+        prizeUrl: product.product_url || '',
+        prizeSnapshot: {
+          ...product,
+          product_id: product.id,
+          image: product.image_url || product.images?.[0] || '',
+          image_url: product.image_url || product.images?.[0] || '',
+          price_cents: selectedPlan.priceCents,
+          estimated_tax_cents: selectedPlan.taxCents,
+          estimated_shipping_cents: selectedPlan.shippingCents,
+          total_prize_cost_cents: selectedPlan.totalPrizeCostCents,
+        },
+        minPlayers: Math.min(2, players),
+        maxPlayers: players,
+        winningRule: 'Highest verified score wins',
+        verificationMethod: 'manual_score_with_proof',
+        foundationRate: NORTH_POLE_COST_MODEL.foundationRate,
+        paymentMode: 'pilot_manual',
+      });
+      onCreated(room);
+      onMessage('Prize Room created from catalog product.');
+    } catch (error) {
+      onError(error.message || 'Could not create Prize Room.');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <section className="space-y-5">
+      <Button onClick={onBack} variant="outline" className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Browse Prizes
+      </Button>
+      <div className="grid gap-6 rounded-[2rem] border border-white/10 bg-white/[0.04] p-4 lg:grid-cols-[1fr_1.05fr]">
+        <div className="rounded-3xl bg-white p-5">
+          <img src={marketplaceProductImage(product)} alt={product.title} className="h-[360px] w-full object-contain" />
+        </div>
+        <div className="space-y-4">
+          <Badge className="bg-yellow-500/20 text-yellow-100">Product Detail</Badge>
+          <h2 className="text-3xl font-black text-white">{product.title}</h2>
+          <p className="text-3xl font-black text-green-200">{formatMoney(product.price_cents)}</p>
+          <p className="text-sm leading-6 text-white/65">{product.description || 'Use this product as the prize for a skill-based Prize Room. No active room is created until you choose a game and create it.'}</p>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <PrizeRoomDetailCard label="Source" value={product.seller || product.source_label || product.source} />
+            <PrizeRoomDetailCard label="Category" value={product.category || 'Prize'} tone="purple" />
+            <PrizeRoomDetailCard label="Estimated join" value={formatMoney(selectedPlan?.perPlayerCents || 0)} tone="green" />
+          </div>
+          {product.product_url && (
+            <Button asChild variant="outline" className="rounded-xl border-yellow-300/25 bg-yellow-500/10 text-yellow-50 hover:bg-yellow-500/20">
+              <a href={product.product_url} target="_blank" rel="noreferrer"><ExternalLink className="mr-2 h-4 w-4" /> View Source Listing</a>
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="grid gap-5 lg:grid-cols-[1fr_0.8fr]">
+        <div className="rounded-[2rem] border border-purple-300/20 bg-purple-950/25 p-4">
+          <h3 className="mb-3 flex items-center gap-2 text-xl font-black text-white"><Gamepad2 className="h-5 w-5 text-purple-100" /> Choose Game</h3>
+          <div className="flex gap-2">
+            <Input value={gameQuery} onChange={(event) => setGameQuery(event.target.value)} placeholder="Search games..." className="rounded-xl border-white/10 bg-black/45 text-white" />
+            <Button onClick={() => loadGames()} disabled={loadingGames} variant="outline" className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+              {loadingGames ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+            </Button>
+          </div>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {games.slice(0, 8).map((game) => (
+              <button key={game.id || game.title} type="button" onClick={() => setSelectedGame(game)} className={`flex min-h-16 items-center gap-3 rounded-2xl border p-3 text-left ${selectedGame?.id === game.id ? 'border-yellow-300 bg-yellow-500/15' : 'border-white/10 bg-black/25'}`}>
+                {game.image ? <img src={game.image} alt="" className="h-12 w-12 rounded-xl object-cover" /> : <Gamepad2 className="h-8 w-8 text-purple-200" />}
+                <div className="min-w-0">
+                  <div className="line-clamp-1 font-bold text-white">{game.title}</div>
+                  <div className="line-clamp-1 text-xs text-white/55">{game.platform || 'Skill Match'}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-[2rem] border border-green-300/20 bg-green-500/10 p-4">
+          <h3 className="mb-3 text-xl font-black text-green-100">Room Setup</h3>
+          <Label className="text-sm font-semibold text-white/70">Players</Label>
+          <select value={players} onChange={(event) => setPlayers(Number(event.target.value))} className="mt-1 h-11 w-full rounded-xl border border-white/10 bg-black/45 px-3 text-white">
+            {PLAYER_OPTIONS.map((count) => <option key={count} value={count}>{count} players</option>)}
+          </select>
+          <div className="mt-4 rounded-2xl border border-white/10 bg-black/25 p-3">
+            <div className="text-xs uppercase tracking-wide text-white/45">Calculated join cost</div>
+            <div className="mt-1 text-3xl font-black text-green-100">{formatMoney(selectedPlan?.perPlayerCents || 0)}</div>
+            <div className="mt-1 text-sm text-white/60">Total room estimate: {formatMoney(selectedPlan?.total_room_cost_cents || 0)}</div>
+          </div>
+          <Button onClick={createRoomForProduct} disabled={creating || !selectedGame} className="mt-4 w-full rounded-xl bg-green-600 font-black text-white hover:bg-green-500">
+            {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
+            Create Prize Room
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
+  const [products, setProducts] = useState([]);
+  const [category, setCategory] = useState('Electronics');
+  const [query, setQuery] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+  const [gameGenre, setGameGenre] = useState('all');
+  const [playerCount, setPlayerCount] = useState('all');
+  const [joinCost, setJoinCost] = useState('all');
+  const [sortMode, setSortMode] = useState('newest');
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [visibleLimit, setVisibleLimit] = useState(120);
+  const [loading, setLoading] = useState(false);
+  const [provider, setProvider] = useState('');
+
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await listMarketplaceProducts({
+        q: query || category,
+        category,
+        minPrice,
+        maxPrice,
+        limit: 500,
+        offset: 0,
+      });
+      setProducts(result.products.filter((product) => productFilterMatches(product, { minPrice, maxPrice })));
+      setProvider(result.provider || result.providerStatus || '');
+      setVisibleLimit(120);
+    } catch (error) {
+      onError(error.message || 'Could not load prize catalog.');
+    } finally {
+      setLoading(false);
+    }
+  }, [category, maxPrice, minPrice, onError, query]);
+
+  useEffect(() => { loadProducts(); }, [loadProducts]);
+
+  const filteredProducts = useMemo(() => {
+    const rows = products.filter((product) => {
+      const option = calculateNorthPoleOptions({ priceCents: product.price_cents, playerCounts: PLAYER_OPTIONS }).find((entry) => String(entry.players) === String(playerCount));
+      const estimatedJoin = option?.perPlayerCents || calculateNorthPoleOptions({ priceCents: product.price_cents, playerCounts: [4] })[0]?.perPlayerCents || 0;
+      if (joinCost === 'under_10' && estimatedJoin > 1000) return false;
+      if (joinCost === 'under_25' && estimatedJoin > 2500) return false;
+      if (joinCost === 'over_25' && estimatedJoin <= 2500) return false;
+      if (gameGenre !== 'all') {
+        const text = `${product.title} ${product.category}`.toLowerCase();
+        if (gameGenre === 'family' && !/toy|book|education|family|art|creative|lego|game/i.test(text)) return false;
+        if (gameGenre === 'competitive' && !/gaming|sport|controller|keyboard|headset|electronics/i.test(text)) return false;
+      }
+      return true;
+    });
+    if (sortMode === 'price_low') return [...rows].sort((a, b) => Number(a.price_cents || 0) - Number(b.price_cents || 0));
+    if (sortMode === 'price_high') return [...rows].sort((a, b) => Number(b.price_cents || 0) - Number(a.price_cents || 0));
+    return rows;
+  }, [gameGenre, joinCost, playerCount, products, sortMode]);
+
+  const productRows = useMemo(() => {
+    const visible = filteredProducts.slice(0, visibleLimit);
+    return PRIZE_CATEGORIES.map((rowCategory) => ({
+      title: rowCategory,
+      products: visible.filter((product) => `${product.category} ${product.title}`.toLowerCase().includes(rowCategory.split('/')[0].trim().toLowerCase())),
+    })).filter((row) => row.products.length).concat([
+      { title: query ? `Search: ${query}` : 'More Prizes', products: visible },
+    ]);
+  }, [filteredProducts, query, visibleLimit]);
+
+  if (selectedProduct) {
+    return (
+      <PrizeProductDetail
+        product={selectedProduct}
+        user={user}
+        onBack={() => setSelectedProduct(null)}
+        onCreated={(room) => {
+          onRoomCreated(room);
+          setSelectedProduct(null);
+        }}
+        onError={onError}
+        onMessage={onMessage}
+      />
+    );
+  }
+
+  return (
+    <section className="space-y-5">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+        <div className="grid gap-3 lg:grid-cols-[1fr_180px_140px_140px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-300" />
+            <Input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') loadProducts(); }} placeholder="Search products..." className="h-11 rounded-xl border-white/10 bg-black/45 pl-9 text-white" />
+          </div>
+          <select value={category} onChange={(event) => setCategory(event.target.value)} className="h-11 rounded-xl border border-white/10 bg-black/45 px-3 text-sm text-white">
+            {PRIZE_CATEGORIES.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <Input inputMode="decimal" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="Min $" className="h-11 rounded-xl border-white/10 bg-black/45 text-white" />
+          <Input inputMode="decimal" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Max $" className="h-11 rounded-xl border-white/10 bg-black/45 text-white" />
+        </div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+          <select value={gameGenre} onChange={(event) => setGameGenre(event.target.value)} className="h-10 rounded-xl border border-white/10 bg-black/45 px-3 text-xs text-white">
+            <option value="all">All game genres</option>
+            <option value="family">Family friendly</option>
+            <option value="competitive">Competitive</option>
+          </select>
+          <select value={playerCount} onChange={(event) => setPlayerCount(event.target.value)} className="h-10 rounded-xl border border-white/10 bg-black/45 px-3 text-xs text-white">
+            <option value="all">Any player count</option>
+            {PLAYER_OPTIONS.map((count) => <option key={count} value={count}>{count} players</option>)}
+          </select>
+          <select value={joinCost} onChange={(event) => setJoinCost(event.target.value)} className="h-10 rounded-xl border border-white/10 bg-black/45 px-3 text-xs text-white">
+            <option value="all">Any join cost</option>
+            <option value="under_10">Under $10</option>
+            <option value="under_25">Under $25</option>
+            <option value="over_25">$25+</option>
+          </select>
+          <select value={sortMode} onChange={(event) => setSortMode(event.target.value)} className="h-10 rounded-xl border border-white/10 bg-black/45 px-3 text-xs text-white">
+            <option value="newest">Newest</option>
+            <option value="price_low">Price low</option>
+            <option value="price_high">Price high</option>
+            <option value="filling_fast">Filling fast</option>
+          </select>
+          <Button onClick={loadProducts} disabled={loading} className="h-10 rounded-xl bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />} Apply
+          </Button>
+          <Badge className="flex h-10 items-center justify-center rounded-xl bg-white/10 text-white">{filteredProducts.length} prizes</Badge>
+        </div>
+        {provider && <p className="mt-2 text-xs text-white/45">Provider: {provider}</p>}
+      </div>
+      {loading ? (
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {[1, 2, 3, 4, 5].map((item) => <div key={item} className="h-80 animate-pulse rounded-2xl bg-purple-900/30" />)}
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {productRows.map((row) => (
+            <PrizeProductBrowseRow key={row.title} title={row.title} products={row.products.slice(0, 30)} onOpen={setSelectedProduct} />
+          ))}
+          {visibleLimit < filteredProducts.length && (
+            <div className="flex justify-center">
+              <Button onClick={() => setVisibleLimit((value) => value + 120)} variant="outline" className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+                Load More Prizes
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
   const [rooms, setRooms] = useState([]);
   const [openRoomId, setOpenRoomId] = useState('');
@@ -1275,6 +1632,7 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
   const [localError, setLocalError] = useState('');
   const [localMessage, setLocalMessage] = useState('');
   const [usingDemoFallback, setUsingDemoFallback] = useState(false);
+  const [browseTab, setBrowseTab] = useState('active');
   const providerHydrationAttemptedRef = useRef(false);
 
   const loadRooms = useCallback(async () => {
@@ -1583,19 +1941,6 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        {!selectedRoom && (
-          <PrizeRoomFilters
-            searchTerm={searchTerm}
-            onSearchTermChange={setSearchTerm}
-            filter={filter}
-            onFilterChange={setFilter}
-            secondaryValue={secondaryFilter}
-            onSecondaryValueChange={setSecondaryFilter}
-            gameOptions={gameOptions}
-            prizeTypeOptions={prizeTypeOptions}
-          />
-        )}
-
         {(localError || localMessage || usingDemoFallback) && (
           <div className="space-y-2">
             {localError && (
@@ -1614,8 +1959,8 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
         )}
 
         {loading ? (
-          <div className="grid gap-4 md:grid-cols-3">
-            {[1, 2, 3].map((item) => <div key={item} className="h-80 animate-pulse rounded-3xl bg-purple-900/30" />)}
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {[1, 2, 3, 4, 5].map((item) => <div key={item} className="h-80 animate-pulse rounded-2xl bg-purple-900/30" />)}
           </div>
         ) : selectedRoom ? (
           <PrizeRoomDetailPage
@@ -1625,18 +1970,88 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
             onShare={() => shareRoom(selectedRoom)}
             onBack={backToBrowse}
           />
-        ) : defaultBrowseMode && rooms.length ? (
-          <section className="space-y-7">
-            <PrizeRoomFeaturedHero
-              room={featuredRoom}
-              isOpen={false}
-              joining={joiningId === featuredRoom?.id}
-              onToggleDetails={() => featuredRoom && openPrizeRoom(featuredRoom)}
-              onJoin={() => featuredRoom && joinRoom(featuredRoom)}
-              onShare={() => featuredRoom && shareRoom(featuredRoom)}
-            />
-            <div className="space-y-8">
-              {browseRows.map((row) => (
+        ) : (
+          <Tabs value={browseTab} onValueChange={setBrowseTab} className="space-y-5">
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 border border-white/10 bg-black/35 p-1 sm:grid-cols-4">
+              <TabsTrigger value="active" className="text-white/70 data-[state=active]:bg-purple-700 data-[state=active]:text-white">Active Rooms</TabsTrigger>
+              <TabsTrigger value="prizes" className="text-white/70 data-[state=active]:bg-purple-700 data-[state=active]:text-white">Browse Prizes</TabsTrigger>
+              <TabsTrigger value="games" className="text-white/70 data-[state=active]:bg-purple-700 data-[state=active]:text-white">Browse Games</TabsTrigger>
+              <TabsTrigger value="create" className="text-white/70 data-[state=active]:bg-purple-700 data-[state=active]:text-white">Create Room</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="active" className="space-y-6">
+              <PrizeRoomFilters
+                searchTerm={searchTerm}
+                onSearchTermChange={setSearchTerm}
+                filter={filter}
+                onFilterChange={setFilter}
+                secondaryValue={secondaryFilter}
+                onSecondaryValueChange={setSecondaryFilter}
+                gameOptions={gameOptions}
+                prizeTypeOptions={prizeTypeOptions}
+              />
+              {defaultBrowseMode && rooms.length ? (
+                <section className="space-y-8">
+                  {browseRows.map((row) => (
+                    <PrizeRoomBrowseRow
+                      key={row.title}
+                      title={row.title}
+                      rooms={row.rooms}
+                      openRoomId={openRoomId}
+                      joiningId={joiningId}
+                      onToggleDetails={openPrizeRoom}
+                      onJoin={joinRoom}
+                      onShare={shareRoom}
+                    />
+                  ))}
+                </section>
+              ) : filteredRooms.length ? (
+                <section className="space-y-4">
+                  <div className="flex flex-wrap items-end justify-between gap-3">
+                    <div>
+                      <h3 className="text-xl font-black text-white">Prize Rooms</h3>
+                      <p className="text-sm text-white/55">{filteredRooms.length} room{filteredRooms.length === 1 ? '' : 's'} ready to browse.</p>
+                    </div>
+                    <Badge className="bg-yellow-500/20 text-yellow-100">Foundation 10% included</Badge>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
+                    {filteredRooms.map((room) => (
+                      <PrizeRoomCard
+                        key={room.id}
+                        room={room}
+                        isOpen={false}
+                        joining={joiningId === room.id}
+                        onOpen={() => openPrizeRoom(room)}
+                        onJoin={() => joinRoom(room)}
+                        onShare={() => shareRoom(room)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : (
+                <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center">
+                  <Search className="mx-auto mb-3 h-8 w-8 text-purple-200" />
+                  <h3 className="text-lg font-black text-white">No rooms match this search.</h3>
+                  <p className="mt-1 text-sm text-white/60">Try All Rooms or clear the search to see the pilot marketplace.</p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="prizes">
+              <BrowsePrizesSection
+                user={user}
+                onRoomCreated={(room) => {
+                  setRooms((prev) => [room, ...prev.filter((row) => row.id !== room.id)]);
+                  openPrizeRoom(room);
+                  onCreated(room);
+                }}
+                onError={onError}
+                onMessage={onMessage}
+              />
+            </TabsContent>
+
+            <TabsContent value="games" className="space-y-8">
+              {browseRows.filter((row) => row.title.startsWith('By Game:')).map((row) => (
                 <PrizeRoomBrowseRow
                   key={row.title}
                   title={row.title}
@@ -1648,40 +2063,22 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
                   onShare={shareRoom}
                 />
               ))}
-            </div>
-          </section>
-        ) : filteredRooms.length ? (
-          <section className="space-y-4">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <h3 className="text-xl font-black text-white">Prize Rooms</h3>
-                <p className="text-sm text-white/55">{filteredRooms.length} room{filteredRooms.length === 1 ? '' : 's'} ready to browse.</p>
+            </TabsContent>
+
+            <TabsContent value="create">
+              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-center">
+                <Plus className="mx-auto mb-3 h-8 w-8 text-green-200" />
+                <h3 className="text-xl font-black text-white">Create a Prize Room</h3>
+                <p className="mx-auto mt-2 max-w-2xl text-sm text-white/60">Use the builder below to search products, pick a game, choose players, and create one active room.</p>
+                <Button
+                  onClick={() => document.getElementById('north-pole-create-room')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className="mt-4 rounded-xl bg-green-600 font-black text-white hover:bg-green-500"
+                >
+                  <Plus className="mr-2 h-4 w-4" /> Open Create Room Builder
+                </Button>
               </div>
-              <Badge className="bg-yellow-500/20 text-yellow-100">Foundation 10% included</Badge>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {filteredRooms.map((room) => {
-                return (
-                  <React.Fragment key={room.id}>
-                    <PrizeRoomCard
-                      room={room}
-                      isOpen={false}
-                      joining={joiningId === room.id}
-                      onOpen={() => openPrizeRoom(room)}
-                      onJoin={() => joinRoom(room)}
-                      onShare={() => shareRoom(room)}
-                    />
-                  </React.Fragment>
-                );
-              })}
-            </div>
-          </section>
-        ) : (
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center">
-            <Search className="mx-auto mb-3 h-8 w-8 text-purple-200" />
-            <h3 className="text-lg font-black text-white">No rooms match this search.</h3>
-            <p className="mt-1 text-sm text-white/60">Try All Rooms or clear the search to see the pilot marketplace.</p>
-          </div>
+            </TabsContent>
+          </Tabs>
         )}
       </CardContent>
     </Card>
@@ -2912,7 +3309,7 @@ function RealNorthPoleFlow({ user }) {
         onMessage={setMessage}
       />
 
-      <Card className="border border-purple-700/30 bg-purple-900/20">
+      <Card id="north-pole-create-room" className="border border-purple-700/30 bg-purple-900/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <Plus className="h-5 w-5 text-green-300" />

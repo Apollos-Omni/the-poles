@@ -54,7 +54,7 @@ const CATALOG_PROVIDER = {
 };
 
 function boundedLimit(value, fallback = 24) {
-  return Math.min(Math.max(Number(value) || fallback, 1), 50);
+  return Math.min(Math.max(Number(value) || fallback, 1), 200);
 }
 
 function toCents(value) {
@@ -263,6 +263,18 @@ async function fetchEbayItemSummarySearch(input, env) {
     limit: String(limit),
     offset: String(offset),
   });
+  if (input.category) params.set('category_ids', String(input.category));
+  const filterParts = [];
+  const minPrice = Number(input.minPrice ?? input.min_price ?? input.priceMin ?? input.price_min);
+  const maxPrice = Number(input.maxPrice ?? input.max_price ?? input.priceMax ?? input.price_max);
+  if (Number.isFinite(minPrice) || Number.isFinite(maxPrice)) {
+    const min = Number.isFinite(minPrice) ? minPrice : 0;
+    const max = Number.isFinite(maxPrice) ? maxPrice : '';
+    filterParts.push(`price:[${min}..${max}]`);
+  }
+  if (input.condition) filterParts.push(`conditions:{${String(input.condition)}}`);
+  if (input.buyingOptions || input.buying_options) filterParts.push(`buyingOptions:{${String(input.buyingOptions || input.buying_options)}}`);
+  if (filterParts.length) params.set('filter', filterParts.join(','));
   const { signal, clear } = externalAbortSignal();
   try {
     const response = await fetch(`${EBAY_SEARCH_URL}?${params.toString()}`, {

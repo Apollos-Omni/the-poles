@@ -372,6 +372,42 @@ export async function listPrizeRooms() {
   return response.rooms || response.data || [];
 }
 
+export async function listMarketplaceProducts({
+  q = '',
+  category = '',
+  minPrice = '',
+  maxPrice = '',
+  condition = '',
+  buyingOptions = '',
+  limit = 24,
+  offset = 0,
+  endpoint = '/api/prize-catalog',
+} = {}) {
+  const params = new URLSearchParams();
+  if (q) params.set('q', q);
+  if (category) params.set('category', category);
+  if (minPrice !== '') params.set('minPrice', String(minPrice));
+  if (maxPrice !== '') params.set('maxPrice', String(maxPrice));
+  if (condition) params.set('condition', condition);
+  if (buyingOptions) params.set('buyingOptions', buyingOptions);
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  const response = await apiRequest(`${endpoint}?${params.toString()}`);
+  return {
+    products: response.products || response.data || [],
+    pagination: response.pagination || { limit, offset, next_offset: offset + (response.products || []).length, has_more: false },
+    provider: response.provider || '',
+    providerStatus: response.providerStatus || '',
+    totalRequested: response.total_requested || limit,
+    totalResults: response.totalResults || response.total_results || (response.products || []).length,
+  };
+}
+
+export async function getMarketplaceProduct({ productId }) {
+  const response = await apiRequest(`/api/prize-products/${encodeURIComponent(productId)}`);
+  return response.product || response.data;
+}
+
 export async function createPrizeRoom(payload) {
   const response = await apiRequest('/api/prize-rooms', {
     method: 'POST',

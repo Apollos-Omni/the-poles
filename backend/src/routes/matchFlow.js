@@ -593,6 +593,21 @@ function prizeImageFromSnapshot(source) {
   ]);
 }
 
+function productImageFromSnapshot(source = {}) {
+  return firstImageUrl(source, [
+    'image_url',
+    'image',
+    'imageUrl',
+    'images',
+    'image_urls',
+    'thumbnailImages',
+    'additionalImages',
+    'galleryURL',
+    'pictureURLLarge',
+    'pictureURLSuperSize',
+  ]);
+}
+
 function gameImageFromSnapshot(source) {
   return firstImageUrl(source, [
     'background_image',
@@ -687,6 +702,60 @@ async function proxyPrizeRoomImage(res, imageUrl) {
   res.setHeader('Cache-Control', 'public, max-age=86400');
   res.setHeader('Content-Type', contentType);
   return res.status(200).send(bytes);
+}
+
+function productMarketplaceKey(product = {}) {
+  return product.provider_ids?.ebay_item_id
+    || product.raw_ebay?.itemId
+    || product.id
+    || product.product_url
+    || product.title
+    || '';
+}
+
+function normalizeMarketplaceProduct(product = {}) {
+  const image = productImageFromSnapshot(product);
+  const title = product.title || product.name || 'Prize product';
+  const priceCents = Number(product.price_cents || product.offers?.[0]?.price_cents || product.raw_ebay?.priceValue * 100 || 0);
+  const source = product.source || product.provider || product.offers?.[0]?.source || 'catalog';
+  const sourceLabel = product.source_label || product.sourceLabel || product.merchant || product.offers?.[0]?.source_label || source;
+  const productUrl = product.product_url || product.productUrl || product.offers?.[0]?.product_url || product.raw_ebay?.itemWebUrl || '';
+  const marketplaceKey = productMarketplaceKey(product);
+  return {
+    id: product.id || `product_${crypto.randomUUID()}`,
+    marketplace_key: marketplaceKey,
+    title,
+    description: product.description || product.subtitle || product.raw_ebay?.condition || '',
+    image_url: image,
+    images: Array.isArray(product.images) && product.images.length ? product.images : [image].filter(Boolean),
+    price_cents: Number.isFinite(priceCents) ? Math.max(0, Math.round(priceCents)) : 0,
+    currency: product.currency || product.offers?.[0]?.currency || product.raw_ebay?.priceCurrency || 'USD',
+    source,
+    source_label: sourceLabel,
+    seller: product.seller || product.merchant || product.brand || product.raw_ebay?.sellerUsername || sourceLabel,
+    rating: product.rating ?? product.review_rating ?? null,
+    category: product.category || 'Prize',
+    product_url: productUrl,
+    shipping_estimate_cents: product.shipping_estimate_cents || product.raw_ebay?.shippingCostValue * 100 || null,
+    tax_estimate_cents: product.tax_estimate_cents || null,
+    availability: product.availability || product.offers?.[0]?.availability || 'available',
+    raw_product: product,
+  };
+}
+
+async function persistMarketplaceProduct(store, product) {
+  const normalized = normalizeMarketplaceProduct(product);
+  const existing = normalized.marketplace_key
+    ? await store.findOne('products', { marketplace_key: normalized.marketplace_key }).catch(() => null)
+    : null;
+  if (existing) return store.update('products', existing.id, { ...normalized, id: existing.id }).catch(() => ({ ...existing, ...normalized }));
+  return store.create('products', normalized);
+}
+
+async function proxyMarketplaceProductImage(store, req, res) {
+  const product = await store.findOne('products', { id: req.params.productId }).catch(() => null);
+  if (!product) return res.status(404).json({ success: false, error: 'Product not found' });
+  return proxyPrizeRoomImage(res, productImageFromSnapshot(product));
 }
 
 const STARTER_PRIZE_ROOM_TEMPLATES = [
@@ -2874,6 +2943,104 @@ export function createMatchFlowRouter({ store }) {
     const costBreakdown = buildPrizeRoomCostBreakdown({ prizeSnapshot, playerCount, foundationRate });
     ok(res, { costBreakdown, data: costBreakdown });
   }));
+
+  router.get('/prize-products', asyncHandler(async (req, res) => {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 24, 1), 50);
+    const offset = Math.max(Number(req.query.offset) || 0, 0);
+    const q = String(req.query.q || req.query.query || 'gaming prize').trim() || 'gaming prize';
+    const result = await searchProductsAcrossProviders({ q, limit, offset }, process.env);
+    const providerProducts = Array.isArray(result.products) ? result.products : [];
+    const products = [];
+    for (const product of providerProducts) {
+      products.push(await persistMarketplaceProduct(store, product).catch(() => normalizeMarketplaceProduct(product)));
+    }
+    ok(res, {
+      products,
+      data: products,
+      pagination: {
+        limit,
+        offset,
+        next_offset: offset + products.length,
+        has_more: products.length >= limit,
+      },
+      provider: result.provider || '',
+      providerStatus: result.providerStatus || result.externalProviderStatus || '',
+      totalResults: result.totalResults || products.length,
+    });
+  }));
+
+  router.get('/prize-catalog', asyncHandler(async (req, res) => {
+    const requestedLimit = Math.min(Math.max(Number(req.query.limit) || 24, 1), 500);
+    const startOffset = Math.max(Number(req.query.offset) || 0, 0);
+    const category = String(req.query.category || '').trim();
+    const rawQuery = String(req.query.q || req.query.query || '').trim();
+    const q = [rawQuery, category && !rawQuery.toLowerCase().includes(category.toLowerCase()) ? category : '']
+      .filter(Boolean)
+      .join(' ')
+      || 'popular prizes';
+    const commonInput = {
+      q,
+      minPrice: req.query.minPrice ?? req.query.min_price ?? '',
+      maxPrice: req.query.maxPrice ?? req.query.max_price ?? '',
+      condition: req.query.condition || '',
+      buyingOptions: req.query.buyingOptions || req.query.buying_options || '',
+    };
+    if (/^\d+$/.test(category)) commonInput.category = category;
+
+    const productsByKey = new Map();
+    let remaining = requestedLimit;
+    let nextOffset = startOffset;
+    let totalResults = 0;
+    let provider = '';
+    let providerStatus = '';
+
+    while (remaining > 0) {
+      const pageLimit = Math.min(remaining, 200);
+      const result = await searchProductsAcrossProviders({ ...commonInput, limit: pageLimit, offset: nextOffset }, process.env);
+      provider = result.provider || provider;
+      providerStatus = result.providerStatus || result.externalProviderStatus || providerStatus;
+      totalResults = Math.max(totalResults, Number(result.totalResults || 0));
+
+      const providerProducts = Array.isArray(result.products) ? result.products : [];
+      for (const product of providerProducts) {
+        const normalized = await persistMarketplaceProduct(store, product).catch(() => normalizeMarketplaceProduct(product));
+        const image = productImageFromSnapshot(normalized);
+        const priceCents = Number(normalized.price_cents || normalized.offers?.[0]?.price_cents || 0);
+        if (!image || !priceCents) continue;
+        const key = normalized.marketplace_key || productMarketplaceKey(normalized) || normalized.id;
+        if (key && !productsByKey.has(key)) productsByKey.set(key, normalized);
+      }
+
+      remaining -= pageLimit;
+      nextOffset += pageLimit;
+      if (providerProducts.length < pageLimit) break;
+    }
+
+    const products = [...productsByKey.values()].slice(0, requestedLimit);
+    ok(res, {
+      success: true,
+      total_requested: requestedLimit,
+      products,
+      data: products,
+      pagination: {
+        limit: requestedLimit,
+        offset: startOffset,
+        next_offset: startOffset + requestedLimit,
+        has_more: products.length >= requestedLimit && (!totalResults || startOffset + requestedLimit < totalResults),
+      },
+      provider,
+      providerStatus,
+      totalResults: totalResults || products.length,
+    });
+  }));
+
+  router.get('/prize-products/:productId', asyncHandler(async (req, res) => {
+    const product = await store.findOne('products', { id: req.params.productId }).catch(() => null);
+    if (!product) return res.status(404).json({ success: false, error: 'Product not found' });
+    ok(res, { product, data: product });
+  }));
+
+  router.get('/prize-products/:productId/image', asyncHandler(async (req, res) => proxyMarketplaceProductImage(store, req, res)));
 
   router.get('/prize-room-templates', asyncHandler(async (_req, res) => {
     await ensureStarterPrizeRoomTemplates(store);
