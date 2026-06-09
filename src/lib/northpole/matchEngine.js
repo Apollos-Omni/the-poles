@@ -381,7 +381,7 @@ export async function listMarketplaceProducts({
   buyingOptions = '',
   limit = 24,
   offset = 0,
-  endpoint = '/api/prize-catalog',
+  endpoint = '/api/prize-products',
 } = {}) {
   const params = new URLSearchParams();
   if (q) params.set('q', q);

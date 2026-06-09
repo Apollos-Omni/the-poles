@@ -864,6 +864,31 @@ function normalizeMarketplaceProduct(product = {}) {
   };
 }
 
+function marketplaceProductFromEbayCleanResult(item = {}) {
+  const priceNumber = Number.parseFloat(String(item.priceValue || ''));
+  const shippingNumber = Number.parseFloat(String(item.shippingCostValue || ''));
+  return normalizeMarketplaceProduct({
+    id: item.itemId || `ebay_${crypto.randomUUID()}`,
+    title: item.title || 'eBay item',
+    image_url: item.imageUrl || '',
+    images: item.imageUrl ? [item.imageUrl] : [],
+    price_cents: Number.isFinite(priceNumber) ? Math.round(priceNumber * 100) : 0,
+    currency: item.priceCurrency || 'USD',
+    source: 'ebay_browse',
+    source_label: 'eBay Browse API',
+    provider: 'ebay_browse',
+    seller: item.sellerUsername || 'eBay',
+    description: item.condition || '',
+    condition: item.condition || '',
+    product_url: item.itemWebUrl || '',
+    shipping_estimate_cents: Number.isFinite(shippingNumber) ? Math.round(shippingNumber * 100) : null,
+    provider_ids: {
+      ebay_item_id: item.itemId || '',
+    },
+    raw_ebay: item,
+  });
+}
+
 async function persistMarketplaceProduct(store, product) {
   const normalized = normalizeMarketplaceProduct(product);
   const existing = normalized.marketplace_key
@@ -3069,8 +3094,19 @@ export function createMatchFlowRouter({ store }) {
     const limit = Math.min(Math.max(Number(req.query.limit) || 24, 1), 50);
     const offset = Math.max(Number(req.query.offset) || 0, 0);
     const q = String(req.query.q || req.query.query || 'gaming prize').trim() || 'gaming prize';
-    const result = await searchProductsAcrossProviders({ q, limit, offset }, process.env);
-    const providerProducts = Array.isArray(result.products) ? result.products : [];
+    let result;
+    let providerProducts;
+    let fallbackReason = null;
+    try {
+      result = await searchEbayBrowseCleanResults({ q, limit, offset }, process.env);
+      providerProducts = Array.isArray(result.results)
+        ? result.results.map(marketplaceProductFromEbayCleanResult)
+        : [];
+    } catch (error) {
+      fallbackReason = error.message || 'Live product API failed';
+      result = await searchProductsAcrossProviders({ q, limit, offset }, process.env);
+      providerProducts = Array.isArray(result.products) ? result.products : [];
+    }
     const products = [];
     for (const product of providerProducts) {
       products.push(await persistMarketplaceProduct(store, product).catch(() => normalizeMarketplaceProduct(product)));
@@ -3084,8 +3120,10 @@ export function createMatchFlowRouter({ store }) {
         next_offset: offset + products.length,
         has_more: products.length >= limit,
       },
-      provider: result.provider || '',
-      providerStatus: result.providerStatus || result.externalProviderStatus || '',
+      provider: fallbackReason ? result.provider || '' : 'ebay_browse',
+      providerStatus: fallbackReason ? result.providerStatus || result.externalProviderStatus || 'fallback' : 'live',
+      fallbackReason,
+      productSource: fallbackReason ? 'fallback_catalog' : 'ebay_browse_api',
       totalResults: result.totalResults || products.length,
     });
   }));
