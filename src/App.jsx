@@ -39,6 +39,7 @@ const SportDetailPage = lazy(() => import('@/pages/SportDetailPage'));
 const LeagueHubPage = lazy(() => import('@/pages/LeagueHubPage'));
 const CreateLeagueOrganizationPage = lazy(() => import('@/pages/CreateLeagueOrganizationPage'));
 const LeagueOrganizationDetailPage = lazy(() => import('@/pages/LeagueOrganizationDetailPage'));
+const PrizeMarketplace = lazy(() => import('@/pages/PrizeMarketplace'));
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -61,6 +62,7 @@ const publicRoutePaths = new Set([
   '/AffiliateDisclosure',
   '/ThePolesFund',
   '/MissionLedger',
+  '/PrizeMarketplace',
   '/SignIn',
   '/CreateAccount',
   '/CreateMatch',
@@ -112,6 +114,7 @@ const AuthenticatedApp = () => {
       <Route path="/AffiliateDisclosure" element={<AffiliateDisclosure />} />
       <Route path="/ThePolesFund" element={<ThePolesFund />} />
       <Route path="/MissionLedger" element={<MissionLedger />} />
+      <Route path="/PrizeMarketplace" element={<PrizeMarketplace />} />
       <Route path="/SignIn" element={<AuthPage mode="signin" />} />
       <Route path="/CreateAccount" element={<AuthPage mode="signup" />} />
       <Route path="/CreateMatch" element={<CreateMatchPage />} />
@@ -183,6 +186,7 @@ const AuthenticatedApp = () => {
         <Route path="/Leagues" element={<LeagueHubPage />} />
         <Route path="/Leagues/Create" element={<CreateLeagueOrganizationPage />} />
         <Route path="/Leagues/:slug" element={<LeagueOrganizationDetailPage />} />
+        <Route path="/PrizeMarketplace" element={<PrizeMarketplace />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
       </Suspense>
