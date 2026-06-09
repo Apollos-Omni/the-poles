@@ -1344,18 +1344,16 @@ function PrizeProductCard({ product, onOpen }) {
   );
 }
 
-function PrizeProductBrowseRow({ title, products, debug, onOpen }) {
+function PrizeProductBrowseRow({ title, products, onOpen }) {
   const scrollRef = useRef(null);
   const rowProducts = products.filter(Boolean);
-  const queryMixCount = debug?.query_mix_count
-    || new Set(rowProducts.map((product) => product.prize_query_term).filter(Boolean)).size;
   if (!rowProducts.length) return null;
   const scrollByCard = (direction) => scrollRef.current?.scrollBy({ left: direction * 205, behavior: 'smooth' });
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between gap-3 px-1">
         <h3 className="text-lg font-black text-white">{title}</h3>
-        <span className="text-xs font-semibold uppercase tracking-wide text-white/40">Live marketplace row  {rowProducts.length} products  {queryMixCount || 1} prize types</span>
+        <span className="text-xs font-semibold uppercase tracking-wide text-white/40">Live marketplace row  {rowProducts.length} products</span>
       </div>
       <div className="relative">
         <Button type="button" onClick={() => scrollByCard(-1)} variant="outline" className="absolute left-0 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex" aria-label={`Scroll ${title} left`}>
@@ -1681,7 +1679,7 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
       ) : (
         <div className="space-y-8">
           {productRows.map((row) => (
-            <PrizeProductBrowseRow key={row.id || row.title} title={row.title} products={row.products} debug={row.debug} onOpen={setSelectedProduct} />
+            <PrizeProductBrowseRow key={row.id || row.title} title={row.title} products={row.products} onOpen={setSelectedProduct} />
           ))}
           {!productRows.length && (
             <div className="rounded-2xl border border-white/10 bg-black/35 p-6 text-center text-sm text-white/60">

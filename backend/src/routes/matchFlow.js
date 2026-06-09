@@ -58,24 +58,22 @@ const PRIZE_ROOM_STATUSES = [
 ];
 
 const PRIZE_CATALOG_ROWS = [
-  { id: 'electronics', title: 'Popular Electronics', category: 'Electronics', query_terms: ['wireless earbuds', 'bluetooth speaker', 'portable charger', 'smart watch', 'tablet stand', 'phone tripod', 'LED desk lamp'] },
-  { id: 'gaming_gear', title: 'Gaming Gear', category: 'Gaming Gear', query_terms: ['gaming headset', 'wireless controller', 'gaming keyboard', 'gaming mouse', 'controller charging dock', 'Nintendo Switch controller', 'PlayStation controller'] },
-  { id: 'toys_family', title: 'Toys & Family Prizes', category: 'Toys', query_terms: ['LEGO set', 'RC car', 'drone toy', 'kids science kit', 'puzzle set', 'board game', 'building blocks'] },
-  { id: 'sports_outdoor', title: 'Sports & Outdoor', category: 'Sports / Outdoor', query_terms: ['basketball', 'soccer ball', 'bike helmet', 'skateboard', 'jump rope', 'pickleball paddle', 'water bottle'] },
-  { id: 'style_clothing', title: 'Style & Clothing', category: 'Clothing', query_terms: ['hoodie', 'graphic t shirt', 'baseball cap', 'backpack', 'jacket', 'athletic shorts'] },
-  { id: 'shoes', title: 'Shoes', category: 'Shoes', query_terms: ['running shoes', 'sneakers', 'basketball shoes', 'slides', 'kids shoes'] },
-  { id: 'home_desk', title: 'Home & Desk', category: 'Home', query_terms: ['throw blanket', 'desk organizer', 'LED desk lamp', 'wall clock', 'gaming chair mat', 'storage bin'] },
-  { id: 'art_creative', title: 'Art & Creative', category: 'Art / Creative', query_terms: ['art supply kit', 'sketchbook', 'markers', 'colored pencils', 'paint set', 'craft kit'] },
-  { id: 'books_education', title: 'Books & Education', category: 'Books / Education', query_terms: ['children book set', 'workbook', 'science kit', 'chess book', 'educational toy', 'STEM kit'] },
-  { id: 'collectibles', title: 'Collectibles', category: 'Collectibles', query_terms: ['trading cards', 'action figure', 'comic book', 'collectible figure', 'model kit'] },
+  { id: 'electronics', title: 'Popular Electronics', category: 'Electronics', query_terms: ['wireless earbuds', 'bluetooth speaker', 'portable charger', 'smart watch', 'tablet stand'] },
+  { id: 'gaming_gear', title: 'Gaming Gear', category: 'Gaming Gear', query_terms: ['gaming headset', 'wireless controller', 'gaming keyboard', 'gaming mouse', 'controller charging dock'] },
+  { id: 'toys_family', title: 'Toys & Family Prizes', category: 'Toys', query_terms: ['LEGO set', 'RC car', 'drone toy', 'kids science kit', 'building blocks'] },
+  { id: 'sports_outdoor', title: 'Sports & Outdoor', category: 'Sports / Outdoor', query_terms: ['basketball', 'soccer ball', 'bike helmet', 'skateboard', 'insulated water bottle'] },
+  { id: 'style_clothing', title: 'Style & Clothing', category: 'Clothing', query_terms: ['hoodie', 'graphic t shirt', 'baseball cap', 'backpack'] },
+  { id: 'shoes', title: 'Shoes', category: 'Shoes', query_terms: ['running shoes', 'sneakers', 'slides'] },
+  { id: 'home_desk', title: 'Home & Desk', category: 'Home', query_terms: ['throw blanket', 'desk organizer', 'LED desk lamp', 'wall clock'] },
+  { id: 'art_creative', title: 'Art & Creative', category: 'Art / Creative', query_terms: ['art supply kit', 'sketchbook', 'markers', 'colored pencils', 'paint set'] },
+  { id: 'books_education', title: 'Books & Education', category: 'Books / Education', query_terms: ['children book set', 'workbook', 'science kit', 'chess book'] },
+  { id: 'collectibles', title: 'Collectibles', category: 'Collectibles', query_terms: ['trading cards', 'action figure', 'comic book', 'collectible figure'] },
 ];
 
 const UNSAFE_PRIZE_TERMS = /\b(adult|alcohol|beer|wine|liquor|whiskey|vodka|tobacco|cigar|cigarette|nicotine|vape|weapon|knife|knives|gun|firearm|ammo|ammunition|cbd|thc|hemp|supplement|diet pill|weight loss|gambling|lottery|mystery box|used underwear)\b/i;
 const BAD_CONDITION_TERMS = /\b(broken|for parts|not working|untested|as-is|as is|salvage|repair only|parts only)\b/i;
-const REPLACEMENT_PART_TERMS = /\b(replacement|spare|repair|part only|parts only|shell only|case only|cover only|charger only|charger cable only|manual only|box only|empty box)\b/i;
+const REPLACEMENT_PART_TERMS = /\b(replacement|spare|repair|part only|parts only|shell only|case only|cover only|charger cable only|manual only)\b/i;
 const ACCESSORY_PART_TERMS = /\b(cable|adapter|skin|sticker|sleeve|protector|replacement|spare|case only|cover only|strap only|screen protector)\b/i;
-const LOW_PRESENTATION_QUALITY_TERMS = /\b(lot|bundle|assorted|random|parts|repair|broken|not working|for parts|replacement|box only|case only|charger only|empty box)\b/i;
-const EXCESSIVE_SYMBOLS_PATTERN = /([+*!~#=])\1{3,}/;
 
 const joinSchema = z.object({
   entryAmount: z.number().int().nonnegative().optional(),
@@ -746,19 +744,6 @@ function normalizedPrizeTitleForDedupe(value = '') {
     .slice(0, 90);
 }
 
-function normalizedPrizeTitleStem(value = '') {
-  return normalizedPrizeTitleForDedupe(value).slice(0, 55);
-}
-
-function productLeadingBrandWord(product = {}) {
-  const skipWords = new Set([
-    'new', 'brand', 'open', 'box', 'the', 'a', 'an', 'for', 'with', 'and',
-    'wireless', 'gaming', 'kids', 'children', 'mens', 'womens', 'youth',
-  ]);
-  const words = normalizedPrizeTitleForDedupe(product.title || product.name).split(/\s+/).filter(Boolean);
-  return words.find((word) => word.length > 2 && !skipWords.has(word)) || '';
-}
-
 function productConditionText(product = {}) {
   return String(product.condition
     || product.raw_product?.condition
@@ -819,7 +804,6 @@ function productIsSafePrize(product = {}, row = {}) {
   if (!priceCents || priceCents < 500 || priceCents > 50000) return false;
   if (UNSAFE_PRIZE_TERMS.test(searchable) || BAD_CONDITION_TERMS.test(searchable)) return false;
   if (!category.includes('tools') && REPLACEMENT_PART_TERMS.test(searchable)) return false;
-  if (!row.allow_bundles && LOW_PRESENTATION_QUALITY_TERMS.test(searchable)) return false;
   if (title.length > 180) return false;
   return true;
 }
@@ -830,30 +814,21 @@ function productPrizeScore(product = {}, row = {}) {
   const condition = productConditionText(product);
   const priceCents = Number(product.price_cents || product.offers?.[0]?.price_cents || 0);
   const shipping = product.shipping_estimate_cents ?? product.raw_product?.shipping_estimate_cents ?? product.raw_product?.raw_ebay?.shippingCostValue;
-  const hasSourceListing = Boolean(product.product_url || product.productUrl || product.offers?.[0]?.product_url);
-  const clearWords = normalizedPrizeTitleForDedupe(title).split(/\s+/).filter((word) => word.length > 2);
-  const allCapsWords = title.split(/\s+/).filter((word) => word.length > 3 && /^[A-Z0-9]+$/.test(word));
   let score = 0;
 
-  if (productImageFromSnapshot(product)) score += 35;
-  if (priceCents >= 1500 && priceCents <= 15000) score += 36;
+  if (productImageFromSnapshot(product)) score += 30;
+  if (priceCents >= 1500 && priceCents <= 15000) score += 28;
   else if (priceCents >= 500 && priceCents <= 30000) score += 14;
-  if (priceCents < 800) score -= 22;
-  if (priceCents > 30000) score -= 28;
   if (/\b(new|brand new|open box)\b/i.test(condition)) score += 18;
   if (productTitleMatchesAnyQuery(product, row.query_terms || [])) score += 18;
-  if (hasSourceListing) score += 10;
-  if (shipping !== null && shipping !== undefined && shipping !== '') score += 10;
+  if (product.product_url || product.productUrl || product.offers?.[0]?.product_url) score += 8;
+  if (shipping !== null && shipping !== undefined && shipping !== '') score += 8;
   if (product.category || row.category) score += 5;
-  if (title.length > 0 && title.length < 100) score += 10;
-  if (clearWords.length >= 2) score += 8;
-  if (title.length > 120) score -= 14;
+  if (title.length > 120) score -= 10;
   if (/\b(refurbished|renewed|pre-owned|preowned)\b/i.test(condition)) score -= 10;
-  if (BAD_CONDITION_TERMS.test(`${titleLower} ${condition}`)) score -= 60;
-  if (LOW_PRESENTATION_QUALITY_TERMS.test(titleLower)) score -= 35;
-  if (ACCESSORY_PART_TERMS.test(titleLower)) score -= 16;
-  if (EXCESSIVE_SYMBOLS_PATTERN.test(title)) score -= 25;
-  if (allCapsWords.length >= 4) score -= 18;
+  if (BAD_CONDITION_TERMS.test(`${titleLower} ${condition}`)) score -= 50;
+  if (/\b(bundle|lot of|random|assorted)\b/i.test(titleLower)) score -= 8;
+  if (ACCESSORY_PART_TERMS.test(titleLower)) score -= 12;
   if (!product.category) score -= 6;
 
   return score;
@@ -3190,25 +3165,23 @@ export function createMatchFlowRouter({ store }) {
     let totalDuplicatesRemoved = 0;
 
     for (const row of PRIZE_CATALOG_ROWS) {
-      const rowProductsByTerm = new Map();
+      const rowProducts = [];
       const rowDedupeKeys = new Set();
       const queryTerms = row.query_terms.map((_, index, terms) => terms[(index + queryOffset) % terms.length]);
       const queryTermsUsed = [];
       const perTermLimit = Math.min(200, Math.max(rowLimit, 50));
-      const providerOffset = (queryOffset % 4) * 25;
       let rawCount = 0;
       let afterSafetyFilterCount = 0;
       let duplicateCountRemoved = 0;
 
       for (const term of queryTerms) {
         queryTermsUsed.push(term);
-        const termProducts = [];
         const result = await searchProductsAcrossProviders({
           q: term,
           minPrice: 5,
           maxPrice: 500,
           limit: perTermLimit,
-          offset: providerOffset,
+          offset: 0,
         }, process.env);
         provider = result.provider || provider;
         providerStatus = result.providerStatus || result.externalProviderStatus || providerStatus;
@@ -3227,52 +3200,25 @@ export function createMatchFlowRouter({ store }) {
           }
 
           const score = productPrizeScore(normalized, row);
-          termProducts.push({
+          rowProducts.push({
             ...normalized,
             title: normalizedPrizeTitle(normalized.title).slice(0, 140),
             category: row.category,
             prize_row_id: row.id,
             prize_row_title: row.title,
             prize_query_terms: row.query_terms,
-            prize_query_term: term,
             prize_score: score,
           });
           keys.forEach((key) => rowDedupeKeys.add(key));
-          if (termProducts.length >= 8) break;
+          if (rowProducts.length >= rowLimit) break;
         }
-        rowProductsByTerm.set(term, termProducts.sort((a, b) => Number(b.prize_score || 0) - Number(a.prize_score || 0)).slice(0, 8));
+        if (rowProducts.length >= rowLimit) break;
       }
 
       totalDuplicatesRemoved += duplicateCountRemoved;
-      const rowBrandCounts = new Map();
-      const rowTitleStemCounts = new Map();
-      const queryTermCounts = {};
-      const products = [];
-      const buckets = queryTerms
-        .map((term) => ({ term, products: rowProductsByTerm.get(term) || [], index: 0 }))
-        .filter((bucket) => bucket.products.length);
-      let addedInRound = true;
-      while (products.length < rowLimit && addedInRound) {
-        addedInRound = false;
-        for (const bucket of buckets) {
-          if (products.length >= rowLimit) break;
-          while (bucket.index < bucket.products.length) {
-            const candidate = bucket.products[bucket.index];
-            bucket.index += 1;
-            if (!candidate) continue;
-            const brand = productLeadingBrandWord(candidate);
-            const titleStem = normalizedPrizeTitleStem(candidate.title);
-            if (brand && (rowBrandCounts.get(brand) || 0) >= 10) continue;
-            if (titleStem && (rowTitleStemCounts.get(titleStem) || 0) >= 2) continue;
-            products.push(candidate);
-            queryTermCounts[bucket.term] = (queryTermCounts[bucket.term] || 0) + 1;
-            if (brand) rowBrandCounts.set(brand, (rowBrandCounts.get(brand) || 0) + 1);
-            if (titleStem) rowTitleStemCounts.set(titleStem, (rowTitleStemCounts.get(titleStem) || 0) + 1);
-            addedInRound = true;
-            break;
-          }
-        }
-      }
+      const products = rowProducts
+        .sort((a, b) => Number(b.prize_score || 0) - Number(a.prize_score || 0))
+        .slice(0, rowLimit);
       products.forEach((product) => productDedupeKeys(product).forEach((key) => globalDedupeKeys.add(key)));
       rows.push({
         id: row.id,
@@ -3287,9 +3233,6 @@ export function createMatchFlowRouter({ store }) {
           after_safety_filter_count: afterSafetyFilterCount,
           after_dedupe_count: products.length,
           duplicate_count_removed: duplicateCountRemoved,
-          query_term_counts: queryTermCounts,
-          query_mix_count: Object.keys(queryTermCounts).length,
-          provider_offset: providerOffset,
           first_titles: products.slice(0, 8).map((product) => product.title),
         },
       });
