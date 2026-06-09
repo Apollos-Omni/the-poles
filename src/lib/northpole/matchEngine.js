@@ -450,6 +450,29 @@ export async function joinPrizeRoom({ roomId, displayName = '', userEmail = '', 
   return response.data || { room: response.room, contribution: response.contribution };
 }
 
+export async function createPrizeRoomPaymentIntent({ prizeRoomId, contributionId = '', productId = '', roomTitle = '' }) {
+  const response = await apiRequest('/api/payments/create-prize-room-payment-intent', {
+    method: 'POST',
+    body: {
+      prizeRoomId,
+      contributionId,
+      productId,
+      roomTitle,
+    },
+  });
+
+  return response;
+}
+
+export async function confirmPrizeRoomPaymentStatus({ paymentIntentId }) {
+  const response = await apiRequest('/api/payments/confirm-prize-room-payment-status', {
+    method: 'POST',
+    body: { paymentIntentId },
+  });
+
+  return response;
+}
+
 export async function markPrizeRoomContributionPaid({ roomId, contributionId }) {
   const response = await apiRequest(`/api/admin/prize-rooms/${encodeURIComponent(roomId)}/contributions/${encodeURIComponent(contributionId)}/mark-paid`, {
     method: 'POST',

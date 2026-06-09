@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -63,10 +65,13 @@ import {
   listPrizeRooms,
   joinPrizeRoom,
   createPrizeRoom,
+  createPrizeRoomPaymentIntent,
+  confirmPrizeRoomPaymentStatus,
   listMarketplaceProducts,
   hydratePrizeRoomProviderImages,
   SKILL_COMPETITION_AGREEMENT_VERSION,
 } from '@/lib/northpole/matchEngine';
+import { getPaymentConfig } from '@/lib/payments/paymentEngine';
 
 const PLAYER_OPTIONS = [2, 4, 6, 8, 10, 12];
 
@@ -83,6 +88,17 @@ const REAL_BACKEND_API_BASE = 'https://the-poles-backend.onrender.com';
 const MARKETPLACE_INITIAL_LIMIT = 48;
 const MARKETPLACE_AUTO_LOAD_TARGET = 200;
 const MARKETPLACE_MAX_PRODUCTS = 500;
+const STRIPE_PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '';
+const stripePromise = STRIPE_PUBLISHABLE_KEY ? loadStripe(STRIPE_PUBLISHABLE_KEY) : null;
+
+function stripePrizeRoomPaymentsReady(paymentConfig = null) {
+  return Boolean(
+    STRIPE_PUBLISHABLE_KEY
+    && paymentConfig?.stripe_configured
+    && paymentConfig?.prize_room_payment_intents_enabled
+    && paymentConfig?.mode === 'test'
+  );
+}
 
 function trimTrailingSlash(value = '') {
   return String(value || '').replace(/\/$/, '');
@@ -1604,7 +1620,135 @@ function PrizeProductBrowseRow({ title, products, onOpen }) {
   );
 }
 
-function PrizeProductDetail({ product, user, onBack, onCreated, onError, onMessage }) {
+function PrizeRoomPaymentForm({ paymentIntent, onConfirmed, onError }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [confirming, setConfirming] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const confirmPayment = async (event) => {
+    event.preventDefault();
+    if (!stripe || !elements) return;
+    setConfirming(true);
+    setMessage('');
+    try {
+      const result = await stripe.confirmPayment({
+        elements,
+        redirect: 'if_required',
+      });
+      if (result.error) throw new Error(result.error.message || 'Stripe test payment failed.');
+      const paymentIntentId = result.paymentIntent?.id || paymentIntent.paymentIntentId;
+      const status = await confirmPrizeRoomPaymentStatus({ paymentIntentId });
+      setMessage('Payment confirmed. Prize purchase and fulfillment are still disabled.');
+      onConfirmed(status.room, status.contribution, status.payment);
+    } catch (error) {
+      const nextMessage = error.message || 'Could not confirm Stripe test payment.';
+      setMessage(nextMessage);
+      onError(nextMessage);
+    } finally {
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <form onSubmit={confirmPayment} className="space-y-3">
+      <PaymentElement />
+      {message && <p className="text-sm font-semibold text-white/70">{message}</p>}
+      <Button type="submit" disabled={!stripe || !elements || confirming} className="w-full rounded-xl bg-green-600 font-black text-white hover:bg-green-500">
+        {confirming ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+        Pay / Confirm Entry
+      </Button>
+    </form>
+  );
+}
+
+function PrizeRoomStripeTestPaymentPanel({ paymentTarget, onConfirmed, onCancel, onError }) {
+  const [paymentIntent, setPaymentIntent] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [localMessage, setLocalMessage] = useState('');
+  const room = paymentTarget?.room;
+  const contribution = paymentTarget?.contribution;
+  if (!room?.id) return null;
+
+  const startPayment = async () => {
+    setLoading(true);
+    setLocalMessage('');
+    try {
+      const result = await createPrizeRoomPaymentIntent({
+        prizeRoomId: room.id,
+        contributionId: contribution?.id || '',
+        productId: room.prize_id || room.prize_snapshot?.id || room.prize_snapshot?.product_id || '',
+        roomTitle: room.title || 'Prize Room',
+      });
+      if (result.simulated || !result.clientSecret) {
+        setLocalMessage(result.message || 'Stripe test keys are missing. The existing pilot/manual flow remains available.');
+        return;
+      }
+      setPaymentIntent(result);
+    } catch (error) {
+      const message = error.message || 'Could not start Stripe test payment.';
+      setLocalMessage(message);
+      onError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <section className="rounded-2xl border border-green-300/25 bg-green-500/10 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <Badge className="mb-2 border border-yellow-300/30 bg-yellow-500/20 text-yellow-50">Stripe Test Mode</Badge>
+          <h3 className="text-xl font-black text-white">{room.title || 'Prize Room payment'}</h3>
+          <p className="mt-1 text-sm font-semibold text-white/65">
+            No real prize purchase yet. Payment confirms room participation only.
+          </p>
+        </div>
+        <Button type="button" onClick={onCancel} variant="outline" className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+          Close
+        </Button>
+      </div>
+      <div className="mt-3 grid gap-3 text-sm text-white/70 sm:grid-cols-3">
+        <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+          <div className="text-xs uppercase text-white/45">Amount</div>
+          <strong className="text-lg text-green-100">{formatMoney(contribution?.amount_cents || room.cost_breakdown?.per_player_contribution_cents || 0)}</strong>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+          <div className="text-xs uppercase text-white/45">Mode</div>
+          <strong className="text-lg text-yellow-100">TEST MODE</strong>
+        </div>
+        <div className="rounded-xl border border-white/10 bg-black/25 p-3">
+          <div className="text-xs uppercase text-white/45">Fulfillment</div>
+          <strong className="text-lg text-purple-100">Disabled</strong>
+        </div>
+      </div>
+      {!STRIPE_PUBLISHABLE_KEY && (
+        <div className="mt-3 rounded-xl border border-orange-300/30 bg-orange-500/10 p-3 text-sm font-semibold text-orange-50">
+          VITE_STRIPE_PUBLISHABLE_KEY is missing. Stripe Payment Element is disabled; pilot/manual flow remains available.
+        </div>
+      )}
+      {localMessage && (
+        <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3 text-sm font-semibold text-white/70">
+          {localMessage}
+        </div>
+      )}
+      <div className="mt-4">
+        {!paymentIntent?.clientSecret ? (
+          <Button type="button" onClick={startPayment} disabled={loading || !STRIPE_PUBLISHABLE_KEY} className="rounded-xl bg-green-600 font-black text-white hover:bg-green-500">
+            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+            Start Stripe Test Payment
+          </Button>
+        ) : (
+          <Elements stripe={stripePromise} options={{ clientSecret: paymentIntent.clientSecret }}>
+            <PrizeRoomPaymentForm paymentIntent={paymentIntent} onConfirmed={onConfirmed} onError={onError} />
+          </Elements>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function PrizeProductDetail({ product, user, stripePaymentsReady, onBack, onCreated, onError, onMessage }) {
   const [gameQuery, setGameQuery] = useState('Mario Kart');
   const [games, setGames] = useState([]);
   const [selectedGame, setSelectedGame] = useState(null);
@@ -1677,10 +1821,12 @@ function PrizeProductDetail({ product, user, onBack, onCreated, onError, onMessa
         winningRule: 'Highest verified score wins',
         verificationMethod: 'manual_score_with_proof',
         foundationRate: NORTH_POLE_COST_MODEL.foundationRate,
-        paymentMode: 'pilot_manual',
+        paymentMode: stripePaymentsReady ? 'stripe_test' : 'pilot_manual',
       });
       onCreated(room);
-      onMessage('Prize Room created from catalog product.');
+      onMessage(stripePaymentsReady
+        ? 'Prize Room created. Stripe Test Mode payment can now confirm participation.'
+        : 'Prize Room created from catalog product.');
     } catch (error) {
       onError(error.message || 'Could not create Prize Room.');
     } finally {
@@ -1774,7 +1920,7 @@ function PrizeProductDetail({ product, user, onBack, onCreated, onError, onMessa
   );
 }
 
-function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
+function BrowsePrizesSection({ user, stripePaymentsReady, onRoomCreated, onError, onMessage }) {
   const [products, setProducts] = useState([]);
   const [category, setCategory] = useState('all');
   const [query, setQuery] = useState('gaming prizes');
@@ -1925,6 +2071,7 @@ function BrowsePrizesSection({ user, onRoomCreated, onError, onMessage }) {
       <PrizeProductDetail
         product={selectedProduct}
         user={user}
+        stripePaymentsReady={stripePaymentsReady}
         onBack={() => setSelectedProduct(null)}
         onCreated={(room) => {
           onRoomCreated(room);
@@ -2058,7 +2205,31 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
   const [localMessage, setLocalMessage] = useState('');
   const [usingDemoFallback, setUsingDemoFallback] = useState(false);
   const [browseTab, setBrowseTab] = useState('active');
+  const [paymentTarget, setPaymentTarget] = useState(null);
+  const [paymentConfig, setPaymentConfig] = useState(null);
   const providerHydrationAttemptedRef = useRef(false);
+  const stripePaymentsReady = stripePrizeRoomPaymentsReady(paymentConfig);
+
+  useEffect(() => {
+    let active = true;
+    getPaymentConfig()
+      .then((config) => {
+        if (!active) return;
+        setPaymentConfig(config);
+        if (STRIPE_PUBLISHABLE_KEY && !config.prize_room_payment_intents_enabled) {
+          setLocalMessage('Stripe publishable key is present, but backend Stripe test credentials are missing. Pilot/manual fallback remains active.');
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setPaymentConfig({
+          stripe_configured: false,
+          prize_room_payment_intents_enabled: false,
+          mode: 'test',
+        });
+      });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const openHashTab = () => {
@@ -2199,9 +2370,10 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
         roomId: roomToJoin.id,
         displayName: user.full_name || user.name || user.email || 'Pilot Player',
         userEmail: user.email || '',
-        paymentMode: 'pilot_manual',
+        paymentMode: stripePaymentsReady ? 'stripe_test' : 'pilot_manual',
       });
       const updatedRoom = result.room || roomToJoin;
+      const contribution = result.contribution || null;
       setRooms((prev) => {
         const withoutDemo = prev.filter((row) => row.id !== room.id);
         const hasRoom = withoutDemo.some((row) => row.id === updatedRoom.id);
@@ -2212,7 +2384,10 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
       openPrizeRoom(updatedRoom);
       setUsingDemoFallback(false);
       onJoined(updatedRoom);
-      const message = 'Joined Prize Room. Pilot contribution was marked for family testing; no real charge was made.';
+      if (stripePaymentsReady) setPaymentTarget({ room: updatedRoom, contribution });
+      const message = stripePaymentsReady
+        ? 'Joined Prize Room in Stripe Test Mode. Confirm the test payment to mark participation paid.'
+        : 'Joined Prize Room. Pilot contribution was marked for family testing; no real charge was made.';
       setLocalMessage(message);
       onMessage(message);
       await loadRooms();
@@ -2392,6 +2567,28 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
           </div>
         )}
 
+        {paymentTarget && (
+          <PrizeRoomStripeTestPaymentPanel
+            paymentTarget={paymentTarget}
+            onCancel={() => setPaymentTarget(null)}
+            onError={onError}
+            onConfirmed={async (room) => {
+              if (room) {
+                setRooms((prev) => prev.some((row) => row.id === room.id)
+                  ? prev.map((row) => (row.id === room.id ? room : row))
+                  : [room, ...prev]);
+                openPrizeRoom(room);
+                onJoined(room);
+              }
+              setPaymentTarget(null);
+              const message = 'Payment confirmed in Stripe Test Mode. No prize purchase or fulfillment was triggered.';
+              setLocalMessage(message);
+              onMessage(message);
+              await loadRooms();
+            }}
+          />
+        )}
+
         {loading ? (
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {[1, 2, 3, 4, 5].map((item) => <div key={item} className="h-80 animate-pulse rounded-2xl bg-purple-900/30" />)}
@@ -2474,9 +2671,11 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
             <TabsContent value="prizes">
               <BrowsePrizesSection
                 user={user}
+                stripePaymentsReady={stripePaymentsReady}
                 onRoomCreated={(room) => {
                   setRooms((prev) => [room, ...prev.filter((row) => row.id !== room.id)]);
                   openPrizeRoom(room);
+                  if (stripePaymentsReady) setPaymentTarget({ room, contribution: null });
                   onCreated(room);
                 }}
                 onError={onError}

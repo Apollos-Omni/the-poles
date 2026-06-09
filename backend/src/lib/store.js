@@ -20,6 +20,7 @@ const FLEXIBLE_ENTITY_TABLES = new Set([
   'prize_room_templates',
   'prize_rooms',
   'player_contributions',
+  'prize_room_payments',
   'prize_room_ledger_entries',
   'fulfillment_events',
   'affiliate_merchants',

@@ -15,6 +15,24 @@ const checkoutSchema = z.object({
   payment_mode: z.enum(['stripe_test', 'stripe_live', 'pilot_manual']).optional(),
 }).passthrough();
 
+const prizeRoomPaymentIntentSchema = z.object({
+  prizeRoomId: z.string().optional(),
+  prize_room_id: z.string().optional(),
+  contributionId: z.string().optional(),
+  contribution_id: z.string().optional(),
+  productId: z.string().optional(),
+  product_id: z.string().optional(),
+  roomTitle: z.string().optional(),
+  room_title: z.string().optional(),
+  pendingRoom: z.record(z.any()).optional(),
+  pending_room: z.record(z.any()).optional(),
+}).passthrough();
+
+const paymentStatusSchema = z.object({
+  paymentIntentId: z.string().optional(),
+  payment_intent_id: z.string().optional(),
+}).passthrough();
+
 const creatorPayoutSchema = z.object({
   amountCents: z.number().int().positive().optional(),
   amount_cents: z.number().int().positive().optional(),
@@ -32,6 +50,19 @@ function stripeSecret(env = process.env) {
 
 function stripeConfigured(env = process.env) {
   return Boolean(stripeSecret(env));
+}
+
+function stripeTestMode(env = process.env) {
+  return env.STRIPE_TEST_MODE !== 'false' && env.STRIPE_LIVE_MODE !== 'true';
+}
+
+function stripeSecretIsTestKey(env = process.env) {
+  const secret = stripeSecret(env);
+  return !secret || secret.startsWith('sk_test_') || secret.startsWith('rk_test_');
+}
+
+function stripeCurrency(env = process.env, fallback = 'USD') {
+  return String(env.STRIPE_CURRENCY || fallback || 'USD').toLowerCase();
 }
 
 function normalizeCents(value, fallback = 0) {
@@ -274,6 +305,94 @@ async function markContributionPaid(store, contributionId, patch = {}) {
   return { room: updatedRoom, contribution: updatedContribution };
 }
 
+async function createPrizeRoomPaymentRecord(store, data) {
+  const existing = data.stripe_payment_intent_id
+    ? await store.findOne('prize_room_payments', { stripe_payment_intent_id: data.stripe_payment_intent_id }).catch(() => null)
+    : null;
+  if (existing) return store.update('prize_room_payments', existing.id, { ...existing, ...data, updated_at: now() });
+  return store.create('prize_room_payments', {
+    status: 'requires_payment_method',
+    payment_provider: 'stripe',
+    payment_purpose: 'prize_room',
+    test_mode: true,
+    auto_fulfill_prize: false,
+    created_by_system: 'payments',
+    ...data,
+  });
+}
+
+async function updatePrizeRoomPaymentByIntent(store, paymentIntentId, patch) {
+  if (!paymentIntentId) return null;
+  const existing = await store.findOne('prize_room_payments', { stripe_payment_intent_id: paymentIntentId }).catch(() => null);
+  if (!existing) return null;
+  return store.update('prize_room_payments', existing.id, {
+    ...patch,
+    updated_at: now(),
+  });
+}
+
+async function applyPaymentIntentStatus(store, intent = {}) {
+  const paymentIntentId = intent.id || '';
+  const metadata = intent.metadata || {};
+  const contributionId = metadata.contributionId || metadata.contribution_id || '';
+  const roomId = metadata.prizeRoomId || metadata.prize_room_id || metadata.room_id || '';
+  const status = intent.status || '';
+
+  const payment = await updatePrizeRoomPaymentByIntent(store, paymentIntentId, {
+    status,
+    stripe_payment_status: status,
+    amount_cents: normalizeCents(intent.amount),
+    currency: String(intent.currency || 'usd').toUpperCase(),
+    last_payment_error: intent.last_payment_error?.message || '',
+    paid_at: status === 'succeeded' ? now() : undefined,
+    canceled_at: status === 'canceled' ? now() : undefined,
+  });
+
+  let result = { payment };
+  if (status === 'succeeded' && contributionId) {
+    result = {
+      ...result,
+      ...await markContributionPaid(store, contributionId, {
+        payment_mode: 'stripe_test',
+        payment_provider: 'stripe',
+        stripe_payment_intent_id: paymentIntentId,
+        stripe_payment_status: status,
+        payment_reference: paymentIntentId,
+      }),
+    };
+    if (result.room?.id) {
+      result.room = await store.update('prize_rooms', result.room.id, {
+        payment_confirmed: true,
+        payment_confirmed_at: now(),
+        last_payment_intent_id: paymentIntentId,
+        fulfillment_status: result.room.fulfillment_status || 'not_started',
+      }).catch(() => result.room);
+    }
+  } else if (['requires_payment_method', 'payment_failed', 'canceled'].includes(status) && contributionId) {
+    const contribution = await store.findOne('player_contributions', { id: contributionId }).catch(() => null);
+    if (contribution) {
+      result.contribution = await store.update('player_contributions', contribution.id, {
+        status: status === 'canceled' ? 'payment_canceled' : 'payment_failed',
+        stripe_payment_intent_id: paymentIntentId,
+        stripe_payment_status: status,
+        payment_error: intent.last_payment_error?.message || (status === 'canceled' ? 'Payment canceled' : 'Payment failed'),
+      }).catch(() => contribution);
+    }
+  } else if (status === 'succeeded' && roomId) {
+    const room = await store.findOne('prize_rooms', { id: roomId }).catch(() => null);
+    if (room) {
+      result.room = await store.update('prize_rooms', room.id, {
+        payment_confirmed: true,
+        payment_confirmed_at: now(),
+        last_payment_intent_id: paymentIntentId,
+        fulfillment_status: room.fulfillment_status || 'not_started',
+      }).catch(() => room);
+    }
+  }
+
+  return result;
+}
+
 async function findOrCreatePendingContribution(store, room, user, paymentMode) {
   const existing = await store.findOne('player_contributions', { room_id: room.id, user_id: user.id }).catch(() => null);
   if (existing) return existing;
@@ -324,20 +443,21 @@ export function createStripeWebhookHandler({ store, env = process.env } = {}) {
       }
     }
 
+    if (event.type === 'payment_intent.succeeded') {
+      const intent = event.data?.object || {};
+      await applyPaymentIntentStatus(store, intent);
+    }
+
     if (event.type === 'payment_intent.payment_failed') {
       const intent = event.data?.object || {};
       const contributionId = intent.metadata?.contribution_id;
-      if (contributionId) {
-        const contribution = await store.findOne('player_contributions', { id: contributionId }).catch(() => null);
-        if (contribution) {
-          await store.update('player_contributions', contribution.id, {
-            status: 'payment_failed',
-            stripe_payment_intent_id: intent.id,
-            stripe_payment_status: intent.status,
-            payment_error: intent.last_payment_error?.message || 'Payment failed',
-          }).catch(() => null);
-        }
-      }
+      if (contributionId) await applyPaymentIntentStatus(store, { ...intent, status: 'payment_failed' });
+      else await applyPaymentIntentStatus(store, intent);
+    }
+
+    if (event.type === 'payment_intent.canceled') {
+      const intent = event.data?.object || {};
+      await applyPaymentIntentStatus(store, intent);
     }
 
     await store.create('audit_logs', {
@@ -360,9 +480,175 @@ export function createPaymentRouter({ store, env = process.env } = {}) {
       stripe_configured: stripeConfigured(env),
       publishable_key_configured: Boolean(env.VITE_STRIPE_PUBLISHABLE_KEY || env.STRIPE_PUBLISHABLE_KEY),
       platform_fee_rate: PLATFORM_FEE_RATE,
-      mode: env.STRIPE_LIVE_MODE === 'true' ? 'live' : 'test',
+      currency: stripeCurrency(env),
+      mode: stripeTestMode(env) ? 'test' : 'live',
+      stripe_test_mode: stripeTestMode(env),
+      test_key_valid: stripeSecretIsTestKey(env),
+      prize_room_payment_intents_enabled: stripeConfigured(env) && stripeTestMode(env) && stripeSecretIsTestKey(env),
+      auto_purchase_prizes: false,
+      fulfillment_mode: 'manual_admin_review',
     });
   });
+
+  router.post('/create-prize-room-payment-intent', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    const input = prizeRoomPaymentIntentSchema.parse(req.body || {});
+    const prizeRoomId = input.prizeRoomId || input.prize_room_id || '';
+    const contributionId = input.contributionId || input.contribution_id || '';
+    const pendingRoom = input.pendingRoom || input.pending_room || null;
+    const productId = input.productId || input.product_id || pendingRoom?.prize_id || pendingRoom?.prizeId || '';
+
+    if (!stripeTestMode(env)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Live Prize Room payments are disabled. Use Stripe test mode until processor approval is complete.',
+      });
+    }
+    if (!stripeSecretIsTestKey(env)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Prize Room payments require a Stripe test secret key when STRIPE_TEST_MODE=true.',
+      });
+    }
+
+    let room = null;
+    let contribution = null;
+    if (prizeRoomId) {
+      room = await store.findOne('prize_rooms', { id: prizeRoomId }).catch(() => null);
+      if (!room) return res.status(404).json({ success: false, error: 'Prize Room not found' });
+      if (!['open', 'awaiting_contributions', 'funded'].includes(room.status)) {
+        return res.status(400).json({ success: false, error: 'Prize Room is not open for test payment.' });
+      }
+      contribution = contributionId
+        ? await store.findOne('player_contributions', { id: contributionId }).catch(() => null)
+        : await findOrCreatePendingContribution(store, room, user, 'stripe_test');
+    }
+
+    const amountCents = room
+      ? normalizeCents(contribution?.amount_cents || room.cost_breakdown?.per_player_contribution_cents)
+      : normalizeCents(pendingRoom?.amount_cents || pendingRoom?.cost_breakdown?.per_player_contribution_cents);
+    if (amountCents <= 0) return res.status(400).json({ success: false, error: 'Payment amount could not be calculated server-side.' });
+
+    const currency = stripeCurrency(env, room?.cost_breakdown?.currency || pendingRoom?.currency || 'USD');
+    const roomTitle = room?.title || input.roomTitle || input.room_title || pendingRoom?.title || 'Prize Room';
+    const resolvedPrizeRoomId = room?.id || prizeRoomId || '';
+    const resolvedContributionId = contribution?.id || contributionId || '';
+
+    if (!stripeConfigured(env)) {
+      const payment = await createPrizeRoomPaymentRecord(store, {
+        user_id: user.id,
+        user_email: user.email || '',
+        prize_room_id: resolvedPrizeRoomId,
+        contribution_id: resolvedContributionId,
+        product_id: productId,
+        room_title: roomTitle,
+        amount_cents: amountCents,
+        currency: currency.toUpperCase(),
+        status: 'stripe_not_configured',
+        stripe_payment_status: 'stripe_not_configured',
+        test_mode: true,
+      });
+      return ok(res, {
+        clientSecret: '',
+        paymentIntentId: '',
+        payment,
+        simulated: true,
+        testMode: true,
+        message: 'Stripe is not configured. Existing pilot/manual flow remains available.',
+      });
+    }
+
+    if (contribution) {
+      await store.update('player_contributions', contribution.id, {
+        status: 'pending_payment',
+        payment_mode: 'stripe_test',
+        payment_provider: 'stripe',
+        amount_cents: amountCents,
+      }).catch(() => null);
+    }
+
+    const intent = await stripeRequest('/payment_intents', {
+      env,
+      body: {
+        amount: amountCents,
+        currency,
+        description: `${roomTitle} test-mode Prize Room participation`,
+        'automatic_payment_methods[enabled]': true,
+        'metadata[userId]': user.id,
+        'metadata[user_id]': user.id,
+        'metadata[prizeRoomId]': resolvedPrizeRoomId,
+        'metadata[prize_room_id]': resolvedPrizeRoomId,
+        'metadata[room_id]': resolvedPrizeRoomId,
+        'metadata[contributionId]': resolvedContributionId,
+        'metadata[contribution_id]': resolvedContributionId,
+        'metadata[productId]': productId,
+        'metadata[product_id]': productId,
+        'metadata[roomTitle]': roomTitle,
+        'metadata[paymentPurpose]': 'prize_room',
+        'metadata[paymentPurposeSnake]': 'prize_room',
+        'metadata[testMode]': true,
+        'metadata[autoFulfillPrize]': false,
+      },
+    });
+
+    const payment = await createPrizeRoomPaymentRecord(store, {
+      user_id: user.id,
+      user_email: user.email || '',
+      prize_room_id: resolvedPrizeRoomId,
+      contribution_id: resolvedContributionId,
+      product_id: productId,
+      room_title: roomTitle,
+      amount_cents: amountCents,
+      currency: currency.toUpperCase(),
+      status: intent.status || 'requires_payment_method',
+      stripe_payment_status: intent.status || '',
+      stripe_payment_intent_id: intent.id,
+      client_secret_last4: String(intent.client_secret || '').slice(-4),
+      metadata: {
+        userId: user.id,
+        prizeRoomId: resolvedPrizeRoomId,
+        productId,
+        roomTitle,
+        paymentPurpose: 'prize_room',
+        testMode: true,
+        autoFulfillPrize: false,
+      },
+    });
+
+    ok(res, {
+      clientSecret: intent.client_secret,
+      paymentIntentId: intent.id,
+      amountCents,
+      currency: currency.toUpperCase(),
+      room,
+      contribution,
+      payment,
+      simulated: false,
+      testMode: true,
+    });
+  }));
+
+  router.post('/confirm-prize-room-payment-status', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    const input = paymentStatusSchema.parse(req.body || {});
+    const paymentIntentId = input.paymentIntentId || input.payment_intent_id || '';
+    if (!paymentIntentId) return res.status(400).json({ success: false, error: 'paymentIntentId is required' });
+
+    const payment = await store.findOne('prize_room_payments', { stripe_payment_intent_id: paymentIntentId }).catch(() => null);
+    if (!payment) return res.status(404).json({ success: false, error: 'Payment record not found' });
+    if (payment.user_id && payment.user_id !== user.id && !isAdmin(user)) {
+      return res.status(403).json({ success: false, error: 'Payment does not belong to the current user' });
+    }
+
+    let intent = { id: paymentIntentId, status: payment.status || payment.stripe_payment_status || '', amount: payment.amount_cents, currency: payment.currency || 'usd', metadata: {} };
+    if (stripeConfigured(env)) {
+      intent = await stripeRequest(`/payment_intents/${encodeURIComponent(paymentIntentId)}`, { method: 'GET', env });
+    }
+    const result = await applyPaymentIntentStatus(store, intent);
+    ok(res, { paymentIntent: { id: intent.id, status: intent.status }, ...result, testMode: true });
+  }));
 
   router.post('/connect/onboarding', asyncHandler(async (req, res) => {
     const user = await requireUser(req, res, store);
