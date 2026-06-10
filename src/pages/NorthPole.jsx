@@ -788,47 +788,94 @@ function PrizeRoomCostBreakdown({ breakdown = {} }) {
   );
 }
 
+function SnowfallLayer({ density = 42, className = '' }) {
+  return (
+    <div className={`north-pole-snowfall pointer-events-none absolute inset-0 overflow-hidden ${className}`}>
+      {Array.from({ length: density }).map((_, index) => (
+        <span
+          key={index}
+          className="north-pole-snowflake absolute rounded-full bg-white"
+          style={{
+            left: `${(index * 37) % 100}%`,
+            top: `${(index * 19) % 100}%`,
+            width: `${2 + (index % 4)}px`,
+            height: `${2 + (index % 4)}px`,
+            animationDuration: `${8 + (index % 7)}s`,
+            animationDelay: `${index * -0.42}s`,
+            opacity: 0.28 + ((index % 5) * 0.11),
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ChristmasLightsStrip({ className = '' }) {
+  return (
+    <div className={`north-pole-lights-strip pointer-events-none absolute inset-x-0 top-0 z-20 flex h-9 items-start justify-center gap-2 overflow-hidden px-5 ${className}`}>
+      {Array.from({ length: 28 }).map((_, index) => (
+        <span
+          key={index}
+          className={`north-pole-light mt-2 h-2.5 w-2.5 rounded-full ${
+            index % 4 === 0
+              ? 'bg-red-400'
+              : index % 4 === 1
+                ? 'bg-yellow-200'
+                : index % 4 === 2
+                  ? 'bg-emerald-300'
+                  : 'bg-cyan-200'
+          }`}
+          style={{ animationDelay: `${index * 0.09}s` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function WinterWonderlandBackground() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,#02030a_0%,#09051b_34%,#101827_68%,#030307_100%)]" />
+      <div className="north-pole-aurora absolute -left-24 top-10 h-72 w-[42rem] rotate-[-12deg] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(34,211,238,0.38),rgba(168,85,247,0.2)_35%,transparent_70%)] blur-3xl" />
+      <div className="north-pole-aurora absolute right-[-10rem] top-28 h-80 w-[46rem] rotate-[10deg] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.24),rgba(250,204,21,0.16)_32%,transparent_70%)] blur-3xl [animation-delay:-5s]" />
+      <div className="absolute left-1/2 top-28 h-72 w-72 -translate-x-1/2 rounded-full bg-yellow-200/10 blur-3xl" />
+      <div className="absolute bottom-0 left-0 right-0 h-72 bg-[radial-gradient(ellipse_at_bottom,rgba(255,255,255,0.16),transparent_62%)]" />
+      <SnowfallLayer density={86} />
+    </div>
+  );
+}
+
+function NorthPoleHeroBadge({ icon: Icon, children }) {
+  return (
+    <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.08] px-4 py-2 text-xs font-black uppercase tracking-wide text-white shadow-[0_0_24px_rgba(250,204,21,0.08)] backdrop-blur">
+      <Icon className="h-4 w-4 text-yellow-200" />
+      {children}
+    </span>
+  );
+}
+
+function PrizeRoomHolidayFrame({ children, active = false }) {
+  return (
+    <div className={`group relative h-full rounded-[1.35rem] p-px transition duration-300 ${
+      active
+        ? 'bg-gradient-to-br from-yellow-200/80 via-purple-300/45 to-cyan-200/45 shadow-[0_0_44px_rgba(250,204,21,0.2)]'
+        : 'bg-gradient-to-br from-white/12 via-purple-300/10 to-yellow-200/12 hover:from-yellow-200/70 hover:via-purple-300/35 hover:to-cyan-200/35 hover:shadow-[0_0_42px_rgba(250,204,21,0.18)]'
+    }`}>
+      <div className="pointer-events-none absolute left-5 right-5 top-0 z-20 h-3 rounded-b-[999px] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(219,234,254,0.7),transparent)] shadow-[0_8px_18px_rgba(255,255,255,0.14)]" />
+      <div className="pointer-events-none absolute inset-x-5 top-3 z-20 h-px bg-gradient-to-r from-transparent via-yellow-100/70 to-transparent opacity-70" />
+      <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[1.35rem]">
+        <div className="north-pole-card-shimmer absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-white/12 to-transparent" />
+      </div>
+      <div className="relative h-full">{children}</div>
+    </div>
+  );
+}
+
 function PrizeRoomHolidayDecor() {
   return (
     <>
-      <style>{`
-        @keyframes northPoleSnowFall {
-          0% { transform: translate3d(0,-12px,0); opacity: 0; }
-          12% { opacity: .65; }
-          100% { transform: translate3d(18px,180px,0); opacity: 0; }
-        }
-        @keyframes northPoleGlowPulse {
-          0%, 100% { opacity: .55; filter: drop-shadow(0 0 10px rgba(250,204,21,.45)); }
-          50% { opacity: 1; filter: drop-shadow(0 0 18px rgba(250,204,21,.75)); }
-        }
-        @keyframes northPoleShimmer {
-          0% { transform: translateX(-120%); }
-          100% { transform: translateX(120%); }
-        }
-      `}</style>
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-10 flex h-10 items-start justify-center gap-3 overflow-hidden px-6">
-        {Array.from({ length: 18 }).map((_, index) => (
-          <span
-            key={index}
-            className={`mt-2 h-2.5 w-2.5 rounded-full ${index % 3 === 0 ? 'bg-red-400' : index % 3 === 1 ? 'bg-yellow-200' : 'bg-emerald-300'}`}
-            style={{ animation: `northPoleGlowPulse ${1.8 + (index % 5) * 0.25}s ease-in-out infinite`, animationDelay: `${index * 0.08}s` }}
-          />
-        ))}
-      </div>
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        {Array.from({ length: 34 }).map((_, index) => (
-          <span
-            key={index}
-            className="absolute h-1 w-1 rounded-full bg-white/70"
-            style={{
-              left: `${(index * 29) % 100}%`,
-              top: `${(index * 17) % 84}%`,
-              animation: `northPoleSnowFall ${7 + (index % 6)}s linear infinite`,
-              animationDelay: `${index * 0.35}s`,
-            }}
-          />
-        ))}
-      </div>
+      <ChristmasLightsStrip />
+      <SnowfallLayer density={34} />
     </>
   );
 }
@@ -881,7 +928,7 @@ function FestiveCostBreakdown({ breakdown = {} }) {
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-lg font-black text-yellow-50">
-            <Gift className="h-5 w-5 text-red-200" /> Holiday Room Receipt
+            <Gift className="h-5 w-5 text-red-200" /> Payment / Entry
           </div>
           <p className="mt-1 text-sm text-white/60">Estimated costs for this test mode Prize Room.</p>
         </div>
@@ -936,59 +983,66 @@ function PrizeRoomCard({ room, isOpen, onOpen, onJoin, onShare, joining }) {
   const displayPrizeImage = prizeRoomDisplayPrizeImage(room);
   const displayGameImage = prizeRoomDisplayGameImage(room);
   return (
-    <Card className={`h-full overflow-hidden rounded-2xl border bg-black/65 shadow-[0_0_24px_rgba(124,58,237,0.12)] transition ${
-      isOpen ? 'border-yellow-300/55 ring-1 ring-yellow-300/30' : 'border-white/10 hover:border-purple-300/40'
-    }`}>
-      <CardContent className="p-3">
-        <button type="button" onClick={onOpen} className="block w-full text-left">
-          <div className="h-[160px] overflow-hidden rounded-xl bg-white sm:h-[150px] md:h-[160px]">
-            <PrizeRoomHeroImage
-              prizeImage={displayPrizeImage}
-              prizeTitle={room.prize_title}
-              gameImage={displayGameImage}
-              gameTitle={room.game_title}
-              roomTitle={room.title}
-              fallbackPrizeImage={fallbackPrizeImage}
-              fallbackGameImage={fallbackGameImage}
-            />
-          </div>
-        </button>
-        <div className="space-y-3 px-1 pt-3">
-          <Badge className={room.is_frontend_demo ? 'bg-yellow-500/20 text-yellow-100' : 'bg-purple-600/20 text-purple-100'}>
-            {prizeRoomTypeLabel(room)}
-          </Badge>
+    <PrizeRoomHolidayFrame active={isOpen}>
+      <Card className={`h-full overflow-hidden rounded-[1.3rem] border bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(15,23,42,0.74)_42%,rgba(3,7,18,0.92))] shadow-[0_18px_45px_rgba(0,0,0,0.28)] backdrop-blur-xl transition ${
+        isOpen ? 'border-yellow-300/55 ring-1 ring-yellow-300/30' : 'border-white/10 hover:border-yellow-200/45'
+      }`}>
+        <CardContent className="p-3">
           <button type="button" onClick={onOpen} className="block w-full text-left">
-            <h3 className="line-clamp-2 min-h-10 text-sm font-black leading-tight text-white">{room.prize_title || room.title}</h3>
-            <p className="mt-1 line-clamp-1 text-xs font-semibold text-purple-100">{room.game_title || 'Skill Match'}</p>
+            <div className="relative h-[160px] overflow-hidden rounded-2xl bg-white sm:h-[150px] md:h-[160px]">
+              <PrizeRoomHeroImage
+                prizeImage={displayPrizeImage}
+                prizeTitle={room.prize_title}
+                gameImage={displayGameImage}
+                gameTitle={room.game_title}
+                roomTitle={room.title}
+                fallbackPrizeImage={fallbackPrizeImage}
+                fallbackGameImage={fallbackGameImage}
+              />
+            </div>
           </button>
-          <div className="space-y-1 rounded-xl border border-white/10 bg-white/[0.05] p-2 text-xs">
-            <div className="flex justify-between gap-2">
-              <span className="text-white/55">Join cost</span>
-              <strong className="text-green-200">{formatMoney(prizeRoomJoinCost(room))}</strong>
+          <div className="space-y-3 px-1 pt-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className={room.is_frontend_demo ? 'bg-yellow-500/20 text-yellow-100' : 'bg-purple-600/20 text-purple-100'}>
+                {prizeRoomTypeLabel(room)}
+              </Badge>
+              <Badge className="border border-white/10 bg-white/10 text-white/75">
+                <Snowflake className="mr-1 h-3 w-3" /> Prize Room
+              </Badge>
             </div>
-            <div className="flex justify-between gap-3">
-              <span className="text-white/55">Players</span>
-              <strong className="text-white">{playerCount} / {room.max_players}</strong>
+            <button type="button" onClick={onOpen} className="block w-full text-left">
+              <h3 className="line-clamp-2 min-h-10 text-sm font-black leading-tight text-white">{room.prize_title || room.title}</h3>
+              <p className="mt-1 line-clamp-1 text-xs font-semibold text-cyan-100">{room.game_title || 'Skill Match'}</p>
+            </button>
+            <div className="space-y-1 rounded-2xl border border-white/10 bg-black/35 p-3 text-xs shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <div className="flex justify-between gap-2">
+                <span className="text-white/55">Join cost</span>
+                <strong className="text-green-200">{formatMoney(prizeRoomJoinCost(room))}</strong>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-white/55">Players</span>
+                <strong className="text-white">{playerCount} / {room.max_players}</strong>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-white/55">Spots remaining</span>
+                <strong className="text-yellow-100">{spotsRemaining}</strong>
+              </div>
             </div>
-            <div className="flex justify-between gap-3">
-              <span className="text-white/55">Spots remaining</span>
-              <strong className="text-yellow-100">{spotsRemaining}</strong>
+            <div className="grid grid-cols-3 gap-1.5">
+              <Button onClick={onOpen} variant="outline" className="h-9 rounded-xl border-white/15 bg-white/5 px-2 text-xs text-white shadow-[0_0_18px_rgba(255,255,255,0.04)] hover:-translate-y-0.5 hover:bg-white/10">
+                Open
+              </Button>
+              <Button onClick={onJoin} disabled={joining || !canJoin} className="h-9 rounded-xl bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-400 px-2 text-xs font-black text-white shadow-[0_0_22px_rgba(34,197,94,0.24)] hover:-translate-y-0.5 hover:shadow-[0_0_30px_rgba(34,197,94,0.34)] disabled:bg-slate-700">
+                {joining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Join'}
+              </Button>
+              <Button onClick={onShare} variant="outline" className="h-9 rounded-xl border-yellow-300/40 bg-gradient-to-r from-yellow-500/20 to-purple-500/20 px-2 text-xs font-black text-yellow-50 shadow-[0_0_20px_rgba(250,204,21,0.12)] hover:-translate-y-0.5 hover:bg-yellow-500/25">
+                Promote
+              </Button>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            <Button onClick={onOpen} variant="outline" className="h-9 rounded-xl border-white/15 bg-white/5 px-2 text-xs text-white hover:bg-white/10">
-              Open
-            </Button>
-            <Button onClick={onJoin} disabled={joining || !canJoin} className="h-9 rounded-xl bg-green-600 px-2 text-xs text-white hover:bg-green-500 disabled:bg-slate-700">
-              {joining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Join'}
-            </Button>
-            <Button onClick={onShare} variant="outline" className="h-9 rounded-xl border-yellow-300/40 bg-yellow-500/15 px-2 text-xs font-black text-yellow-50 hover:bg-yellow-500/25">
-              Promote
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </PrizeRoomHolidayFrame>
   );
 }
 
@@ -1223,7 +1277,8 @@ function PrizeRoomFeaturedHero({ room, isOpen, joining, onToggleDetails, onJoin,
   if (!room) return null;
   const playerCount = prizeRoomPlayerCount(room);
   return (
-    <section className="overflow-hidden rounded-[2rem] border border-yellow-300/25 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.18),transparent_34%),linear-gradient(135deg,rgba(0,0,0,0.86),rgba(88,28,135,0.38),rgba(0,0,0,0.9))] p-4 shadow-[0_0_60px_rgba(250,204,21,0.12)]">
+    <section className="relative overflow-hidden rounded-[2rem] border border-yellow-300/25 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.18),transparent_34%),linear-gradient(135deg,rgba(0,0,0,0.86),rgba(88,28,135,0.38),rgba(0,0,0,0.9))] p-4 shadow-[0_0_60px_rgba(250,204,21,0.12)]">
+      <ChristmasLightsStrip />
       <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
         <PrizeRoomHeroImage
           prizeImage={prizeRoomDisplayPrizeImage(room)}
@@ -1251,14 +1306,14 @@ function PrizeRoomFeaturedHero({ room, isOpen, joining, onToggleDetails, onJoin,
             <PrizeRoomDetailCard label="Room type" value={prizeRoomTypeLabel(room)} tone="purple" />
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Button onClick={onToggleDetails} variant="outline" className="h-12 flex-1 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+            <Button onClick={onToggleDetails} variant="outline" className="h-12 flex-1 rounded-2xl border-white/15 bg-white/5 text-white shadow-[0_0_18px_rgba(255,255,255,0.05)] hover:-translate-y-0.5 hover:bg-white/10">
               Open Room
             </Button>
-            <Button onClick={onShare} variant="outline" className="h-12 flex-1 rounded-2xl border-yellow-300/25 bg-yellow-500/10 font-black text-yellow-50 hover:bg-yellow-500/20">
+            <Button onClick={onShare} variant="outline" className="h-12 flex-1 rounded-2xl border-yellow-300/25 bg-gradient-to-r from-yellow-500/15 to-purple-500/15 font-black text-yellow-50 shadow-[0_0_24px_rgba(250,204,21,0.12)] hover:-translate-y-0.5 hover:bg-yellow-500/20">
               <Share2 className="mr-2 h-5 w-5" />
               Promote Room
             </Button>
-            <Button onClick={onJoin} disabled={joining || !['open', 'awaiting_contributions'].includes(room.status)} className="h-12 flex-1 rounded-2xl bg-green-600 font-black text-white hover:bg-green-500 disabled:bg-slate-700">
+            <Button onClick={onJoin} disabled={joining || !['open', 'awaiting_contributions'].includes(room.status)} className="h-12 flex-1 rounded-2xl bg-gradient-to-r from-emerald-500 via-green-500 to-yellow-400 font-black text-slate-950 shadow-[0_0_30px_rgba(34,197,94,0.24)] hover:-translate-y-0.5 hover:shadow-[0_0_38px_rgba(250,204,21,0.22)] disabled:bg-slate-700 disabled:text-white">
               {joining ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <LogIn className="mr-2 h-5 w-5" />}
               Join Room
             </Button>
@@ -1336,15 +1391,15 @@ function PrizeRoomDetailPage({ room, onJoin, onShare, joining, onBack }) {
                 <PrizeRoomDetailCard label="Spots left" value={String(spotsRemaining)} tone="yellow" />
               </div>
               <div className="grid gap-2 sm:grid-cols-3">
-                <Button onClick={onJoin} disabled={joining || !canJoin} className="h-12 rounded-2xl bg-green-600 text-base font-black text-white shadow-[0_0_24px_rgba(34,197,94,0.24)] hover:bg-green-500 disabled:bg-slate-700">
+                <Button onClick={onJoin} disabled={joining || !canJoin} className="h-12 rounded-2xl bg-gradient-to-r from-emerald-500 via-green-500 to-yellow-400 text-base font-black text-slate-950 shadow-[0_0_28px_rgba(34,197,94,0.28)] hover:-translate-y-0.5 hover:shadow-[0_0_38px_rgba(250,204,21,0.24)] disabled:bg-slate-700 disabled:text-white">
                   {joining ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <DoorOpen className="mr-2 h-5 w-5" />}
                   Join Room
                 </Button>
-                <Button onClick={onShare} variant="outline" className="h-12 rounded-2xl border-yellow-300/35 bg-yellow-500/15 text-base font-black text-yellow-50 hover:bg-yellow-500/25">
+                <Button onClick={onShare} variant="outline" className="h-12 rounded-2xl border-yellow-300/35 bg-gradient-to-r from-yellow-500/20 to-purple-500/20 text-base font-black text-yellow-50 shadow-[0_0_24px_rgba(250,204,21,0.12)] hover:-translate-y-0.5 hover:bg-yellow-500/25">
                   <Share2 className="mr-2 h-5 w-5" />
                   Promote Room
                 </Button>
-                <Button onClick={onBack} variant="outline" className="h-12 rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+                <Button onClick={onBack} variant="outline" className="h-12 rounded-2xl border-white/15 bg-white/5 text-white hover:-translate-y-0.5 hover:bg-white/10">
                   <ChevronLeft className="mr-2 h-5 w-5" />
                   Back to Browse
                 </Button>
@@ -2629,8 +2684,10 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
   const selectedRoom = useMemo(() => rooms.find((room) => room.id === openRoomId) || null, [rooms, openRoomId]);
 
   return (
-    <Card className="overflow-hidden rounded-[2rem] border border-purple-400/20 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.35),transparent_32%),linear-gradient(135deg,#05010d,#10061f_45%,#050505)] text-white shadow-[0_0_70px_rgba(124,58,237,0.18)]">
-      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.03]">
+    <Card className="relative overflow-hidden rounded-[2rem] border border-purple-400/20 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.35),transparent_32%),linear-gradient(135deg,rgba(5,1,13,0.94),rgba(16,6,31,0.86)_45%,rgba(5,5,5,0.96))] text-white shadow-[0_0_70px_rgba(124,58,237,0.18)] backdrop-blur-xl">
+      <ChristmasLightsStrip />
+      <div className="pointer-events-none absolute -right-24 top-20 h-64 w-64 rounded-full bg-yellow-200/10 blur-3xl" />
+      <CardHeader className="relative z-10 flex flex-row flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.05] pt-10">
         <div>
           <CardTitle className="flex items-center gap-2 text-white">
             <Trophy className="h-5 w-5 text-yellow-300" />
@@ -2639,15 +2696,15 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
           <p className="mt-1 text-sm text-white/70">Browse visual Prize Rooms, review the game and prize, then join in Test Mode.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={loadRooms} className="rounded-2xl border-white/15 bg-white/5 text-white hover:bg-white/10">
+          <Button variant="outline" onClick={loadRooms} className="rounded-2xl border-white/15 bg-white/5 text-white hover:-translate-y-0.5 hover:bg-white/10">
             <RefreshCw className="mr-2 h-4 w-4" />Refresh Rooms
           </Button>
-          <Button onClick={quickCreate} className="rounded-2xl bg-purple-700 text-white hover:bg-purple-600">
+          <Button onClick={quickCreate} className="rounded-2xl bg-gradient-to-r from-purple-700 via-fuchsia-700 to-yellow-500 text-white shadow-[0_0_28px_rgba(168,85,247,0.22)] hover:-translate-y-0.5 hover:shadow-[0_0_36px_rgba(250,204,21,0.18)]">
             <Plus className="mr-2 h-4 w-4" />Create Pilot Room
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="relative z-10 space-y-6 p-4 sm:p-6">
         <StripePrizeRoomReadinessPanel paymentConfig={paymentConfig} stripePaymentsReady={stripePaymentsReady} />
 
         {(localError || localMessage || usingDemoFallback) && (
@@ -2849,32 +2906,45 @@ const howItWorksCards = [
 
 function NorthPoleLandingHero() {
   return (
-    <section className="bg-white text-slate-950">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-10 sm:px-6 md:py-14 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:px-8">
+    <section className="relative overflow-hidden bg-[#02030a] text-white">
+      <WinterWonderlandBackground />
+      <ChristmasLightsStrip />
+      <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-4 pb-12 pt-16 sm:px-6 md:pb-16 md:pt-20 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-8">
         <div className="space-y-7">
+          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/25 bg-yellow-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-yellow-100 shadow-[0_0_30px_rgba(250,204,21,0.16)] backdrop-blur">
+            <Snowflake className="h-4 w-4" />
+            Santa's Prize Workshop
+          </div>
           <div className="space-y-5">
-            <h1 className="max-w-2xl text-4xl font-black leading-[1.08] tracking-normal text-black sm:text-5xl lg:text-6xl">
-              Choose a prize.<br />
-              Pick the game.<br />
-              (Win the game, win the prize.)<br />
-              Support <span className="text-purple-700">Santa Claus.</span>
+            <h1 className="max-w-3xl text-4xl font-black leading-[1.04] tracking-normal text-white drop-shadow-[0_0_28px_rgba(250,204,21,0.12)] sm:text-5xl lg:text-7xl">
+              Welcome to The North Pole
             </h1>
-            <p className="max-w-xl text-lg leading-8 text-slate-600">
-              Build a prize room around a real item, compete by skill, and help support The Poles Foundation mission for children.
+            <p className="max-w-2xl text-xl font-semibold leading-9 text-white/82 md:text-2xl">
+              Choose a prize. Join the room. Win the game. Win the prize.
             </p>
+            <p className="max-w-xl text-lg leading-8 text-yellow-100">
+              Where competition becomes Christmas.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <NorthPoleHeroBadge icon={Gift}>Prize Rooms</NorthPoleHeroBadge>
+            <NorthPoleHeroBadge icon={ShoppingCart}>Real Products</NorthPoleHeroBadge>
+            <NorthPoleHeroBadge icon={Gamepad2}>Game Challenge</NorthPoleHeroBadge>
+            <NorthPoleHeroBadge icon={Heart}>100% Purpose Driven</NorthPoleHeroBadge>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <a
               href="#north-pole-flow"
-              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg bg-purple-700 px-7 py-3 text-sm font-bold text-white shadow-lg shadow-purple-900/20 transition hover:bg-purple-600"
+              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-green-500 to-yellow-400 px-7 py-3 text-sm font-black text-slate-950 shadow-[0_0_34px_rgba(34,197,94,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_0_44px_rgba(250,204,21,0.28)]"
             >
-              Browse Prizes
+              Enter Prize Rooms
               <ArrowRight className="h-4 w-4" />
             </a>
             <a
               href="#north-pole-how-it-works"
-              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white px-7 py-3 text-sm font-bold text-slate-950 transition hover:border-purple-300 hover:bg-purple-50"
+              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/[0.07] px-7 py-3 text-sm font-bold text-white shadow-[0_0_24px_rgba(124,58,237,0.12)] backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/12"
             >
               <PlayCircle className="h-5 w-5" />
               See How It Works
@@ -2883,51 +2953,57 @@ function NorthPoleLandingHero() {
         </div>
 
         <div className="relative">
-          <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 shadow-2xl shadow-purple-950/20">
-            <img
-              src="/images/north-pole-hero.png"
-              alt="A live prize room showing a player competing in a game for a gaming console prize"
-              loading="eager"
-              decoding="async"
-              className="w-full rounded-3xl object-cover"
-            />
-          </div>
-
-          <div className="mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-2xl bg-white px-1 text-sm text-slate-700">
-            <div className="inline-flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-2 font-semibold text-purple-700">
-              <span className="h-2.5 w-2.5 rounded-full bg-purple-600" />
-              Live Prize Room
+          <div className="absolute -inset-5 rounded-[2.5rem] bg-gradient-to-br from-yellow-200/20 via-purple-400/15 to-cyan-200/15 blur-2xl" />
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/15 bg-white/[0.07] p-3 shadow-[0_28px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+            <ChristmasLightsStrip className="top-1" />
+            <div className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-950">
+              <img
+                src="/images/north-pole-hero.png"
+                alt="A live prize room showing a player competing in a game for a gaming console prize"
+                loading="eager"
+                decoding="async"
+                className="min-h-[300px] w-full object-cover"
+              />
+              <div className="absolute inset-3 rounded-[1.5rem] bg-[radial-gradient(circle_at_20%_12%,rgba(250,204,21,0.18),transparent_26%),linear-gradient(180deg,transparent_52%,rgba(3,7,18,0.72))]" />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
-              <span className="font-semibold">8/8 players</span>
-            </div>
-            <div className="flex items-end gap-1 text-purple-700">
-              {[3, 5, 7, 10].map((height) => (
-                <span key={height} className="w-1.5 rounded-full bg-purple-700" style={{ height }} />
-              ))}
+            <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/15 bg-black/55 p-4 backdrop-blur">
+              <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                <div className="inline-flex items-center gap-2 font-black text-yellow-100">
+                  <span className="h-2.5 w-2.5 rounded-full bg-yellow-200 shadow-[0_0_18px_rgba(250,204,21,0.85)]" />
+                  Live Prize Room
+                </div>
+                <div className="flex items-center gap-2 text-green-100">
+                  <span className="h-2.5 w-2.5 rounded-full bg-green-400 shadow-[0_0_16px_rgba(74,222,128,0.75)]" />
+                  <span className="font-semibold">8/8 players</span>
+                </div>
+                <div className="flex items-end gap-1 text-yellow-100">
+                  {[3, 5, 7, 10].map((height) => (
+                    <span key={height} className="w-1.5 rounded-full bg-gradient-to-t from-purple-400 to-yellow-200" style={{ height }} />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div id="north-pole-how-it-works" className="border-t border-purple-100 bg-gradient-to-b from-purple-50/70 to-white px-4 py-10 sm:px-6 lg:px-8">
+      <div id="north-pole-how-it-works" className="relative z-10 border-t border-white/10 bg-[linear-gradient(180deg,rgba(8,13,31,0.9),rgba(3,7,18,0.96))] px-4 py-10 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <h2 className="mb-6 text-center text-3xl font-black text-black">How it works</h2>
+          <h2 className="mb-6 text-center text-3xl font-black text-white">How it works</h2>
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {howItWorksCards.map((item) => {
               const Icon = item.icon;
               return (
-                <div key={item.number} className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-xl shadow-purple-950/5">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-purple-100 bg-purple-50 text-purple-700">
+                <div key={item.number} className="flex items-center gap-5 rounded-2xl border border-white/10 bg-white/[0.06] p-6 shadow-xl shadow-black/20 backdrop-blur">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-yellow-200/20 bg-yellow-300/10 text-yellow-100">
                     <Icon className="h-9 w-9" />
                   </div>
                   <div className="min-w-0">
                     <div className="mb-2 flex items-center gap-3">
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-700 text-sm font-black text-white">{item.number}</span>
-                      <h3 className="text-base font-black text-black">{item.title}</h3>
+                      <h3 className="text-base font-black text-white">{item.title}</h3>
                     </div>
-                    <p className="text-sm leading-6 text-slate-600">{item.description}</p>
+                    <p className="text-sm leading-6 text-white/62">{item.description}</p>
                   </div>
                 </div>
               );
@@ -4505,60 +4581,63 @@ export default function NorthPole() {
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-black via-purple-950 to-black text-white">
-      <NorthPoleLandingHero />
+    <div className="relative min-h-screen overflow-x-hidden bg-[#02030a] text-white">
+      <WinterWonderlandBackground />
+      <div className="relative z-10">
+        <NorthPoleLandingHero />
 
-      <div id="north-pole-flow" className="mx-auto max-w-6xl p-4 md:p-8">
-        <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
-          <PublicBetaBadge />
-          <Badge className="border border-green-700/30 bg-green-900/40 text-green-300">
-            <ShieldCheck className="mr-1 h-3 w-3" />Persisted matches
-          </Badge>
-          <Badge className="border border-pink-700/30 bg-pink-900/40 text-pink-300">
-            <Heart className="mr-1 h-3 w-3" />The Poles Foundation
-          </Badge>
-          {user && (
-            <Badge className="border border-purple-700/30 bg-purple-900/40 text-purple-300">
-              {user.full_name || user.email}
+        <div id="north-pole-flow" className="mx-auto max-w-6xl p-4 md:p-8">
+          <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
+            <PublicBetaBadge />
+            <Badge className="border border-green-700/30 bg-green-900/40 text-green-300">
+              <ShieldCheck className="mr-1 h-3 w-3" />Persisted matches
             </Badge>
-          )}
-        </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6 w-full border border-purple-700/30 bg-purple-900/40">
-            <TabsTrigger value="build" className="flex-1 text-purple-200 data-[state=active]:bg-purple-700">
-              <Gift className="mr-2 h-4 w-4" />Build a Prize Room
-            </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="admin" className="flex-1 text-purple-200 data-[state=active]:bg-purple-700">
-                <Settings2 className="mr-2 h-4 w-4" />Admin Fulfillment
-              </TabsTrigger>
+            <Badge className="border border-pink-700/30 bg-pink-900/40 text-pink-300">
+              <Heart className="mr-1 h-3 w-3" />The Poles Foundation
+            </Badge>
+            {user && (
+              <Badge className="border border-purple-700/30 bg-purple-900/40 text-purple-300">
+                {user.full_name || user.email}
+              </Badge>
             )}
-          </TabsList>
+          </div>
 
-          <TabsContent value="build">
-            <RealNorthPoleFlow user={user} />
-          </TabsContent>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-6 w-full border border-white/10 bg-black/35 shadow-[0_0_34px_rgba(124,58,237,0.14)] backdrop-blur-xl">
+              <TabsTrigger value="build" className="flex-1 text-purple-100 data-[state=active]:bg-purple-700">
+                <Gift className="mr-2 h-4 w-4" />Build a Prize Room
+              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="admin" className="flex-1 text-purple-100 data-[state=active]:bg-purple-700">
+                  <Settings2 className="mr-2 h-4 w-4" />Admin Fulfillment
+                </TabsTrigger>
+              )}
+            </TabsList>
 
-          {isAdmin && (
-            <TabsContent value="admin">
-              <Card className="border border-purple-700/30 bg-purple-900/20">
-                <CardContent className="p-6">
-                  <div className="mb-6 flex items-center gap-3">
-                    <Trophy className="h-6 w-6 text-yellow-400" />
-                    <h2 className="text-2xl font-bold text-white">Admin Fulfillment</h2>
-                    <Badge className="border border-yellow-700/30 bg-yellow-900/40 text-yellow-300">Owner/Admin only</Badge>
-                  </div>
-                  <AdminDashboard currentUser={user} />
-                </CardContent>
-              </Card>
+            <TabsContent value="build">
+              <RealNorthPoleFlow user={user} />
             </TabsContent>
-          )}
-        </Tabs>
 
-        <div className="mt-8 space-y-1 rounded-xl border border-purple-800/20 bg-black/20 p-4 text-center text-xs text-purple-500">
-          <p><strong>No live payments yet.</strong> Creating or joining a match records intent only.</p>
-          <p>Retailer ordering, affiliate APIs, and fulfillment remain simulated until explicitly implemented.</p>
+            {isAdmin && (
+              <TabsContent value="admin">
+                <Card className="border border-purple-700/30 bg-purple-900/20">
+                  <CardContent className="p-6">
+                    <div className="mb-6 flex items-center gap-3">
+                      <Trophy className="h-6 w-6 text-yellow-400" />
+                      <h2 className="text-2xl font-bold text-white">Admin Fulfillment</h2>
+                      <Badge className="border border-yellow-700/30 bg-yellow-900/40 text-yellow-300">Owner/Admin only</Badge>
+                    </div>
+                    <AdminDashboard currentUser={user} />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
+          </Tabs>
+
+          <div className="mt-8 space-y-1 rounded-xl border border-white/10 bg-black/35 p-4 text-center text-xs text-purple-200/70 backdrop-blur">
+            <p><strong>No live payments yet.</strong> Creating or joining a match records intent only.</p>
+            <p>Retailer ordering, affiliate APIs, and fulfillment remain simulated until explicitly implemented.</p>
+          </div>
         </div>
       </div>
     </div>

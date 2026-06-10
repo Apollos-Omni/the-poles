@@ -181,8 +181,61 @@ button:focus-visible {
     50% { opacity: 0.9; filter: blur(28px); }
   }
 
+  @keyframes northPoleSnowFall {
+    0% { transform: translate3d(0, -16px, 0); }
+    100% { transform: translate3d(22px, 180px, 0); }
+  }
+
+  @keyframes northPoleAuroraDrift {
+    0%, 100% { transform: translate3d(-3%, -2%, 0) rotate(-10deg) scale(1); opacity: 0.62; }
+    50% { transform: translate3d(4%, 3%, 0) rotate(7deg) scale(1.08); opacity: 0.92; }
+  }
+
+  @keyframes northPoleGlowPulse {
+    0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 10px rgba(250,204,21,0.45)); }
+    50% { opacity: 1; filter: drop-shadow(0 0 18px rgba(250,204,21,0.78)); }
+  }
+
+  @keyframes northPoleShimmer {
+    0% { transform: translateX(-130%) skewX(-16deg); opacity: 0; }
+    18% { opacity: 0.75; }
+    55% { opacity: 0; }
+    100% { transform: translateX(170%) skewX(-16deg); opacity: 0; }
+  }
+
   html {
     scroll-behavior: smooth;
+  }
+
+  .north-pole-snowflake {
+    animation-name: northPoleSnowFall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    box-shadow: 0 0 12px rgba(255,255,255,0.5);
+  }
+
+  .north-pole-aurora {
+    animation: northPoleAuroraDrift 18s ease-in-out infinite;
+    mix-blend-mode: screen;
+  }
+
+  .north-pole-light {
+    animation: northPoleGlowPulse 2.4s ease-in-out infinite;
+    box-shadow: 0 0 14px currentColor;
+  }
+
+  .north-pole-lights-strip::before {
+    content: '';
+    position: absolute;
+    left: 1.25rem;
+    right: 1.25rem;
+    top: 0.7rem;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.35), transparent);
+  }
+
+  .north-pole-card-shimmer {
+    animation: northPoleShimmer 5.8s ease-in-out infinite;
   }
 
   #north-pole-flow {
@@ -339,7 +392,11 @@ button:focus-visible {
     #north-pole-flow::before,
     #north-pole-flow::after,
     #north-pole-flow [style*='animation'],
-    #north-pole-flow [class*='animate-'] {
+    #north-pole-flow [class*='animate-'],
+    .north-pole-snowflake,
+    .north-pole-aurora,
+    .north-pole-light,
+    .north-pole-card-shimmer {
       animation: none !important;
     }
 
