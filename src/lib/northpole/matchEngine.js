@@ -437,7 +437,7 @@ export async function createPrizeRoom(payload) {
   return response.room || response.data;
 }
 
-export async function joinPrizeRoom({ roomId, displayName = '', userEmail = '', paymentMode = 'pilot_manual' }) {
+export async function joinPrizeRoom({ roomId, displayName = '', userEmail = '', paymentMode = 'stripe_test' }) {
   const response = await apiRequest(`/api/prize-rooms/${encodeURIComponent(roomId)}/join`, {
     method: 'POST',
     body: {

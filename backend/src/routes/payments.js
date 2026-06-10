@@ -536,25 +536,32 @@ export function createPaymentRouter({ store, env = process.env } = {}) {
     const resolvedContributionId = contribution?.id || contributionId || '';
 
     if (!stripeConfigured(env)) {
-      const payment = await createPrizeRoomPaymentRecord(store, {
-        user_id: user.id,
-        user_email: user.email || '',
-        prize_room_id: resolvedPrizeRoomId,
-        contribution_id: resolvedContributionId,
-        product_id: productId,
-        room_title: roomTitle,
-        amount_cents: amountCents,
-        currency: currency.toUpperCase(),
-        status: 'stripe_not_configured',
-        stripe_payment_status: 'stripe_not_configured',
-        test_mode: true,
-      });
+      let payment = null;
+      let paymentStorageWarning = '';
+      try {
+        payment = await createPrizeRoomPaymentRecord(store, {
+          user_id: user.id,
+          user_email: user.email || '',
+          prize_room_id: resolvedPrizeRoomId,
+          contribution_id: resolvedContributionId,
+          product_id: productId,
+          room_title: roomTitle,
+          amount_cents: amountCents,
+          currency: currency.toUpperCase(),
+          status: 'stripe_not_configured',
+          stripe_payment_status: 'stripe_not_configured',
+          test_mode: true,
+        });
+      } catch {
+        paymentStorageWarning = 'Joined room. Payment pending. Stripe storage needs review.';
+      }
       return ok(res, {
         clientSecret: '',
         paymentIntentId: '',
         payment,
         simulated: true,
         testMode: true,
+        ...(paymentStorageWarning ? { paymentStorageWarning } : {}),
         message: 'Stripe is not configured. Existing pilot/manual flow remains available.',
       });
     }
@@ -592,29 +599,35 @@ export function createPaymentRouter({ store, env = process.env } = {}) {
       },
     });
 
-    const payment = await createPrizeRoomPaymentRecord(store, {
-      user_id: user.id,
-      user_email: user.email || '',
-      prize_room_id: resolvedPrizeRoomId,
-      contribution_id: resolvedContributionId,
-      product_id: productId,
-      room_title: roomTitle,
-      amount_cents: amountCents,
-      currency: currency.toUpperCase(),
-      status: intent.status || 'requires_payment_method',
-      stripe_payment_status: intent.status || '',
-      stripe_payment_intent_id: intent.id,
-      client_secret_last4: String(intent.client_secret || '').slice(-4),
-      metadata: {
-        userId: user.id,
-        prizeRoomId: resolvedPrizeRoomId,
-        productId,
-        roomTitle,
-        paymentPurpose: 'prize_room',
-        testMode: true,
-        autoFulfillPrize: false,
-      },
-    });
+    let payment = null;
+    let paymentStorageWarning = '';
+    try {
+      payment = await createPrizeRoomPaymentRecord(store, {
+        user_id: user.id,
+        user_email: user.email || '',
+        prize_room_id: resolvedPrizeRoomId,
+        contribution_id: resolvedContributionId,
+        product_id: productId,
+        room_title: roomTitle,
+        amount_cents: amountCents,
+        currency: currency.toUpperCase(),
+        status: intent.status || 'requires_payment_method',
+        stripe_payment_status: intent.status || '',
+        stripe_payment_intent_id: intent.id,
+        client_secret_last4: String(intent.client_secret || '').slice(-4),
+        metadata: {
+          userId: user.id,
+          prizeRoomId: resolvedPrizeRoomId,
+          productId,
+          roomTitle,
+          paymentPurpose: 'prize_room',
+          testMode: true,
+          autoFulfillPrize: false,
+        },
+      });
+    } catch {
+      paymentStorageWarning = 'Joined room. Payment pending. Stripe storage needs review.';
+    }
 
     ok(res, {
       clientSecret: intent.client_secret,
@@ -626,6 +639,7 @@ export function createPaymentRouter({ store, env = process.env } = {}) {
       payment,
       simulated: false,
       testMode: true,
+      ...(paymentStorageWarning ? { paymentStorageWarning } : {}),
     });
   }));
 

@@ -100,6 +100,39 @@ function stripePrizeRoomPaymentsReady(paymentConfig = null) {
   );
 }
 
+function stripeReadinessDetails(paymentConfig = null) {
+  const config = paymentConfig || {};
+  return [
+    {
+      label: 'frontend publishable key',
+      ready: Boolean(STRIPE_PUBLISHABLE_KEY),
+      missingText: 'frontend publishable key missing',
+    },
+    {
+      label: 'backend stripe_configured',
+      ready: config.stripe_configured === true,
+      missingText: 'backend stripe_configured false',
+    },
+    {
+      label: 'prize_room_payment_intents_enabled',
+      ready: config.prize_room_payment_intents_enabled === true,
+      missingText: 'prize_room_payment_intents_enabled false',
+    },
+    {
+      label: 'mode',
+      ready: config.mode === 'test',
+      missingText: 'mode not test',
+      value: config.mode || 'unknown',
+    },
+  ];
+}
+
+function stripeReadinessMissingItems(paymentConfig = null) {
+  return stripeReadinessDetails(paymentConfig)
+    .filter((item) => !item.ready)
+    .map((item) => item.missingText);
+}
+
 function trimTrailingSlash(value = '') {
   return String(value || '').replace(/\/$/, '');
 }
@@ -1662,15 +1695,55 @@ function PrizeRoomPaymentForm({ paymentIntent, onConfirmed, onError }) {
   );
 }
 
-function PrizeRoomStripeTestPaymentPanel({ paymentTarget, onConfirmed, onCancel, onError }) {
+function StripePrizeRoomReadinessPanel({ paymentConfig, stripePaymentsReady }) {
+  const readiness = stripeReadinessDetails(paymentConfig);
+  const missingItems = stripeReadinessMissingItems(paymentConfig);
+
+  return (
+    <section className="rounded-2xl border border-yellow-300/25 bg-yellow-500/10 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <Badge className="mb-2 border border-yellow-300/30 bg-yellow-500/20 text-yellow-50">Stripe Test Mode</Badge>
+          <h3 className="text-lg font-black text-white">Prize Room payment readiness</h3>
+        </div>
+        <Badge className={stripePaymentsReady ? 'bg-green-500/20 text-green-100' : 'bg-orange-500/20 text-orange-100'}>
+          {stripePaymentsReady ? 'Ready' : 'Not ready'}
+        </Badge>
+      </div>
+      <div className="mt-3 grid gap-2 text-xs font-semibold text-white/70 sm:grid-cols-2 lg:grid-cols-4">
+        {readiness.map((item) => (
+          <div key={item.label} className="rounded-xl border border-white/10 bg-black/25 p-3">
+            <div className="text-white/45">{item.label}</div>
+            <div className={item.ready ? 'mt-1 text-green-100' : 'mt-1 text-orange-100'}>
+              {item.ready ? (item.value || 'ready') : item.missingText}
+            </div>
+          </div>
+        ))}
+      </div>
+      {!stripePaymentsReady && (
+        <p className="mt-3 text-sm font-semibold text-orange-50">
+          Missing: {missingItems.join('; ')}. Start Stripe Test Payment will remain visible but unavailable until these are fixed.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function PrizeRoomStripeTestPaymentPanel({ paymentTarget, paymentConfig, stripePaymentsReady, onConfirmed, onCancel, onError }) {
   const [paymentIntent, setPaymentIntent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [localMessage, setLocalMessage] = useState('');
   const room = paymentTarget?.room;
   const contribution = paymentTarget?.contribution;
+  const readiness = stripeReadinessDetails(paymentConfig);
+  const missingItems = stripeReadinessMissingItems(paymentConfig);
   if (!room?.id) return null;
 
   const startPayment = async () => {
+    if (!stripePaymentsReady) {
+      setLocalMessage(`Stripe test checkout is not ready: ${missingItems.join('; ')}. Pilot/manual fallback remains available.`);
+      return;
+    }
     setLoading(true);
     setLocalMessage('');
     try {
@@ -1681,9 +1754,10 @@ function PrizeRoomStripeTestPaymentPanel({ paymentTarget, onConfirmed, onCancel,
         roomTitle: room.title || 'Prize Room',
       });
       if (result.simulated || !result.clientSecret) {
-        setLocalMessage(result.message || 'Stripe test keys are missing. The existing pilot/manual flow remains available.');
+        setLocalMessage(result.paymentStorageWarning || result.message || 'Stripe test keys are missing. The existing pilot/manual flow remains available.');
         return;
       }
+      if (result.paymentStorageWarning) setLocalMessage(result.paymentStorageWarning);
       setPaymentIntent(result);
     } catch (error) {
       const message = error.message || 'Could not start Stripe test payment.';
@@ -1707,6 +1781,29 @@ function PrizeRoomStripeTestPaymentPanel({ paymentTarget, onConfirmed, onCancel,
         <Button type="button" onClick={onCancel} variant="outline" className="rounded-xl border-white/15 bg-white/5 text-white hover:bg-white/10">
           Close
         </Button>
+      </div>
+      <div className="mt-3 rounded-xl border border-white/10 bg-black/30 p-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <strong className="text-sm text-white">Stripe readiness</strong>
+          <Badge className={stripePaymentsReady ? 'bg-green-500/20 text-green-100' : 'bg-orange-500/20 text-orange-100'}>
+            {stripePaymentsReady ? 'Ready for test checkout' : 'Not ready'}
+          </Badge>
+        </div>
+        <div className="grid gap-2 text-xs font-semibold text-white/70 sm:grid-cols-2">
+          {readiness.map((item) => (
+            <div key={item.label} className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+              <span>{item.label}{item.value ? `: ${item.value}` : ''}</span>
+              <span className={item.ready ? 'text-green-200' : 'text-orange-200'}>
+                {item.ready ? 'ready' : item.missingText}
+              </span>
+            </div>
+          ))}
+        </div>
+        {!stripePaymentsReady && (
+          <p className="mt-2 text-xs font-semibold text-orange-100">
+            Missing: {missingItems.join('; ')}. Pilot/manual fallback remains available and no prize purchase will run automatically.
+          </p>
+        )}
       </div>
       <div className="mt-3 grid gap-3 text-sm text-white/70 sm:grid-cols-3">
         <div className="rounded-xl border border-white/10 bg-black/25 p-3">
@@ -1734,7 +1831,7 @@ function PrizeRoomStripeTestPaymentPanel({ paymentTarget, onConfirmed, onCancel,
       )}
       <div className="mt-4">
         {!paymentIntent?.clientSecret ? (
-          <Button type="button" onClick={startPayment} disabled={loading || !STRIPE_PUBLISHABLE_KEY} className="rounded-xl bg-green-600 font-black text-white hover:bg-green-500">
+          <Button type="button" onClick={startPayment} disabled={loading || !stripePaymentsReady} className="rounded-xl bg-green-600 font-black text-white hover:bg-green-500 disabled:cursor-not-allowed disabled:bg-green-900/50 disabled:text-white/45">
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
             Start Stripe Test Payment
           </Button>
@@ -2370,7 +2467,7 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
         roomId: roomToJoin.id,
         displayName: user.full_name || user.name || user.email || 'Pilot Player',
         userEmail: user.email || '',
-        paymentMode: stripePaymentsReady ? 'stripe_test' : 'pilot_manual',
+        paymentMode: 'stripe_test',
       });
       const updatedRoom = result.room || roomToJoin;
       const contribution = result.contribution || null;
@@ -2384,10 +2481,10 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
       openPrizeRoom(updatedRoom);
       setUsingDemoFallback(false);
       onJoined(updatedRoom);
-      if (stripePaymentsReady) setPaymentTarget({ room: updatedRoom, contribution });
-      const message = stripePaymentsReady
+      setPaymentTarget({ room: updatedRoom, contribution });
+      const message = stripePaymentsReady && !result.paymentStorageWarning
         ? 'Joined Prize Room in Stripe Test Mode. Confirm the test payment to mark participation paid.'
-        : 'Joined Prize Room. Pilot contribution was marked for family testing; no real charge was made.';
+        : 'Joined room. Payment pending. Stripe storage needs review.';
       setLocalMessage(message);
       onMessage(message);
       await loadRooms();
@@ -2455,6 +2552,7 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
       });
       onCreated(room);
       openPrizeRoom(room);
+      setPaymentTarget({ room, contribution: null });
       await loadRooms();
       onMessage('Custom Prize Room created in pilot/manual mode.');
     } catch (err) {
@@ -2550,6 +2648,8 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
+        <StripePrizeRoomReadinessPanel paymentConfig={paymentConfig} stripePaymentsReady={stripePaymentsReady} />
+
         {(localError || localMessage || usingDemoFallback) && (
           <div className="space-y-2">
             {localError && (
@@ -2570,6 +2670,8 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
         {paymentTarget && (
           <PrizeRoomStripeTestPaymentPanel
             paymentTarget={paymentTarget}
+            paymentConfig={paymentConfig}
+            stripePaymentsReady={stripePaymentsReady}
             onCancel={() => setPaymentTarget(null)}
             onError={onError}
             onConfirmed={async (room) => {
@@ -2675,7 +2777,7 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
                 onRoomCreated={(room) => {
                   setRooms((prev) => [room, ...prev.filter((row) => row.id !== room.id)]);
                   openPrizeRoom(room);
-                  if (stripePaymentsReady) setPaymentTarget({ room, contribution: null });
+                  setPaymentTarget({ room, contribution: null });
                   onCreated(room);
                 }}
                 onError={onError}

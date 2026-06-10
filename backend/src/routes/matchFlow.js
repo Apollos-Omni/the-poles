@@ -3497,7 +3497,7 @@ export function createMatchFlowRouter({ store }) {
       return res.status(400).json({ success: false, error: 'Prize Room is already full' });
     }
 
-    const paymentMode = input.paymentMode || input.payment_mode || room.payment_mode || 'pilot_manual';
+    const paymentMode = input.paymentMode || input.payment_mode || room.payment_mode || 'stripe_test';
     const contribution = await store.create('player_contributions', {
       room_id: room.id,
       match_id: room.match_id || '',
@@ -3506,11 +3506,12 @@ export function createMatchFlowRouter({ store }) {
       display_name: input.displayName || input.display_name || profileName(user),
       amount_cents: room.cost_breakdown?.per_player_contribution_cents || 0,
       currency: room.cost_breakdown?.currency || 'USD',
-      status: paymentMode === 'pilot_manual' ? 'marked_paid' : 'pending',
+      status: 'pending',
+      payment_status: 'pending',
       payment_mode: paymentMode,
-      payment_provider: paymentMode === 'pilot_manual' ? 'manual_pilot' : 'stripe_test',
-      payment_reference: paymentMode === 'pilot_manual' ? `PILOT-${Date.now().toString(36).toUpperCase()}` : '',
-      paid_at: paymentMode === 'pilot_manual' ? now() : null,
+      payment_provider: paymentMode === 'pilot_manual' ? 'manual_pilot' : 'stripe',
+      payment_reference: '',
+      paid_at: null,
     });
     await store.create('prize_room_ledger_entries', {
       room_id: room.id,
@@ -3522,6 +3523,11 @@ export function createMatchFlowRouter({ store }) {
       status: contribution.status,
     }).catch(() => null);
     const updatedRoom = await syncRoomStatusFromContributions(store, room);
+    let paymentStorageWarning = '';
+    await store.list('prize_room_payments', {}, { limit: 1 }).catch(() => {
+      paymentStorageWarning = 'Joined room. Payment pending. Stripe storage needs review.';
+      return [];
+    });
     await createAuditEvent(store, {
       entityType: 'PrizeRoom',
       entityId: room.id,
@@ -3529,8 +3535,17 @@ export function createMatchFlowRouter({ store }) {
       userId: user.id,
       action: 'PRIZE_ROOM_JOINED',
       metadata: { contributionId: contribution.id, paymentMode, status: contribution.status, autoCharge: false },
+    }).catch(() => null);
+    ok(res, {
+      room: updatedRoom,
+      contribution,
+      ...(paymentStorageWarning ? { paymentStorageWarning } : {}),
+      data: {
+        room: updatedRoom,
+        contribution,
+        ...(paymentStorageWarning ? { paymentStorageWarning } : {}),
+      },
     });
-    ok(res, { room: updatedRoom, contribution, data: { room: updatedRoom, contribution } });
   }));
 
   router.post('/admin/prize-rooms/:roomId/contributions/:contributionId/mark-paid', asyncHandler(async (req, res) => {
