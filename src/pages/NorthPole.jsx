@@ -40,6 +40,7 @@ import {
   Share2,
   ExternalLink,
   Snowflake,
+  UserCircle,
 } from 'lucide-react';
 import AdminDashboard from '@/components/northpole/AdminDashboard';
 import SkillCompetitionAgreement from '@/components/northpole/SkillCompetitionAgreement';
@@ -577,6 +578,186 @@ const FRONTEND_DEMO_PRIZE_ROOMS = [
     cost_breakdown: calculatePrizeRoomBreakdown({ priceCents: 2000, players: 2 }),
     contributions: [],
   },
+  {
+    id: 'frontend-demo-ps5-console',
+    title: 'PlayStation 5 Console Showdown',
+    description: 'Test Mode Room: a premium console prize room built for competitive game night.',
+    room_type: 'platform_supported',
+    game_id: 'fortnite-console-showdown',
+    game_title: 'Fortnite',
+    game_image: defaultPrizeRoomGameImage('Fortnite'),
+    game_platform: 'PlayStation / Xbox / PC',
+    game_description: 'Players compete under the agreed score format and submit proof after the match.',
+    prize_id: 'playstation-5-console-demo',
+    prize_title: 'PlayStation 5 Slim Console',
+    prize_image: defaultPrizeRoomPrizeImage('PlayStation 5 Slim Console'),
+    prize_source: 'pilot_demo',
+    prize_type: 'Gaming Console',
+    prize_url: '',
+    min_players: 4,
+    max_players: 10,
+    player_ids: ['pilot-player-1', 'pilot-player-2', 'pilot-player-3', 'pilot-player-4', 'pilot-player-5', 'pilot-player-6'],
+    status: 'open',
+    winning_rule: 'Highest verified match score wins',
+    verification_method: 'Scoreboard screenshot or match proof URL',
+    foundation_rate: 0.1,
+    is_featured: true,
+    family_friendly: true,
+    payment_mode: 'pilot_manual',
+    is_frontend_demo: true,
+    cost_breakdown: calculatePrizeRoomBreakdown({ priceCents: 44900, players: 10 }),
+    contributions: [],
+  },
+  {
+    id: 'frontend-demo-airpods',
+    title: 'AirPods Pro Prize Arena',
+    description: 'Test Mode Room: compete for premium Apple earbuds in a fast skill challenge.',
+    room_type: 'platform_supported',
+    game_id: 'rocket-league-airpods',
+    game_title: 'Rocket League',
+    game_image: defaultPrizeRoomGameImage('Rocket League'),
+    game_platform: 'Console / PC',
+    game_description: 'Best verified match result wins after the agreed match count.',
+    prize_id: 'apple-airpods-pro-demo',
+    prize_title: 'Apple AirPods Pro',
+    prize_image: defaultPrizeRoomPrizeImage('Apple AirPods Pro'),
+    prize_source: 'pilot_demo',
+    prize_type: 'Apple & Tech',
+    prize_url: '',
+    min_players: 2,
+    max_players: 8,
+    player_ids: ['pilot-player-1', 'pilot-player-2', 'pilot-player-3'],
+    status: 'open',
+    winning_rule: 'Best verified match result wins',
+    verification_method: 'Screenshot or replay proof URL',
+    foundation_rate: 0.1,
+    is_featured: true,
+    family_friendly: true,
+    payment_mode: 'pilot_manual',
+    is_frontend_demo: true,
+    cost_breakdown: calculatePrizeRoomBreakdown({ priceCents: 24900, players: 8 }),
+    contributions: [],
+  },
+  {
+    id: 'frontend-demo-lego-star-wars',
+    title: 'LEGO Star Wars Builder Battle',
+    description: 'Test Mode Room: family-friendly competition for a collectible LEGO set.',
+    room_type: 'platform_supported',
+    game_id: 'minecraft-lego-builder',
+    game_title: 'Minecraft',
+    game_image: defaultPrizeRoomGameImage('Minecraft'),
+    game_platform: 'Console / PC / Mobile',
+    game_description: 'Creative build challenge with final screenshot proof.',
+    prize_id: 'lego-star-wars-demo',
+    prize_title: 'LEGO Star Wars Set',
+    prize_image: defaultPrizeRoomPrizeImage('LEGO Star Wars Set'),
+    prize_source: 'pilot_demo',
+    prize_type: 'LEGO & Collectibles',
+    prize_url: '',
+    min_players: 3,
+    max_players: 8,
+    player_ids: ['pilot-player-1', 'pilot-player-2', 'pilot-player-3', 'pilot-player-4'],
+    status: 'open',
+    winning_rule: 'Best reviewed build wins',
+    verification_method: 'Build screenshot or video proof',
+    foundation_rate: 0.1,
+    is_featured: true,
+    family_friendly: true,
+    payment_mode: 'pilot_manual',
+    is_frontend_demo: true,
+    cost_breakdown: calculatePrizeRoomBreakdown({ priceCents: 12900, players: 8 }),
+    contributions: [],
+  },
+  {
+    id: 'frontend-demo-dji-drone',
+    title: 'DJI Drone Flight Challenge',
+    description: 'Test Mode Room: outdoor skill challenge with a compact drone prize.',
+    room_type: 'platform_supported',
+    game_id: 'forza-drone-challenge',
+    game_title: 'Forza Horizon',
+    game_image: defaultPrizeRoomGameImage('Forza Horizon'),
+    game_platform: 'Xbox / PC',
+    game_description: 'Fastest verified route or highest skill score wins.',
+    prize_id: 'dji-mini-drone-demo',
+    prize_title: 'DJI Mini Drone',
+    prize_image: defaultPrizeRoomPrizeImage('DJI Mini Drone'),
+    prize_source: 'pilot_demo',
+    prize_type: 'Outdoor & Tech',
+    prize_url: '',
+    min_players: 4,
+    max_players: 10,
+    player_ids: ['pilot-player-1', 'pilot-player-2'],
+    status: 'open',
+    winning_rule: 'Best verified challenge score wins',
+    verification_method: 'Screenshot or replay proof URL',
+    foundation_rate: 0.1,
+    is_featured: true,
+    family_friendly: false,
+    payment_mode: 'pilot_manual',
+    is_frontend_demo: true,
+    cost_breakdown: calculatePrizeRoomBreakdown({ priceCents: 29900, players: 10 }),
+    contributions: [],
+  },
+  {
+    id: 'frontend-demo-sneakers',
+    title: 'Sneaker Prize Match',
+    description: 'Test Mode Room: a style-forward prize room with a recognizable sneaker reward.',
+    room_type: 'platform_supported',
+    game_id: 'nba-2k-sneaker-match',
+    game_title: 'NBA 2K',
+    game_image: defaultPrizeRoomGameImage('NBA 2K'),
+    game_platform: 'PlayStation / Xbox / PC',
+    game_description: 'Head-to-head match with final scoreboard proof.',
+    prize_id: 'nike-sneakers-demo',
+    prize_title: 'Nike Sneakers',
+    prize_image: defaultPrizeRoomPrizeImage('Nike Sneakers'),
+    prize_source: 'pilot_demo',
+    prize_type: 'Sneakers',
+    prize_url: '',
+    min_players: 2,
+    max_players: 6,
+    player_ids: ['pilot-player-1'],
+    status: 'open',
+    winning_rule: 'Highest final score wins',
+    verification_method: 'Final scoreboard proof',
+    foundation_rate: 0.1,
+    is_featured: false,
+    family_friendly: true,
+    payment_mode: 'pilot_manual',
+    is_frontend_demo: true,
+    cost_breakdown: calculatePrizeRoomBreakdown({ priceCents: 15000, players: 6 }),
+    contributions: [],
+  },
+  {
+    id: 'frontend-demo-monitor',
+    title: 'Gaming Monitor Room',
+    description: 'Test Mode Room: compete for a clean gaming setup upgrade.',
+    room_type: 'platform_supported',
+    game_id: 'valorant-monitor-match',
+    game_title: 'Valorant',
+    game_image: defaultPrizeRoomGameImage('Valorant'),
+    game_platform: 'PC',
+    game_description: 'Best verified performance from the agreed match format wins.',
+    prize_id: 'gaming-monitor-demo',
+    prize_title: 'Gaming Monitor',
+    prize_image: defaultPrizeRoomPrizeImage('Gaming Monitor'),
+    prize_source: 'pilot_demo',
+    prize_type: 'Gaming Gear',
+    prize_url: '',
+    min_players: 4,
+    max_players: 12,
+    player_ids: ['pilot-player-1', 'pilot-player-2', 'pilot-player-3', 'pilot-player-4', 'pilot-player-5'],
+    status: 'open',
+    winning_rule: 'Best verified performance wins',
+    verification_method: 'Scoreboard screenshot or match proof URL',
+    foundation_rate: 0.1,
+    is_featured: true,
+    family_friendly: false,
+    payment_mode: 'pilot_manual',
+    is_frontend_demo: true,
+    cost_breakdown: calculatePrizeRoomBreakdown({ priceCents: 19900, players: 12 }),
+    contributions: [],
+  },
 ];
 
 const PRIZE_ROOM_FILTERS = [
@@ -810,37 +991,294 @@ function SnowfallLayer({ density = 42, className = '' }) {
   );
 }
 
-function ChristmasLightsStrip({ className = '' }) {
+const SNOWFALL_PRESETS = {
+  calm: { label: 'Calm', particles: 72, speed: 0.62, accumulation: 0.45 },
+  normal: { label: 'Normal', particles: 118, speed: 1, accumulation: 0.9 },
+  blizzard: { label: 'Blizzard', particles: 176, speed: 1.55, accumulation: 1.45 },
+};
+
+function SnowCanvas({ mode = 'normal' }) {
+  const canvasRef = useRef(null);
+  const accumulationRef = useRef(null);
+  const pointerRef = useRef(null);
+  const rafRef = useRef(null);
+  const particlesRef = useRef([]);
+  const preset = SNOWFALL_PRESETS[mode] || SNOWFALL_PRESETS.normal;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+
+    const ctx = canvas.getContext('2d');
+    const accumulationCanvas = document.createElement('canvas');
+    const accumulationCtx = accumulationCanvas.getContext('2d');
+    accumulationRef.current = accumulationCanvas;
+
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    let width = 0;
+    let height = 0;
+    let lastTime = performance.now();
+    let running = true;
+
+    const particleCount = () => {
+      const mobileScale = window.innerWidth < 768 ? 0.55 : 1;
+      const motionScale = reducedMotion ? 0.28 : 1;
+      return Math.max(24, Math.floor(preset.particles * mobileScale * motionScale));
+    };
+
+    const makeParticle = (startAbove = false) => ({
+      x: Math.random() * width,
+      y: startAbove ? -Math.random() * height : Math.random() * height,
+      radius: 0.8 + Math.random() * 2.4,
+      speed: (0.28 + Math.random() * 0.82) * preset.speed * (reducedMotion ? 0.35 : 1),
+      drift: -0.22 + Math.random() * 0.44,
+      opacity: 0.35 + Math.random() * 0.55,
+    });
+
+    const seedAccumulation = () => {
+      accumulationCtx.clearRect(0, 0, width, height);
+      const base = accumulationCtx.createLinearGradient(0, height - 150, 0, height);
+      base.addColorStop(0, 'rgba(255,255,255,0)');
+      base.addColorStop(0.5, 'rgba(219,234,254,0.32)');
+      base.addColorStop(1, 'rgba(255,255,255,0.78)');
+      accumulationCtx.fillStyle = base;
+      accumulationCtx.beginPath();
+      accumulationCtx.moveTo(0, height);
+      for (let x = 0; x <= width; x += 44) {
+        const crest = height - 32 - Math.sin(x * 0.012) * 16 - Math.cos(x * 0.027) * 10;
+        accumulationCtx.lineTo(x, crest);
+      }
+      accumulationCtx.lineTo(width, height);
+      accumulationCtx.closePath();
+      accumulationCtx.fill();
+    };
+
+    const resize = () => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      accumulationCanvas.width = Math.floor(width * dpr);
+      accumulationCanvas.height = Math.floor(height * dpr);
+      accumulationCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      seedAccumulation();
+      particlesRef.current = Array.from({ length: particleCount() }, () => makeParticle());
+    };
+
+    const addSnowToDrift = (particle) => {
+      if (Math.random() > 0.32 * preset.accumulation) return;
+      const y = height - 28 - Math.random() * 74;
+      accumulationCtx.save();
+      accumulationCtx.globalAlpha = 0.05 + Math.random() * 0.07;
+      accumulationCtx.fillStyle = '#ffffff';
+      accumulationCtx.beginPath();
+      accumulationCtx.ellipse(particle.x, y, 8 + Math.random() * 18, 2 + Math.random() * 5, 0, 0, Math.PI * 2);
+      accumulationCtx.fill();
+      accumulationCtx.restore();
+    };
+
+    const clearSnowAtPointer = () => {
+      const pointer = pointerRef.current;
+      if (!pointer) return;
+      const age = performance.now() - pointer.time;
+      if (age > 420) return;
+      const radius = pointer.radius;
+      const gradient = accumulationCtx.createRadialGradient(pointer.x, pointer.y, 0, pointer.x, pointer.y, radius);
+      gradient.addColorStop(0, 'rgba(0,0,0,0.95)');
+      gradient.addColorStop(0.55, 'rgba(0,0,0,0.45)');
+      gradient.addColorStop(1, 'rgba(0,0,0,0)');
+      accumulationCtx.save();
+      accumulationCtx.globalCompositeOperation = 'destination-out';
+      accumulationCtx.fillStyle = gradient;
+      accumulationCtx.beginPath();
+      accumulationCtx.arc(pointer.x, pointer.y, radius, 0, Math.PI * 2);
+      accumulationCtx.fill();
+      accumulationCtx.restore();
+    };
+
+    const draw = (now) => {
+      if (!running) return;
+      const delta = Math.min(32, now - lastTime);
+      lastTime = now;
+      ctx.clearRect(0, 0, width, height);
+
+      clearSnowAtPointer();
+
+      const particles = particlesRef.current;
+      ctx.save();
+      particles.forEach((particle) => {
+        particle.y += particle.speed * delta * 0.06;
+        particle.x += particle.drift * delta * 0.06;
+        if (particle.y > height + 10) {
+          addSnowToDrift(particle);
+          Object.assign(particle, makeParticle(true), { y: -12 });
+        }
+        if (particle.x < -20) particle.x = width + 20;
+        if (particle.x > width + 20) particle.x = -20;
+
+        ctx.globalAlpha = particle.opacity;
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(255,255,255,0.7)';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.restore();
+
+      ctx.globalAlpha = 1;
+      ctx.drawImage(accumulationCanvas, 0, 0, width, height);
+      rafRef.current = window.requestAnimationFrame(draw);
+    };
+
+    const handlePointerMove = (event) => {
+      pointerRef.current = {
+        x: event.clientX,
+        y: event.clientY,
+        radius: event.pointerType === 'touch' ? 92 : 68,
+        time: performance.now(),
+      };
+    };
+
+    resize();
+    window.addEventListener('resize', resize);
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    rafRef.current = window.requestAnimationFrame(draw);
+
+    return () => {
+      running = false;
+      if (rafRef.current) window.cancelAnimationFrame(rafRef.current);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('pointermove', handlePointerMove);
+    };
+  }, [preset.accumulation, preset.particles, preset.speed]);
+
+  return <canvas ref={canvasRef} className="north-pole-snow-canvas pointer-events-none fixed inset-0 z-[3]" aria-hidden="true" />;
+}
+
+function NorthPoleLivingBackground({ snowfallMode = 'normal' }) {
   return (
-    <div className={`north-pole-lights-strip pointer-events-none absolute inset-x-0 top-0 z-20 flex h-9 items-start justify-center gap-2 overflow-hidden px-5 ${className}`}>
-      {Array.from({ length: 28 }).map((_, index) => (
-        <span
-          key={index}
-          className={`north-pole-light mt-2 h-2.5 w-2.5 rounded-full ${
-            index % 4 === 0
-              ? 'bg-red-400'
-              : index % 4 === 1
-                ? 'bg-yellow-200'
-                : index % 4 === 2
-                  ? 'bg-emerald-300'
-                  : 'bg-cyan-200'
+    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,#03040d_0%,#08051c_28%,#111827_58%,#05060d_100%)]" />
+      <img
+        src="/images/welcome_to_the_north_pole.png"
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full object-cover object-top opacity-35 saturate-125"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.26)_0%,rgba(3,7,18,0.38)_42%,rgba(2,6,23,0.86)_100%)]" />
+      <div className="absolute inset-0 opacity-55 [background-image:radial-gradient(circle_at_12%_18%,rgba(255,255,255,0.75)_0_1px,transparent_1.4px),radial-gradient(circle_at_78%_22%,rgba(255,255,255,0.58)_0_1px,transparent_1.5px),radial-gradient(circle_at_42%_12%,rgba(186,230,253,0.62)_0_1px,transparent_1.5px),radial-gradient(circle_at_64%_36%,rgba(255,255,255,0.46)_0_1px,transparent_1.2px)] [background-size:170px_130px,230px_170px,280px_210px,190px_160px]" />
+      <div className="north-pole-star absolute left-[12%] top-[18%] h-1 w-1 rounded-full bg-white/80" />
+      <div className="north-pole-star absolute left-[71%] top-[14%] h-1.5 w-1.5 rounded-full bg-cyan-100/80 [animation-delay:-1.4s]" />
+      <div className="north-pole-star absolute left-[46%] top-[31%] h-1 w-1 rounded-full bg-yellow-100/75 [animation-delay:-2.3s]" />
+
+      <div className="north-pole-aurora-ribbon absolute -left-[18%] top-[3%] h-56 w-[78rem] rotate-[-10deg] rounded-[999px] bg-[linear-gradient(90deg,transparent,rgba(16,185,129,0.06),rgba(45,212,191,0.34),rgba(125,211,252,0.18),transparent)] blur-2xl" />
+      <div className="north-pole-aurora-ribbon absolute left-[5%] top-[12%] h-48 w-[70rem] rotate-[7deg] rounded-[999px] bg-[linear-gradient(90deg,transparent,rgba(168,85,247,0.08),rgba(34,211,238,0.26),rgba(52,211,153,0.24),transparent)] blur-3xl [animation-delay:-5s]" />
+      <div className="north-pole-aurora-ribbon absolute right-[-28%] top-[24%] h-64 w-[72rem] rotate-[-6deg] rounded-[999px] bg-[linear-gradient(90deg,transparent,rgba(99,102,241,0.1),rgba(192,132,252,0.28),rgba(250,204,21,0.12),transparent)] blur-3xl [animation-delay:-9s]" />
+
+      <div className="absolute right-[-8rem] top-[18%] h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(circle,rgba(250,204,21,0.28),rgba(234,88,12,0.12)_35%,transparent_68%)] blur-3xl" />
+      <div className="absolute right-[8%] top-[19%] hidden h-28 w-44 rounded-full bg-yellow-200/20 blur-3xl lg:block" />
+      <div className="absolute inset-x-0 bottom-0 h-48 bg-[linear-gradient(180deg,transparent,rgba(15,23,42,0.18)_25%,rgba(239,246,255,0.18)_72%,rgba(255,255,255,0.28))]" />
+      <div className="north-pole-snowdrift absolute inset-x-[-8%] bottom-[-4rem] h-36 rounded-[50%_50%_0_0] bg-[radial-gradient(ellipse_at_18%_0%,rgba(255,255,255,0.8),transparent_34%),radial-gradient(ellipse_at_76%_14%,rgba(219,234,254,0.72),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.52),rgba(191,219,254,0.26))]" />
+      <SnowCanvas mode={snowfallMode} />
+    </div>
+  );
+}
+
+function SnowfallControl({ value, onChange }) {
+  return (
+    <div className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-black/35 p-0.5 text-[11px] text-white/70 shadow-[0_12px_40px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+      <span className="hidden px-1.5 font-black uppercase tracking-wide text-cyan-100 sm:inline">Snow</span>
+      {Object.entries(SNOWFALL_PRESETS).map(([key, preset]) => (
+        <button
+          key={key}
+          type="button"
+          onClick={() => onChange(key)}
+          className={`rounded-lg px-2 py-1.5 font-black transition ${
+            value === key
+              ? 'bg-cyan-300 text-slate-950 shadow-[0_0_24px_rgba(103,232,249,0.28)]'
+              : 'text-white/68 hover:bg-white/10 hover:text-white'
           }`}
-          style={{ animationDelay: `${index * 0.09}s` }}
-        />
+        >
+          {preset.label}
+        </button>
       ))}
     </div>
   );
 }
 
-function WinterWonderlandBackground() {
+function NorthPoleAccountMenu({ user, isAdmin, onNavigate, onSignOut }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+  const displayName = user?.full_name || user?.name || user?.email || 'Guest';
+  const email = user?.email || '';
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleClick = (event) => {
+      if (!menuRef.current?.contains(event.target)) setOpen(false);
+    };
+    window.addEventListener('mousedown', handleClick);
+    window.addEventListener('touchstart', handleClick, { passive: true });
+    return () => {
+      window.removeEventListener('mousedown', handleClick);
+      window.removeEventListener('touchstart', handleClick);
+    };
+  }, [open]);
+
+  const choose = (tab) => {
+    setOpen(false);
+    onNavigate(tab);
+  };
+
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,#02030a_0%,#09051b_34%,#101827_68%,#030307_100%)]" />
-      <div className="north-pole-aurora absolute -left-24 top-10 h-72 w-[42rem] rotate-[-12deg] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(34,211,238,0.38),rgba(168,85,247,0.2)_35%,transparent_70%)] blur-3xl" />
-      <div className="north-pole-aurora absolute right-[-10rem] top-28 h-80 w-[46rem] rotate-[10deg] rounded-full bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.24),rgba(250,204,21,0.16)_32%,transparent_70%)] blur-3xl [animation-delay:-5s]" />
-      <div className="absolute left-1/2 top-28 h-72 w-72 -translate-x-1/2 rounded-full bg-yellow-200/10 blur-3xl" />
-      <div className="absolute bottom-0 left-0 right-0 h-72 bg-[radial-gradient(ellipse_at_bottom,rgba(255,255,255,0.16),transparent_62%)]" />
-      <SnowfallLayer density={86} />
+    <div ref={menuRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/15 bg-black/40 text-white shadow-[0_12px_34px_rgba(0,0,0,0.25)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/10"
+        aria-label="Open account menu"
+        aria-expanded={open}
+      >
+        <UserCircle className="h-5 w-5 text-yellow-100" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-12 z-[60] w-72 overflow-hidden rounded-2xl border border-white/12 bg-slate-950/94 text-white shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+          <div className="border-b border-white/10 p-4">
+            <div className="truncate text-sm font-black">{displayName}</div>
+            {email && <div className="mt-1 truncate text-xs text-white/55">{email}</div>}
+          </div>
+          <div className="p-2">
+            <button type="button" onClick={() => choose('my')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-white/82 hover:bg-white/10">
+              <Gamepad2 className="h-4 w-4 text-cyan-200" /> My Rooms
+            </button>
+            <button type="button" onClick={() => choose('create')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-white/82 hover:bg-white/10">
+              <Plus className="h-4 w-4 text-green-200" /> Create Room
+            </button>
+            <button type="button" onClick={() => choose('how')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-white/82 hover:bg-white/10">
+              <PlayCircle className="h-4 w-4 text-purple-200" /> How It Works
+            </button>
+            <a href="/Profile" className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-white/82 hover:bg-white/10">
+              <Settings2 className="h-4 w-4 text-yellow-100" /> Account / Profile
+            </a>
+            {isAdmin && (
+              <button type="button" onClick={() => choose('admin')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-yellow-100 hover:bg-yellow-500/10">
+                <ShieldCheck className="h-4 w-4" /> Admin
+              </button>
+            )}
+          </div>
+          <div className="border-t border-white/10 p-2">
+            <button type="button" onClick={onSignOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-white/72 hover:bg-white/10">
+              <DoorOpen className="h-4 w-4" /> Sign out
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -861,8 +1299,6 @@ function PrizeRoomHolidayFrame({ children, active = false }) {
         ? 'bg-gradient-to-br from-yellow-200/80 via-purple-300/45 to-cyan-200/45 shadow-[0_0_44px_rgba(250,204,21,0.2)]'
         : 'bg-gradient-to-br from-white/12 via-purple-300/10 to-yellow-200/12 hover:from-yellow-200/70 hover:via-purple-300/35 hover:to-cyan-200/35 hover:shadow-[0_0_42px_rgba(250,204,21,0.18)]'
     }`}>
-      <div className="pointer-events-none absolute left-5 right-5 top-0 z-20 h-3 rounded-b-[999px] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(219,234,254,0.7),transparent)] shadow-[0_8px_18px_rgba(255,255,255,0.14)]" />
-      <div className="pointer-events-none absolute inset-x-5 top-3 z-20 h-px bg-gradient-to-r from-transparent via-yellow-100/70 to-transparent opacity-70" />
       <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[1.35rem]">
         <div className="north-pole-card-shimmer absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-white/12 to-transparent" />
       </div>
@@ -874,7 +1310,6 @@ function PrizeRoomHolidayFrame({ children, active = false }) {
 function PrizeRoomHolidayDecor() {
   return (
     <>
-      <ChristmasLightsStrip />
       <SnowfallLayer density={34} />
     </>
   );
@@ -976,7 +1411,6 @@ function PrizeRoomDetailCard({ label, value, tone = 'default' }) {
 
 function PrizeRoomCard({ room, isOpen, onOpen, onJoin, onShare, joining }) {
   const playerCount = prizeRoomPlayerCount(room);
-  const spotsRemaining = Math.max(0, Number(room.max_players || 0) - playerCount);
   const canJoin = ['open', 'awaiting_contributions'].includes(room.status);
   const fallbackPrizeImage = defaultPrizeRoomPrizeImage(room.prize_title);
   const fallbackGameImage = defaultPrizeRoomGameImage(room.game_title);
@@ -989,7 +1423,7 @@ function PrizeRoomCard({ room, isOpen, onOpen, onJoin, onShare, joining }) {
       }`}>
         <CardContent className="p-2.5">
           <button type="button" onClick={onOpen} className="block w-full text-left">
-            <div className="relative h-[140px] overflow-hidden rounded-xl bg-white sm:h-[132px] md:h-[145px]">
+            <div className="relative h-[136px] overflow-hidden rounded-xl bg-white sm:h-[132px] md:h-[140px]">
               <PrizeRoomHeroImage
                 prizeImage={displayPrizeImage}
                 prizeTitle={room.prize_title}
@@ -1001,13 +1435,10 @@ function PrizeRoomCard({ room, isOpen, onOpen, onJoin, onShare, joining }) {
               />
             </div>
           </button>
-          <div className="space-y-2.5 px-0.5 pt-3">
-            <div className="flex flex-wrap items-center gap-2">
+          <div className="space-y-2 px-0.5 pt-2.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               <Badge className={`${room.is_frontend_demo ? 'bg-yellow-500/20 text-yellow-100' : 'bg-purple-600/20 text-purple-100'} text-[10px]`}>
                 {prizeRoomTypeLabel(room)}
-              </Badge>
-              <Badge className="border border-white/10 bg-white/10 text-[10px] text-white/75">
-                <Snowflake className="mr-1 h-3 w-3" /> Prize Room
               </Badge>
             </div>
             <button type="button" onClick={onOpen} className="block w-full text-left">
@@ -1023,20 +1454,13 @@ function PrizeRoomCard({ room, isOpen, onOpen, onJoin, onShare, joining }) {
                 <span className="text-white/55">Players</span>
                 <strong className="text-white">{playerCount} / {room.max_players}</strong>
               </div>
-              <div className="flex justify-between gap-3">
-                <span className="text-white/55">Spots remaining</span>
-                <strong className="text-yellow-100">{spotsRemaining}</strong>
-              </div>
             </div>
-            <div className="grid grid-cols-3 gap-1.5">
-              <Button onClick={onOpen} variant="outline" className="h-8 rounded-lg border-white/15 bg-white/5 px-1.5 text-[11px] text-white shadow-[0_0_18px_rgba(255,255,255,0.04)] hover:-translate-y-0.5 hover:bg-white/10">
-                Open
-              </Button>
+            <div className="grid grid-cols-2 gap-1.5">
               <Button onClick={onJoin} disabled={joining || !canJoin} className="h-8 rounded-lg bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-400 px-1.5 text-[11px] font-black text-white shadow-[0_0_18px_rgba(34,197,94,0.22)] hover:-translate-y-0.5 hover:shadow-[0_0_26px_rgba(34,197,94,0.3)] disabled:bg-slate-700">
                 {joining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Join'}
               </Button>
-              <Button onClick={onShare} variant="outline" className="h-8 rounded-lg border-yellow-300/35 bg-gradient-to-r from-yellow-500/15 to-purple-500/15 px-1.5 text-[11px] font-black text-yellow-50 shadow-[0_0_16px_rgba(250,204,21,0.1)] hover:-translate-y-0.5 hover:bg-yellow-500/25">
-                Promote
+              <Button onClick={onOpen} variant="outline" className="h-8 rounded-lg border-white/15 bg-white/5 px-1.5 text-[11px] text-white shadow-[0_0_18px_rgba(255,255,255,0.04)] hover:-translate-y-0.5 hover:bg-white/10">
+                Details
               </Button>
             </div>
           </div>
@@ -1177,6 +1601,40 @@ function roomLooksLikeBoardGame(room = {}) {
   return /board|chess|uno|family|lego|art|game night/.test(roomTextForClassification(room));
 }
 
+function roomLooksLikeAppleTech(room = {}) {
+  return /apple|iphone|ipad|airpods|macbook|watch|beats/.test(roomTextForClassification(room));
+}
+
+function roomLooksLikeConsole(room = {}) {
+  return /playstation|ps5|xbox|nintendo|switch|console|steam deck/.test(roomTextForClassification(room));
+}
+
+function roomLooksLikeCollectible(room = {}) {
+  return /lego|collectible|pokemon|star wars|marvel|funko|trading card/.test(roomTextForClassification(room));
+}
+
+function roomLooksLikeFillerPrize(room = {}) {
+  return /party favor|party-favor|keychain|sticker|bulk|classroom|goodie bag|goody bag|pencil|eraser|tiny|mini toy|fidget|cheap/.test(roomTextForClassification(room));
+}
+
+function roomPremiumScore(room = {}) {
+  const text = roomTextForClassification(room);
+  let score = 0;
+  if (room.is_featured) score += 30;
+  if (prizeRoomDisplayPrizeImage(room)) score += 18;
+  if (roomLooksLikeConsole(room)) score += 32;
+  if (roomLooksLikeAppleTech(room)) score += 30;
+  if (roomLooksLikeGamingGear(room)) score += 22;
+  if (roomLooksLikeCollectible(room)) score += 18;
+  if (roomLooksLikeSports(room)) score += 12;
+  if (/drone|sneaker|headphone|earbud|monitor|tv|gaming chair|controller|keyboard|mouse/.test(text)) score += 18;
+  score += Math.min(30, Math.round(prizeRoomTotalCost(room) / 2000));
+  score += Math.min(16, Math.round(prizeRoomFillPercent(room) * 16));
+  if (roomLooksLikeFillerPrize(room)) score -= 55;
+  if (prizeRoomJoinCost(room) > 0 && prizeRoomJoinCost(room) <= 500) score -= 14;
+  return score;
+}
+
 function roomIsLowCost(room = {}) {
   return prizeRoomJoinCost(room) <= 1500;
 }
@@ -1196,6 +1654,10 @@ function prizeRoomFillPercent(room = {}) {
 
 function sortRoomsByPriority(rooms = []) {
   return [...rooms].sort((a, b) => {
+    const bScore = roomPremiumScore(b);
+    const aScore = roomPremiumScore(a);
+    if (bScore !== aScore) return bScore - aScore;
+
     const aFull = prizeRoomFillPercent(a);
     const bFull = prizeRoomFillPercent(b);
     if (bFull !== aFull) return bFull - aFull;
@@ -1253,10 +1715,10 @@ function PrizeRoomBrowseRow({ title, rooms, openRoomId, joiningId, onToggleDetai
           type="button"
           onClick={() => scrollByCard(-1)}
           variant="outline"
-          className="absolute left-0 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex"
+          className="absolute left-0 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex"
           aria-label={`Scroll ${title} left`}
         >
-          <ChevronLeft className="h-6 w-6" />
+          <ChevronLeft className="h-5 w-5" />
         </Button>
         <div ref={scrollRef} className="-mx-2 flex snap-x gap-3 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {rowRooms.map((room) => (
@@ -1276,10 +1738,10 @@ function PrizeRoomBrowseRow({ title, rooms, openRoomId, joiningId, onToggleDetai
           type="button"
           onClick={() => scrollByCard(1)}
           variant="outline"
-          className="absolute right-0 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex"
+          className="absolute right-0 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex"
           aria-label={`Scroll ${title} right`}
         >
-          <ChevronRight className="h-6 w-6" />
+          <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
     </section>
@@ -1291,7 +1753,6 @@ function PrizeRoomFeaturedHero({ room, isOpen, joining, onToggleDetails, onJoin,
   const playerCount = prizeRoomPlayerCount(room);
   return (
     <section className="relative overflow-hidden rounded-[2rem] border border-yellow-300/25 bg-[radial-gradient(circle_at_top_left,rgba(250,204,21,0.18),transparent_34%),linear-gradient(135deg,rgba(0,0,0,0.86),rgba(88,28,135,0.38),rgba(0,0,0,0.9))] p-4 shadow-[0_0_60px_rgba(250,204,21,0.12)]">
-      <ChristmasLightsStrip />
       <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
         <PrizeRoomHeroImage
           prizeImage={prizeRoomDisplayPrizeImage(room)}
@@ -1421,6 +1882,11 @@ function PrizeRoomDetailPage({ room, onJoin, onShare, joining, onBack }) {
           </div>
         </div>
 
+        <details className="group rounded-2xl border border-white/10 bg-black/25 p-4">
+          <summary className="cursor-pointer text-sm font-black text-yellow-100 marker:text-yellow-200">
+            Advanced details
+          </summary>
+          <div className="mt-4 space-y-5">
         <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
           <FestivePanel>
             <div className="mb-4 flex items-center justify-between gap-3">
@@ -1515,42 +1981,42 @@ function PrizeRoomDetailPage({ room, onJoin, onShare, joining, onBack }) {
             </div>
           </div>
         </FestivePanel>
+          </div>
+        </details>
       </div>
     </section>
   );
 }
 
 const PRIZE_CATEGORIES = [
-  'Electronics',
+  'Gaming Consoles',
+  'Apple & Tech',
+  'Headphones & Earbuds',
+  'LEGO & Collectibles',
+  'Drones',
+  'Sneakers',
+  'TVs & Monitors',
+  'Gaming Chairs',
+  'Sports Gear',
   'Gaming Gear',
-  'Toys & Family',
-  'Sports / Outdoors',
-  'Clothing',
-  'Shoes',
-  'Home / Lifestyle',
-  'Art / Creative',
-  'Books / Education',
-  'Collectibles',
 ];
 
 function categoryToPrizeSearchQuery(category = 'all') {
   const normalized = String(category || 'all').toLowerCase();
   const categoryQueries = {
-    electronics: 'electronics prize',
-    'gaming gear': 'gaming headset controller keyboard',
-    toys: 'lego rc car drone toy',
-    'toys & family': 'lego rc car drone toy',
-    'sports / outdoor': 'basketball soccer outdoor game',
-    'sports / outdoors': 'basketball soccer outdoor game',
-    home: 'home gadget kitchen gift',
-    'home / lifestyle': 'home gadget kitchen gift',
-    'books / education': 'kids science kit educational book',
-    clothing: 'clothing gift hoodie jersey',
-    shoes: 'sneakers athletic shoes prize',
-    'art / creative': 'art kit drawing tablet creative gift',
-    collectibles: 'collectible figure trading card prize',
+    electronics: 'apple airpods playstation xbox nintendo switch',
+    'gaming consoles': 'playstation 5 xbox series nintendo switch console',
+    'apple & tech': 'apple airpods ipad iphone apple watch',
+    'headphones & earbuds': 'sony headphones apple airpods beats earbuds',
+    'lego & collectibles': 'lego star wars pokemon collectible',
+    drones: 'dji mini drone camera drone',
+    sneakers: 'nike jordan adidas sneakers',
+    'tvs & monitors': 'gaming monitor 4k tv',
+    'gaming chairs': 'gaming chair ergonomic',
+    'sports gear': 'basketball soccer football sports gear',
+    'gaming gear': 'gaming headset controller keyboard mouse monitor',
   };
-  return categoryQueries[normalized] || (category === 'all' ? 'gaming prizes' : `${category} prize`);
+  return categoryQueries[normalized] || (category === 'all' ? 'playstation nintendo switch apple airpods lego drone' : `${category} premium`);
 }
 
 function marketplaceProductKey(product = {}) {
@@ -1641,6 +2107,25 @@ function productIsPrizeQuality(product = {}) {
   if (UNSAFE_PRIZE_PATTERN.test(searchable) || BAD_PRIZE_CONDITION_PATTERN.test(searchable)) return false;
   if (PRIZE_PART_PATTERN.test(searchable)) return false;
   return title.length > 0 && title.length <= 180;
+}
+
+function marketplaceProductPremiumScore(product = {}) {
+  const title = cleanPrizeTitle(product.title).toLowerCase();
+  const category = String(product.category || '').toLowerCase();
+  const haystack = `${title} ${category}`;
+  const price = Number(product.price_cents || 0);
+  let score = 0;
+  if (marketplaceProductRawImage(product)) score += 20;
+  if (/playstation|ps5|xbox|nintendo|switch|console|steam deck/.test(haystack)) score += 36;
+  if (/apple|iphone|ipad|airpods|macbook|watch|beats/.test(haystack)) score += 34;
+  if (/lego|pokemon|star wars|collectible|trading card|marvel/.test(haystack)) score += 24;
+  if (/drone|dji|headphone|earbud|monitor|tv|gaming chair|controller|keyboard|mouse|sneaker|nike|jordan|adidas/.test(haystack)) score += 24;
+  if (/party favor|keychain|sticker|bulk|classroom|goodie bag|pencil|eraser|fidget|cheap|lot of|wholesale/.test(haystack)) score -= 70;
+  if (price >= 5000) score += 8;
+  if (price >= 10000) score += 10;
+  if (price >= 20000) score += 8;
+  if (price < 1200) score -= 18;
+  return score;
 }
 
 function productFilterMatches(product = {}, filters = {}) {
@@ -2199,7 +2684,7 @@ function BrowsePrizesSection({ user, stripePaymentsReady, onRoomCreated, onError
     if (sortBy === 'price_low') return rows.sort((a, b) => Number(a.price_cents || 0) - Number(b.price_cents || 0));
     if (sortBy === 'price_high') return rows.sort((a, b) => Number(b.price_cents || 0) - Number(a.price_cents || 0));
     if (sortBy === 'title') return rows.sort((a, b) => String(a.title || '').localeCompare(String(b.title || '')));
-    return rows;
+    return rows.sort((a, b) => marketplaceProductPremiumScore(b) - marketplaceProductPremiumScore(a));
   }, [filteredProducts, sortBy]);
 
   const filteredProductCount = visibleProducts.length;
@@ -2682,66 +3167,58 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
     const sortedNewRooms = sortRoomsByPriority([...uniqueRooms].sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || ''))));
     const fillingFastRooms = priorityRooms.filter((room) => ['open', 'awaiting_contributions'].includes(room.status) && prizeRoomFillPercent(room) > 0);
     const platformRooms = priorityRooms.filter((room) => room.is_featured || ['platform_supported', 'template_based'].includes(room.room_type));
-    const familyRooms = priorityRooms.filter((room) => room.family_friendly || /family|uno|mario|chess/i.test(`${room.title} ${room.game_title}`));
-    const gameRows = gameOptions.slice(0, 4).map((gameTitle) => ({
-      title: `By Game: ${gameTitle}`,
-      rooms: priorityRooms.filter((room) => room.game_title === gameTitle),
-    }));
-    return [
-      { title: 'Filling Fast', rooms: fillingFastRooms },
-      { title: 'Almost Full Rooms', rooms: priorityRooms.filter(roomIsAlmostFull) },
-      { title: 'Featured Rooms', rooms: platformRooms },
-      { title: 'New Rooms', rooms: sortedNewRooms },
-      { title: 'Low Cost Rooms', rooms: priorityRooms.filter(roomIsLowCost) },
-      { title: 'Family Friendly Rooms', rooms: familyRooms },
-      { title: 'Gaming Gear Rooms', rooms: priorityRooms.filter(roomLooksLikeGamingGear) },
-      { title: 'Sports / Outdoor Rooms', rooms: priorityRooms.filter(roomLooksLikeSports) },
-      { title: 'Board Games / Family Night', rooms: priorityRooms.filter(roomLooksLikeBoardGame) },
-      ...gameRows,
-    ].map((row) => ({ ...row, rooms: uniquePrizeRooms(row.rooms).slice(0, 12) }));
-  }, [rooms, gameOptions]);
+    const seen = new Set();
+    const takeFresh = (candidates, limit = 12) => {
+      const fresh = [];
+      uniquePrizeRooms(candidates).forEach((room) => {
+        if (fresh.length >= limit) return;
+        const key = String(room.prize_id || room.id || room.prize_title || '').toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        fresh.push(room);
+      });
+      return fresh;
+    };
+    const rows = [
+      { title: 'Featured Prize Rooms', rooms: takeFresh(platformRooms.length ? platformRooms : priorityRooms) },
+      { title: 'Gaming & Consoles', rooms: takeFresh(priorityRooms.filter((room) => roomLooksLikeConsole(room) || roomLooksLikeGamingGear(room))) },
+      { title: 'Apple & Tech', rooms: takeFresh(priorityRooms.filter(roomLooksLikeAppleTech)) },
+      { title: 'LEGO & Collectibles', rooms: takeFresh(priorityRooms.filter(roomLooksLikeCollectible)) },
+      { title: 'Outdoor & Sports', rooms: takeFresh(priorityRooms.filter(roomLooksLikeSports)) },
+      { title: 'Trending Rooms', rooms: takeFresh([...fillingFastRooms, ...priorityRooms.filter(roomIsAlmostFull), ...sortedNewRooms]) },
+    ];
+    return rows
+      .map((row) => {
+        if (row.rooms.length >= 3) return row;
+        return { ...row, rooms: uniquePrizeRooms([...row.rooms, ...priorityRooms]).slice(0, 12) };
+      })
+      .filter((row) => row.rooms.length);
+  }, [rooms]);
 
   const selectedRoom = useMemo(() => rooms.find((room) => room.id === openRoomId) || null, [rooms, openRoomId]);
 
   return (
-    <Card className="relative overflow-hidden rounded-[2rem] border border-purple-400/20 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.35),transparent_32%),linear-gradient(135deg,rgba(5,1,13,0.94),rgba(16,6,31,0.86)_45%,rgba(5,5,5,0.96))] text-white shadow-[0_0_70px_rgba(124,58,237,0.18)] backdrop-blur-xl">
-      <ChristmasLightsStrip />
-      <div className="pointer-events-none absolute -right-24 top-20 h-64 w-64 rounded-full bg-yellow-200/10 blur-3xl" />
-      <CardHeader className="relative z-10 flex flex-row flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.05] pt-10">
+    <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.055] text-white shadow-[0_18px_50px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+      <CardHeader className="relative z-10 flex flex-row flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.04]">
         <div>
           <CardTitle className="flex items-center gap-2 text-white">
             <Trophy className="h-5 w-5 text-yellow-300" />
-            Prize Room Lobby
+            Browse Prize Rooms
           </CardTitle>
-          <p className="mt-1 text-sm text-white/70">Browse visual Prize Rooms, review the game and prize, then join in Test Mode.</p>
+          <p className="mt-1 text-sm text-white/70">Find a prize, check the game, and join when you are ready.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={loadRooms} className="rounded-2xl border-white/15 bg-white/5 text-white hover:-translate-y-0.5 hover:bg-white/10">
             <RefreshCw className="mr-2 h-4 w-4" />Refresh Rooms
           </Button>
-          <Button onClick={quickCreate} className="rounded-2xl bg-gradient-to-r from-purple-700 via-fuchsia-700 to-yellow-500 text-white shadow-[0_0_28px_rgba(168,85,247,0.22)] hover:-translate-y-0.5 hover:shadow-[0_0_36px_rgba(250,204,21,0.18)]">
-            <Plus className="mr-2 h-4 w-4" />Create Pilot Room
-          </Button>
         </div>
       </CardHeader>
       <CardContent className="relative z-10 space-y-6 p-4 sm:p-6">
-        <StripePrizeRoomReadinessPanel paymentConfig={paymentConfig} stripePaymentsReady={stripePaymentsReady} />
-
-        {(localError || localMessage || usingDemoFallback) && (
-          <div className="space-y-2">
-            {localError && (
-              <Alert className="border-orange-500/40 bg-orange-950/30 text-orange-50">
-                <AlertTitle>Prize Room notice</AlertTitle>
-                <AlertDescription>{localError}</AlertDescription>
-              </Alert>
-            )}
-            {(localMessage || usingDemoFallback) && (
-              <Alert className="border-yellow-500/35 bg-yellow-950/25 text-yellow-50">
-                <AlertTitle>{usingDemoFallback ? 'Test Mode Rooms' : 'Prize Room update'}</AlertTitle>
-                <AlertDescription>{localMessage || 'Showing Test Mode Rooms so the family test screen is never empty.'}</AlertDescription>
-              </Alert>
-            )}
-          </div>
+        {localError && (
+          <Alert className="border-orange-500/40 bg-orange-950/30 text-orange-50">
+            <AlertTitle>Prize Room notice</AlertTitle>
+            <AlertDescription>{localError}</AlertDescription>
+          </Alert>
         )}
 
         {paymentTarget && (
@@ -2772,112 +3249,80 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
           <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {[1, 2, 3, 4, 5].map((item) => <div key={item} className="h-80 animate-pulse rounded-2xl bg-purple-900/30" />)}
           </div>
-        ) : selectedRoom ? (
-          <PrizeRoomDetailPage
-            room={selectedRoom}
-            joining={joiningId === selectedRoom.id}
-            onJoin={() => joinRoom(selectedRoom)}
-            onShare={() => shareRoom(selectedRoom)}
-            onBack={backToBrowse}
-          />
         ) : (
-          <Tabs value={browseTab} onValueChange={setBrowseTab} className="space-y-5">
-            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 border border-white/10 bg-black/35 p-1 sm:grid-cols-4">
-              <TabsTrigger value="active" className="text-white/70 data-[state=active]:bg-purple-700 data-[state=active]:text-white">Active Rooms</TabsTrigger>
-              <TabsTrigger value="prizes" className="text-white/70 data-[state=active]:bg-purple-700 data-[state=active]:text-white">Browse Prizes</TabsTrigger>
-              <TabsTrigger value="games" className="text-white/70 data-[state=active]:bg-purple-700 data-[state=active]:text-white">Browse Games</TabsTrigger>
-              <TabsTrigger value="create" className="text-white/70 data-[state=active]:bg-purple-700 data-[state=active]:text-white">Create Room</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="active" className="space-y-6">
-              <PrizeRoomFilters
-                searchTerm={searchTerm}
-                onSearchTermChange={setSearchTerm}
-                filter={filter}
-                onFilterChange={setFilter}
-                secondaryValue={secondaryFilter}
-                onSecondaryValueChange={setSecondaryFilter}
-                gameOptions={gameOptions}
-                prizeTypeOptions={prizeTypeOptions}
-              />
-              {filteredRooms.length ? (
-                <section className="space-y-4">
-                  <div className="flex flex-wrap items-end justify-between gap-3">
-                    <div>
-                      <h3 className="text-xl font-black text-white">Prize Rooms</h3>
-                      <p className="text-sm text-white/55">
-                        {filteredRooms.length} unique room{filteredRooms.length === 1 ? '' : 's'} ready to browse.
-                      </p>
-                    </div>
-                    <Badge className="bg-yellow-500/20 text-yellow-100">Foundation 10% included</Badge>
-                  </div>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-                    {filteredRooms.map((room) => (
-                      <PrizeRoomCard
-                        key={room.id}
-                        room={room}
-                        isOpen={false}
-                        joining={joiningId === room.id}
-                        onOpen={() => openPrizeRoom(room)}
-                        onJoin={() => joinRoom(room)}
-                        onShare={() => shareRoom(room)}
+          <div className="space-y-6">
+            <PrizeRoomFilters
+              searchTerm={searchTerm}
+              onSearchTermChange={setSearchTerm}
+              filter={filter}
+              onFilterChange={setFilter}
+              secondaryValue={secondaryFilter}
+              onSecondaryValueChange={setSecondaryFilter}
+              gameOptions={gameOptions}
+              prizeTypeOptions={prizeTypeOptions}
+            />
+            {filteredRooms.length ? (
+              <section className="space-y-7">
+                {!searchTerm.trim() && filter === 'all' && (
+                  <div className="space-y-6">
+                    {browseRows.map((row) => (
+                      <PrizeRoomBrowseRow
+                        key={row.title}
+                        title={row.title}
+                        rooms={row.rooms}
+                        openRoomId={openRoomId}
+                        joiningId={joiningId}
+                        onToggleDetails={openPrizeRoom}
+                        onJoin={joinRoom}
+                        onShare={shareRoom}
                       />
                     ))}
                   </div>
-                </section>
-              ) : (
-                <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center">
-                  <Search className="mx-auto mb-3 h-8 w-8 text-purple-200" />
-                  <h3 className="text-lg font-black text-white">No rooms match this search.</h3>
-                  <p className="mt-1 text-sm text-white/60">Try All Rooms or clear the search to see the pilot marketplace.</p>
+                )}
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl font-black text-white">All Prize Rooms</h3>
+                    <p className="text-sm text-white/55">
+                      {filteredRooms.length} room{filteredRooms.length === 1 ? '' : 's'} ready to browse.
+                    </p>
+                  </div>
                 </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="prizes">
-              <BrowsePrizesSection
-                user={user}
-                stripePaymentsReady={stripePaymentsReady}
-                onRoomCreated={(room) => {
-                  setRooms((prev) => uniquePrizeRooms([room, ...prev.filter((row) => row.id !== room.id)]));
-                  openPrizeRoom(room);
-                  setPaymentTarget({ room, contribution: null });
-                  onCreated(room);
-                }}
-                onError={onError}
-                onMessage={onMessage}
-              />
-            </TabsContent>
-
-            <TabsContent value="games" className="space-y-8">
-              {browseRows.filter((row) => row.title.startsWith('By Game:')).map((row) => (
-                <PrizeRoomBrowseRow
-                  key={row.title}
-                  title={row.title}
-                  rooms={row.rooms}
-                  openRoomId={openRoomId}
-                  joiningId={joiningId}
-                  onToggleDetails={openPrizeRoom}
-                  onJoin={joinRoom}
-                  onShare={shareRoom}
-                />
-              ))}
-            </TabsContent>
-
-            <TabsContent value="create">
-              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 text-center">
-                <Plus className="mx-auto mb-3 h-8 w-8 text-green-200" />
-                <h3 className="text-xl font-black text-white">Create a Prize Room</h3>
-                <p className="mx-auto mt-2 max-w-2xl text-sm text-white/60">Use the builder below to search products, pick a game, choose players, and create one active room.</p>
-                <Button
-                  onClick={() => document.getElementById('north-pole-create-room')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                  className="mt-4 rounded-xl bg-green-600 font-black text-white hover:bg-green-500"
-                >
-                  <Plus className="mr-2 h-4 w-4" /> Open Create Room Builder
-                </Button>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                  {filteredRooms.map((room) => (
+                    <PrizeRoomCard
+                      key={room.id}
+                      room={room}
+                      isOpen={false}
+                      joining={joiningId === room.id}
+                      onOpen={() => openPrizeRoom(room)}
+                      onJoin={() => joinRoom(room)}
+                      onShare={() => shareRoom(room)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-8 text-center">
+                <Search className="mx-auto mb-3 h-8 w-8 text-purple-200" />
+                <h3 className="text-lg font-black text-white">No rooms match this search.</h3>
+                <p className="mt-1 text-sm text-white/60">Try a different search or clear the filters.</p>
               </div>
-            </TabsContent>
-          </Tabs>
+            )}
+          </div>
+        )}
+
+        {selectedRoom && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/58 px-3 py-6 backdrop-blur-sm sm:px-6 lg:py-10">
+            <div className="w-full max-w-6xl">
+              <PrizeRoomDetailPage
+                room={selectedRoom}
+                joining={joiningId === selectedRoom.id}
+                onJoin={() => joinRoom(selectedRoom)}
+                onShare={() => shareRoom(selectedRoom)}
+                onBack={backToBrowse}
+              />
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
@@ -2911,110 +3356,51 @@ const howItWorksCards = [
   },
 ];
 
-function NorthPoleLandingHero() {
+function NorthPoleLandingHero({ onBrowse, onCreate }) {
   return (
-    <section className="relative overflow-hidden bg-[#02030a] text-white">
-      <WinterWonderlandBackground />
-      <ChristmasLightsStrip />
-      <div className="relative z-10 mx-auto grid max-w-7xl gap-10 px-4 pb-12 pt-16 sm:px-6 md:pb-16 md:pt-20 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-8">
-        <div className="space-y-7">
-          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/25 bg-yellow-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.22em] text-yellow-100 shadow-[0_0_30px_rgba(250,204,21,0.16)] backdrop-blur">
+    <section className="north-pole-dashboard-hero relative min-h-[520px] overflow-hidden text-white md:min-h-[620px]">
+      <img
+        src="/images/welcome_to_the_north_pole.png"
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full object-cover object-top"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.82)_0%,rgba(2,6,23,0.54)_42%,rgba(2,6,23,0.12)_72%),linear-gradient(180deg,rgba(2,6,23,0.12)_0%,rgba(2,6,23,0.2)_62%,#02030a_100%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#02030a] to-transparent" />
+      <div className="relative z-10 mx-auto flex min-h-[520px] max-w-7xl items-center px-4 pb-16 pt-24 sm:px-6 md:min-h-[620px] lg:px-8">
+        <div className="max-w-3xl space-y-5 rounded-3xl border border-white/10 bg-black/22 p-5 shadow-[0_28px_90px_rgba(0,0,0,0.24)] backdrop-blur-[2px] sm:p-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-yellow-100 backdrop-blur">
             <Snowflake className="h-4 w-4" />
             Santa's Prize Workshop
           </div>
-          <div className="space-y-5">
-            <h1 className="max-w-3xl text-4xl font-black leading-[1.04] tracking-normal text-white drop-shadow-[0_0_28px_rgba(250,204,21,0.12)] sm:text-5xl lg:text-7xl">
+          <div className="space-y-3">
+            <h1 className="text-4xl font-black leading-tight tracking-normal text-white sm:text-5xl">
               Welcome to The North Pole
             </h1>
-            <p className="max-w-2xl text-xl font-semibold leading-9 text-white/82 md:text-2xl">
-              Choose a prize. Join the room. Win the game. Win the prize.
-            </p>
-            <p className="max-w-xl text-lg leading-8 text-yellow-100">
+            <p className="text-lg font-semibold leading-8 text-yellow-100">
               Where competition becomes Christmas.
             </p>
+            <p className="max-w-2xl text-sm leading-6 text-white/65">
+              Browse prizes, join rooms, play the game, and help gifts reach children.
+            </p>
           </div>
-
-          <div className="flex flex-wrap gap-2">
-            <NorthPoleHeroBadge icon={Gift}>Prize Rooms</NorthPoleHeroBadge>
-            <NorthPoleHeroBadge icon={ShoppingCart}>Real Products</NorthPoleHeroBadge>
-            <NorthPoleHeroBadge icon={Gamepad2}>Game Challenge</NorthPoleHeroBadge>
-            <NorthPoleHeroBadge icon={Heart}>100% Purpose Driven</NorthPoleHeroBadge>
-          </div>
-
           <div className="flex flex-col gap-3 sm:flex-row">
-            <a
-              href="#north-pole-flow"
-              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-emerald-500 via-green-500 to-yellow-400 px-7 py-3 text-sm font-black text-slate-950 shadow-[0_0_34px_rgba(34,197,94,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_0_44px_rgba(250,204,21,0.28)]"
+            <button
+              type="button"
+              onClick={onBrowse}
+              className="inline-flex min-h-11 items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-emerald-500 via-green-500 to-yellow-400 px-6 py-3 text-sm font-black text-slate-950 transition hover:-translate-y-0.5"
             >
-              Enter Prize Rooms
+              Browse Prize Rooms
               <ArrowRight className="h-4 w-4" />
-            </a>
-            <a
-              href="#north-pole-how-it-works"
-              className="inline-flex min-h-12 items-center justify-center gap-3 rounded-2xl border border-white/15 bg-white/[0.07] px-7 py-3 text-sm font-bold text-white shadow-[0_0_24px_rgba(124,58,237,0.12)] backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/12"
+            </button>
+            <button
+              type="button"
+              onClick={onCreate}
+              className="inline-flex min-h-11 items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/[0.07] px-6 py-3 text-sm font-bold text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/12"
             >
-              <PlayCircle className="h-5 w-5" />
-              See How It Works
-            </a>
-          </div>
-        </div>
-
-        <div className="relative">
-          <div className="absolute -inset-5 rounded-[2.5rem] bg-gradient-to-br from-yellow-200/20 via-purple-400/15 to-cyan-200/15 blur-2xl" />
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/15 bg-white/[0.07] p-3 shadow-[0_28px_90px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-            <ChristmasLightsStrip className="top-1" />
-            <div className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-950">
-              <img
-                src="/images/north-pole-hero.png"
-                alt="A live prize room showing a player competing in a game for a gaming console prize"
-                loading="eager"
-                decoding="async"
-                className="min-h-[300px] w-full object-cover"
-              />
-              <div className="absolute inset-3 rounded-[1.5rem] bg-[radial-gradient(circle_at_20%_12%,rgba(250,204,21,0.18),transparent_26%),linear-gradient(180deg,transparent_52%,rgba(3,7,18,0.72))]" />
-            </div>
-            <div className="absolute bottom-6 left-6 right-6 rounded-2xl border border-white/15 bg-black/55 p-4 backdrop-blur">
-              <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-                <div className="inline-flex items-center gap-2 font-black text-yellow-100">
-                  <span className="h-2.5 w-2.5 rounded-full bg-yellow-200 shadow-[0_0_18px_rgba(250,204,21,0.85)]" />
-                  Live Prize Room
-                </div>
-                <div className="flex items-center gap-2 text-green-100">
-                  <span className="h-2.5 w-2.5 rounded-full bg-green-400 shadow-[0_0_16px_rgba(74,222,128,0.75)]" />
-                  <span className="font-semibold">8/8 players</span>
-                </div>
-                <div className="flex items-end gap-1 text-yellow-100">
-                  {[3, 5, 7, 10].map((height) => (
-                    <span key={height} className="w-1.5 rounded-full bg-gradient-to-t from-purple-400 to-yellow-200" style={{ height }} />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="north-pole-how-it-works" className="relative z-10 border-t border-white/10 bg-[linear-gradient(180deg,rgba(8,13,31,0.9),rgba(3,7,18,0.96))] px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
-          <h2 className="mb-6 text-center text-3xl font-black text-white">How it works</h2>
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {howItWorksCards.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.number} className="flex items-center gap-5 rounded-2xl border border-white/10 bg-white/[0.06] p-6 shadow-xl shadow-black/20 backdrop-blur">
-                  <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border border-yellow-200/20 bg-yellow-300/10 text-yellow-100">
-                    <Icon className="h-9 w-9" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="mb-2 flex items-center gap-3">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-purple-700 text-sm font-black text-white">{item.number}</span>
-                      <h3 className="text-base font-black text-white">{item.title}</h3>
-                    </div>
-                    <p className="text-sm leading-6 text-white/62">{item.description}</p>
-                  </div>
-                </div>
-              );
-            })}
+              <Plus className="h-4 w-4" />
+              Create Prize Room
+            </button>
           </div>
         </div>
       </div>
@@ -3420,7 +3806,7 @@ function NorthPoleMatchCard({
   );
 }
 
-function RealNorthPoleFlow({ user }) {
+function RealNorthPoleFlow({ user, view = 'browse' }) {
   const isAdmin = userHasRole(user, ADMIN_ROLES);
   const [step, setStep] = useState('prize');
   const [searchTerm, setSearchTerm] = useState('');
@@ -4098,52 +4484,80 @@ function RealNorthPoleFlow({ user }) {
 
   return (
     <div className="space-y-6">
-      <Alert className="border-green-700/40 bg-green-950/25 text-green-100">
-        <ShieldCheck className="h-4 w-4" />
-        <AlertTitle>Real North Pole Flow</AlertTitle>
-        <AlertDescription>
-          Create or join persisted prize matches. Payments, retailer ordering, and fulfillment remain simulated.
-        </AlertDescription>
-      </Alert>
-
-      {error && (
+      {view !== 'browse' && error && (
         <Alert variant="destructive" className="bg-red-950/35">
           <AlertTitle>North Pole action failed</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      {message && (
+      {view !== 'browse' && message && (
         <Alert className="border-blue-700/40 bg-blue-950/25 text-blue-100">
-          <AlertTitle>Saved</AlertTitle>
+          <AlertTitle>Update</AlertTitle>
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
 
-      <PrizeRoomLobby
-        user={user}
-        onJoined={() => loadMatches()}
-        onCreated={() => loadMatches()}
-        onError={setError}
-        onMessage={setMessage}
-      />
+      {view === 'browse' && (
+        <>
+          <PrizeRoomLobby
+            user={user}
+            onJoined={() => loadMatches()}
+            onCreated={() => loadMatches()}
+            onError={setError}
+            onMessage={setMessage}
+          />
+          <SantaWorkshopPreviewPanel />
+        </>
+      )}
 
-      <Card id="north-pole-create-room" className="border border-purple-700/30 bg-purple-900/20">
+      {view === 'how' && (
+        <Card className="border border-white/10 bg-white/[0.055] text-white backdrop-blur">
+          <CardContent className="p-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-black text-white">How The North Pole Works</h2>
+              <p className="mt-2 max-w-2xl text-sm text-white/65">
+                Browse a real prize, join a skill-based room, play the selected game, and the verified winner gets the prize path.
+              </p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {howItWorksCards.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.number} className="rounded-2xl border border-white/10 bg-black/25 p-5">
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-yellow-500/15 text-yellow-100">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div className="text-xs font-black uppercase tracking-wide text-yellow-100">Step {item.number}</div>
+                    <h3 className="mt-1 text-lg font-black text-white">{item.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-white/62">{item.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {view === 'create' && (
+      <Card id="north-pole-create-room" className="border border-white/10 bg-white/[0.055] text-white backdrop-blur">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-white">
             <Plus className="h-5 w-5 text-green-300" />
-            Build a Prize Room
+            Create a Prize Room
           </CardTitle>
+          <p className="text-sm text-white/60">Choose a prize, choose a game, set room size, then create the room.</p>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="grid gap-2 text-xs sm:grid-cols-3">
+          <div className="grid gap-2 text-xs sm:grid-cols-4">
             {[
-              ['prize', '1. Prize', selectedPrize?.title],
-              ['game', '2. Game', selectedGame?.title],
-              ['room', '3. Room', selectedPlan?.players ? `${selectedPlan.players} players` : ''],
+              ['prize', '1. Choose Prize', selectedPrize?.title],
+              ['game', '2. Choose Game', selectedGame?.title],
+              ['room', '3. Set Room', selectedPlan?.players ? `${selectedPlan.players} players` : ''],
+              ['room', '4. Create Room', createAgreementAccepted ? 'Ready' : 'Review rules'],
             ].map(([id, label, value]) => (
               <button
                 type="button"
-                key={id}
+                key={label}
                 onClick={() => setStep(id)}
                 className={`rounded-xl border px-3 py-2 text-left ${step === id ? 'border-cyan-400 bg-cyan-600/20 text-white' : 'border-purple-700/25 bg-black/25 text-purple-300'}`}
               >
@@ -4458,12 +4872,14 @@ function RealNorthPoleFlow({ user }) {
           )}
         </CardContent>
       </Card>
+      )}
 
-      <Card className="border border-purple-700/30 bg-purple-900/20">
+      {view === 'my' && (
+      <Card className="border border-white/10 bg-white/[0.055] text-white backdrop-blur">
         <CardHeader className="flex flex-row items-center justify-between gap-3">
           <CardTitle className="flex items-center gap-2 text-white">
             <Gamepad2 className="h-5 w-5 text-cyan-300" />
-            Prize Rooms
+            My Rooms
           </CardTitle>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -4540,13 +4956,68 @@ function RealNorthPoleFlow({ user }) {
           )}
         </CardContent>
       </Card>
+      )}
     </div>
+  );
+}
+
+function SantaWorkshopPreviewPanel() {
+  const previews = [
+    {
+      title: 'Elves preparing gifts',
+      description: 'Prize rooms being packed for game night.',
+      tone: 'from-emerald-400/18 via-cyan-300/10 to-white/5',
+    },
+    {
+      title: 'Checking the nice list',
+      description: 'Rooms stay focused on fair competition.',
+      tone: 'from-yellow-300/20 via-orange-300/10 to-white/5',
+    },
+    {
+      title: 'Workshop fulfillment',
+      description: 'Winners move into the prize path after review.',
+      tone: 'from-purple-300/20 via-blue-300/10 to-white/5',
+    },
+  ];
+
+  return (
+    <details className="group rounded-3xl border border-white/10 bg-black/24 p-4 text-white shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl md:p-5">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 marker:hidden">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-yellow-100">Inside Santa's Workshop</p>
+          <h2 className="mt-1 text-lg font-black text-white">A quick look behind the prize rooms</h2>
+        </div>
+        <Badge className="border border-white/15 bg-white/10 text-white group-open:hidden">Open Workshop</Badge>
+        <Badge className="hidden border border-white/15 bg-white/10 text-white group-open:inline-flex">Hide Workshop</Badge>
+      </summary>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {previews.map((preview) => (
+          <div key={preview.title} className={`group relative min-h-36 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${preview.tone} p-4`}>
+            <div className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white backdrop-blur transition group-hover:scale-105">
+              <PlayCircle className="h-5 w-5" />
+            </div>
+            <div className="absolute -bottom-12 -right-10 h-32 w-32 rounded-full bg-yellow-200/12 blur-2xl" />
+            <div className="relative flex h-full flex-col justify-end pt-12">
+              <h3 className="text-base font-black text-white">{preview.title}</h3>
+              <p className="mt-1 text-sm leading-5 text-white/62">{preview.description}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </details>
   );
 }
 
 export default function NorthPole() {
   const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('build');
+  const [activeTab, setActiveTab] = useState('browse');
+  const [snowfallMode, setSnowfallMode] = useState(() => {
+    try {
+      return localStorage.getItem('northPoleSnowfallMode') || 'normal';
+    } catch {
+      return 'normal';
+    }
+  });
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   useEffect(() => {
@@ -4567,7 +5038,7 @@ export default function NorthPole() {
   useEffect(() => {
     const handleHashNavigation = () => {
       if (window.location.hash !== '#north-pole-flow') return;
-      setActiveTab('build');
+      setActiveTab('browse');
       window.requestAnimationFrame(() => {
         document.getElementById('north-pole-flow')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
@@ -4577,7 +5048,26 @@ export default function NorthPole() {
     return () => window.removeEventListener('hashchange', handleHashNavigation);
   }, []);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem('northPoleSnowfallMode', snowfallMode);
+    } catch {
+      // Snowfall preference is cosmetic; storage failures should not affect the page.
+    }
+  }, [snowfallMode]);
+
   const isAdmin = userHasRole(user, ADMIN_ROLES);
+  const goToNorthPoleTab = useCallback((tab) => {
+    if (tab === 'admin' && !isAdmin) return;
+    setActiveTab(tab);
+    window.requestAnimationFrame(() => {
+      document.getElementById('north-pole-flow')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }, [isAdmin]);
+
+  const signOut = useCallback(async () => {
+    await base44.auth.logout(window.location.origin);
+  }, []);
 
   if (isLoadingUser) {
     return (
@@ -4589,44 +5079,56 @@ export default function NorthPole() {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#02030a] text-white">
-      <WinterWonderlandBackground />
+      <NorthPoleLivingBackground snowfallMode={snowfallMode} />
       <div className="relative z-10">
-        <NorthPoleLandingHero />
-
-        <div id="north-pole-flow" className="mx-auto max-w-6xl p-4 md:p-8">
-          <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
-            <PublicBetaBadge />
-            <Badge className="border border-green-700/30 bg-green-900/40 text-green-300">
-              <ShieldCheck className="mr-1 h-3 w-3" />Persisted matches
-            </Badge>
-            <Badge className="border border-pink-700/30 bg-pink-900/40 text-pink-300">
-              <Heart className="mr-1 h-3 w-3" />The Poles Foundation
-            </Badge>
-            {user && (
-              <Badge className="border border-purple-700/30 bg-purple-900/40 text-purple-300">
-                {user.full_name || user.email}
-              </Badge>
-            )}
-          </div>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-6 w-full border border-white/10 bg-black/35 shadow-[0_0_34px_rgba(124,58,237,0.14)] backdrop-blur-xl">
-              <TabsTrigger value="build" className="flex-1 text-purple-100 data-[state=active]:bg-purple-700">
-                <Gift className="mr-2 h-4 w-4" />Build a Prize Room
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <header className="absolute left-0 right-0 top-0 z-30">
+            <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+              <div className="flex items-center justify-between gap-3">
+                <a href="/" className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-black/35 px-2.5 py-1.5 text-xs font-black text-yellow-100 shadow-[0_12px_34px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+                  <Snowflake className="h-3.5 w-3.5" />
+                  The Poles
+                </a>
+                <div className="flex items-center gap-2 lg:hidden">
+                  <SnowfallControl value={snowfallMode} onChange={setSnowfallMode} />
+                  <NorthPoleAccountMenu user={user} isAdmin={isAdmin} onNavigate={goToNorthPoleTab} onSignOut={signOut} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <TabsList className="grid h-auto flex-1 grid-cols-2 gap-0.5 rounded-xl border border-white/10 bg-black/40 p-0.5 shadow-[0_0_24px_rgba(0,0,0,0.18)] backdrop-blur-xl sm:grid-cols-4 lg:w-auto lg:flex-none">
+              <TabsTrigger value="browse" className="h-8 rounded-lg px-2 text-xs text-purple-100 data-[state=active]:bg-purple-700">
+                <Gift className="mr-1.5 h-3.5 w-3.5" />Browse
               </TabsTrigger>
-              {isAdmin && (
-                <TabsTrigger value="admin" className="flex-1 text-purple-100 data-[state=active]:bg-purple-700">
-                  <Settings2 className="mr-2 h-4 w-4" />Admin Fulfillment
-                </TabsTrigger>
-              )}
-            </TabsList>
+              <TabsTrigger value="create" className="h-8 rounded-lg px-2 text-xs text-purple-100 data-[state=active]:bg-purple-700">
+                <Plus className="mr-1.5 h-3.5 w-3.5" />Create
+              </TabsTrigger>
+              <TabsTrigger value="my" className="h-8 rounded-lg px-2 text-xs text-purple-100 data-[state=active]:bg-purple-700">
+                <Gamepad2 className="mr-1.5 h-3.5 w-3.5" />My Rooms
+              </TabsTrigger>
+              <TabsTrigger value="how" className="h-8 rounded-lg px-2 text-xs text-purple-100 data-[state=active]:bg-purple-700">
+                <PlayCircle className="mr-1.5 h-3.5 w-3.5" />How
+              </TabsTrigger>
+                </TabsList>
+                <div className="hidden items-center gap-2 lg:flex">
+                  <SnowfallControl value={snowfallMode} onChange={setSnowfallMode} />
+                  <NorthPoleAccountMenu user={user} isAdmin={isAdmin} onNavigate={goToNorthPoleTab} onSignOut={signOut} />
+                </div>
+              </div>
+            </div>
+          </header>
 
-            <TabsContent value="build">
-              <RealNorthPoleFlow user={user} />
-            </TabsContent>
+          <NorthPoleLandingHero
+            onBrowse={() => goToNorthPoleTab('browse')}
+            onCreate={() => goToNorthPoleTab('create')}
+          />
+
+          <div id="north-pole-flow" className="mx-auto max-w-6xl p-4 md:p-8">
+            {activeTab !== 'admin' && (
+              <RealNorthPoleFlow user={user} view={activeTab} />
+            )}
 
             {isAdmin && (
-              <TabsContent value="admin">
+              <TabsContent value="admin" className="mt-0">
                 <Card className="border border-purple-700/30 bg-purple-900/20">
                   <CardContent className="p-6">
                     <div className="mb-6 flex items-center gap-3">
@@ -4639,13 +5141,8 @@ export default function NorthPole() {
                 </Card>
               </TabsContent>
             )}
-          </Tabs>
-
-          <div className="mt-8 space-y-1 rounded-xl border border-white/10 bg-black/35 p-4 text-center text-xs text-purple-200/70 backdrop-blur">
-            <p><strong>No live payments yet.</strong> Creating or joining a match records intent only.</p>
-            <p>Retailer ordering, affiliate APIs, and fulfillment remain simulated until explicitly implemented.</p>
           </div>
-        </div>
+        </Tabs>
       </div>
     </div>
   );

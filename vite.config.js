@@ -1,11 +1,10 @@
-import react from '@vitejs/plugin-react'
+﻿import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
@@ -20,22 +19,21 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:8787',
         changeOrigin: true,
-      },
-      '/functions': {
-        target: process.env.VITE_API_PROXY_TARGET || 'http://localhost:8787',
-        changeOrigin: true,
+        secure: false,
       },
     },
   },
   build: {
+    chunkSizeWarningLimit: 1600,
     rollupOptions: {
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-data': ['@tanstack/react-query', '@supabase/supabase-js'],
           'vendor-visual': ['three', 'recharts', 'framer-motion'],
+          'vendor-forms': ['react-hook-form', '@hookform/resolvers', 'zod'],
         },
       },
     },
   },
-});
+})

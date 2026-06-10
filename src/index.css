@@ -191,6 +191,22 @@ button:focus-visible {
     50% { transform: translate3d(4%, 3%, 0) rotate(7deg) scale(1.08); opacity: 0.92; }
   }
 
+  @keyframes northPoleAuroraRibbonDrift {
+    0%, 100% { transform: translate3d(-4%, -2%, 0) rotate(var(--aurora-rotate, -8deg)) scaleX(1); opacity: 0.38; }
+    35% { transform: translate3d(3%, 4%, 0) rotate(calc(var(--aurora-rotate, -8deg) + 5deg)) scaleX(1.12); opacity: 0.7; }
+    70% { transform: translate3d(8%, -1%, 0) rotate(calc(var(--aurora-rotate, -8deg) - 3deg)) scaleX(0.95); opacity: 0.5; }
+  }
+
+  @keyframes northPoleStarTwinkle {
+    0%, 100% { opacity: 0.35; transform: scale(0.75); box-shadow: 0 0 4px rgba(255,255,255,0.35); }
+    50% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 18px rgba(186,230,253,0.72); }
+  }
+
+  @keyframes northPoleSnowdriftBreathe {
+    0%, 100% { transform: translateY(0) scaleY(1); opacity: 0.78; }
+    50% { transform: translateY(-8px) scaleY(1.08); opacity: 0.95; }
+  }
+
   @keyframes northPoleGlowPulse {
     0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 10px rgba(250,204,21,0.45)); }
     50% { opacity: 1; filter: drop-shadow(0 0 18px rgba(250,204,21,0.78)); }
@@ -219,19 +235,23 @@ button:focus-visible {
     mix-blend-mode: screen;
   }
 
-  .north-pole-light {
-    animation: northPoleGlowPulse 2.4s ease-in-out infinite;
-    box-shadow: 0 0 14px currentColor;
+  .north-pole-aurora-ribbon {
+    animation: northPoleAuroraRibbonDrift 22s ease-in-out infinite;
+    mix-blend-mode: screen;
+    will-change: transform, opacity;
   }
 
-  .north-pole-lights-strip::before {
-    content: '';
-    position: absolute;
-    left: 1.25rem;
-    right: 1.25rem;
-    top: 0.7rem;
-    height: 1px;
-    background: linear-gradient(to right, transparent, rgba(255,255,255,0.35), transparent);
+  .north-pole-star {
+    animation: northPoleStarTwinkle 4.8s ease-in-out infinite;
+  }
+
+  .north-pole-snowdrift {
+    animation: northPoleSnowdriftBreathe 14s ease-in-out infinite;
+    filter: drop-shadow(0 -18px 34px rgba(255,255,255,0.08));
+  }
+
+  .north-pole-snow-canvas {
+    contain: strict;
   }
 
   .north-pole-card-shimmer {
@@ -395,9 +415,15 @@ button:focus-visible {
     #north-pole-flow [class*='animate-'],
     .north-pole-snowflake,
     .north-pole-aurora,
-    .north-pole-light,
+    .north-pole-aurora-ribbon,
+    .north-pole-star,
+    .north-pole-snowdrift,
     .north-pole-card-shimmer {
       animation: none !important;
+    }
+
+    .north-pole-snow-canvas {
+      opacity: 0.42;
     }
 
     #north-pole-flow *,
