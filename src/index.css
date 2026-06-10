@@ -156,3 +156,197 @@ button:focus-visible {
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  @keyframes polesAuroraDrift {
+    0% { transform: translate3d(-6%, -4%, 0) rotate(0deg) scale(1); opacity: 0.62; }
+    50% { transform: translate3d(5%, 4%, 0) rotate(8deg) scale(1.08); opacity: 0.95; }
+    100% { transform: translate3d(-6%, -4%, 0) rotate(0deg) scale(1); opacity: 0.62; }
+  }
+
+  @keyframes polesCardSheen {
+    0% { transform: translateX(-135%) skewX(-18deg); opacity: 0; }
+    18% { opacity: 0.55; }
+    42% { opacity: 0; }
+    100% { transform: translateX(145%) skewX(-18deg); opacity: 0; }
+  }
+
+  @keyframes polesSoftFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+  }
+
+  @keyframes polesHaloPulse {
+    0%, 100% { opacity: 0.5; filter: blur(20px); }
+    50% { opacity: 0.9; filter: blur(28px); }
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  #north-pole-flow {
+    position: relative;
+    isolation: isolate;
+    max-width: min(1480px, calc(100vw - 24px));
+  }
+
+  #north-pole-flow::before,
+  #north-pole-flow::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    z-index: -1;
+    border-radius: 9999px;
+    opacity: 0.72;
+  }
+
+  #north-pole-flow::before {
+    left: -14rem;
+    top: 8rem;
+    width: 28rem;
+    height: 28rem;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.34), transparent 64%);
+    animation: polesAuroraDrift 14s ease-in-out infinite;
+  }
+
+  #north-pole-flow::after {
+    right: -12rem;
+    top: 34rem;
+    width: 26rem;
+    height: 26rem;
+    background: radial-gradient(circle, rgba(250, 204, 21, 0.22), transparent 66%);
+    animation: polesAuroraDrift 16s ease-in-out infinite reverse;
+  }
+
+  #north-pole-flow [role='tablist'] {
+    backdrop-filter: blur(18px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 24px 60px rgba(0,0,0,0.28);
+  }
+
+  #north-pole-flow [role='tab'][data-state='active'] {
+    box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.18), 0 0 30px rgba(124, 58, 237, 0.32);
+  }
+
+  #north-pole-flow .snap-start > .h-full,
+  #north-pole-flow [class*='grid'] > .h-full,
+  #north-pole-flow [class*='grid'] > [class*='rounded-2xl'][class*='border'] {
+    position: relative;
+    transform: translateZ(0);
+    transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease, background 220ms ease;
+  }
+
+  #north-pole-flow .snap-start > .h-full::before,
+  #north-pole-flow [class*='grid'] > .h-full::before,
+  #north-pole-flow [class*='grid'] > [class*='rounded-2xl'][class*='border']::before {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: inherit;
+    background: linear-gradient(115deg, transparent 0%, rgba(255,255,255,0.10) 42%, transparent 58%);
+    transform: translateX(-140%) skewX(-18deg);
+    opacity: 0;
+  }
+
+  #north-pole-flow .snap-start > .h-full:hover,
+  #north-pole-flow [class*='grid'] > .h-full:hover,
+  #north-pole-flow [class*='grid'] > [class*='rounded-2xl'][class*='border']:hover {
+    transform: translateY(-7px) scale(1.012);
+    border-color: rgba(250, 204, 21, 0.46) !important;
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.42), 0 0 46px rgba(124, 58, 237, 0.22), 0 0 28px rgba(250, 204, 21, 0.10);
+  }
+
+  #north-pole-flow .snap-start > .h-full:hover::before,
+  #north-pole-flow [class*='grid'] > .h-full:hover::before,
+  #north-pole-flow [class*='grid'] > [class*='rounded-2xl'][class*='border']:hover::before {
+    animation: polesCardSheen 1.5s ease;
+  }
+
+  #north-pole-flow img {
+    transition: transform 260ms ease, filter 260ms ease;
+  }
+
+  #north-pole-flow .snap-start > .h-full:hover img,
+  #north-pole-flow [class*='grid'] > .h-full:hover img {
+    transform: scale(1.035);
+    filter: saturate(1.08) contrast(1.03);
+  }
+
+  #north-pole-flow [class*='bg-white'] img[class*='object-contain'] {
+    filter: drop-shadow(0 18px 20px rgba(15, 23, 42, 0.16));
+  }
+
+  #north-pole-flow button:not(:disabled),
+  #north-pole-flow a[href] {
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+  }
+
+  #north-pole-flow button:not(:disabled):active,
+  #north-pole-flow a[href]:active {
+    transform: translateY(1px) scale(0.99);
+  }
+
+  #north-pole-flow button[class*='bg-green']:not(:disabled),
+  #north-pole-flow button[class*='bg-yellow']:not(:disabled),
+  #north-pole-flow button[class*='bg-purple']:not(:disabled) {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 14px 34px rgba(0,0,0,0.25);
+  }
+
+  #north-pole-flow button[class*='bg-green']:not(:disabled):hover {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.20), 0 18px 42px rgba(34,197,94,0.22), 0 0 28px rgba(34,197,94,0.16);
+  }
+
+  #north-pole-flow button[class*='bg-yellow']:not(:disabled):hover {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 18px 42px rgba(250,204,21,0.22), 0 0 28px rgba(250,204,21,0.16);
+  }
+
+  #north-pole-flow input,
+  #north-pole-flow select {
+    backdrop-filter: blur(12px);
+    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+  }
+
+  #north-pole-flow input:focus,
+  #north-pole-flow select:focus {
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.18), 0 0 30px rgba(250, 204, 21, 0.10);
+  }
+
+  #north-pole-flow [class*='overflow-x-auto'] {
+    scroll-snap-type: x mandatory;
+    mask-image: linear-gradient(to right, transparent, black 22px, black calc(100% - 22px), transparent);
+  }
+
+  #north-pole-flow [class*='rounded-[2.25rem]'],
+  #north-pole-flow [class*='rounded-[2rem]'] {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), 0 28px 90px rgba(0,0,0,0.30);
+  }
+
+  #north-pole-flow [class*='text-5xl'],
+  #north-pole-flow [class*='text-4xl'] {
+    text-wrap: balance;
+  }
+
+  #north-pole-flow [class*='Ready to Join'],
+  #north-pole-flow [class*='Featured Prize Room'] {
+    animation: polesSoftFloat 4.5s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+
+    #north-pole-flow::before,
+    #north-pole-flow::after,
+    #north-pole-flow [style*='animation'],
+    #north-pole-flow [class*='animate-'] {
+      animation: none !important;
+    }
+
+    #north-pole-flow *,
+    #north-pole-flow *::before,
+    #north-pole-flow *::after {
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
