@@ -30,6 +30,29 @@ function productImage(product = {}) {
   return image;
 }
 
+function productKey(product = {}) {
+  return String(
+    product.id
+      || product.item_id
+      || product.ebay_item_id
+      || product.legacyItemId
+      || product.marketplace_key
+      || product.product_url
+      || product.url
+      || `${product.title || product.name || ''}-${product.price || product.price_cents || ''}-${product.image || product.image_url || product.images?.[0] || ''}`
+  ).trim().toLowerCase();
+}
+
+function uniqueByProduct(items = []) {
+  const seen = new Set();
+  return items.filter((item) => {
+    const key = productKey(item);
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function roomPlayerCount(room = {}) {
   return Array.isArray(room.player_ids) ? room.player_ids.length : Number(room.paid_contribution_count || 0);
 }
@@ -62,26 +85,26 @@ function normalizeGame(game = {}) {
 
 function ProductCard({ product, onView }) {
   return (
-    <Card className="overflow-hidden rounded-2xl border-white/10 bg-white/[0.04] text-white shadow-[0_0_30px_rgba(124,58,237,0.10)]">
-      <button type="button" onClick={onView} className="block w-full bg-white p-4">
+    <Card className="h-full overflow-hidden rounded-xl border border-white/10 bg-white/[0.055] text-white shadow-[0_12px_30px_rgba(0,0,0,0.22)] backdrop-blur">
+      <button type="button" onClick={onView} className="block w-full bg-white p-2.5">
         {productImage(product) ? (
-          <img src={productImage(product)} alt={product.title} className="h-52 w-full object-contain" />
+          <img src={productImage(product)} alt={product.title} className="h-40 w-full object-contain" />
         ) : (
-          <div className="flex h-52 items-center justify-center rounded-xl bg-purple-100 text-sm font-bold text-purple-950">Prize Image</div>
+          <div className="flex h-40 items-center justify-center rounded-lg bg-purple-100 text-sm font-bold text-purple-950">Prize Image</div>
         )}
       </button>
-      <CardContent className="space-y-3 p-4">
+      <CardContent className="space-y-2.5 p-3">
         <div>
-          <h3 className="line-clamp-2 min-h-[3rem] text-base font-black">{product.title}</h3>
-          <p className="mt-1 text-sm text-white/55">{product.source_label || product.source || 'Provider'}</p>
+          <h3 className="line-clamp-2 min-h-10 text-sm font-black leading-tight">{product.title}</h3>
+          <p className="mt-1 line-clamp-1 text-xs text-white/55">{product.source_label || product.source || 'Provider'}</p>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <strong className="text-xl text-green-200">{formatMoney(product.price_cents, product.currency)}</strong>
+          <strong className="text-lg text-green-200">{formatMoney(product.price_cents, product.currency)}</strong>
           {product.rating ? (
-            <span className="inline-flex items-center gap-1 text-sm text-yellow-100"><Star className="h-4 w-4 fill-yellow-300 text-yellow-300" />{product.rating}</span>
+            <span className="inline-flex items-center gap-1 text-xs text-yellow-100"><Star className="h-3.5 w-3.5 fill-yellow-300 text-yellow-300" />{product.rating}</span>
           ) : <span className="text-xs text-white/35">No rating</span>}
         </div>
-        <Button onClick={onView} className="w-full rounded-xl bg-yellow-500 font-black text-black hover:bg-yellow-400">
+        <Button onClick={onView} className="h-9 w-full rounded-lg bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
           View Prize
         </Button>
       </CardContent>
@@ -300,7 +323,7 @@ export default function PrizeMarketplace() {
     try {
       const nextOffset = reset ? 0 : offset;
       const result = await listMarketplaceProducts({ q: query, limit: 24, offset: nextOffset, endpoint: '/api/prize-products' });
-      setProducts((prev) => reset ? result.products : [...prev, ...result.products.filter((item) => !prev.some((row) => row.id === item.id))]);
+      setProducts((prev) => uniqueByProduct(reset ? result.products : [...prev, ...result.products]));
       setOffset(result.pagination?.next_offset ?? nextOffset + result.products.length);
       setHasMore(result.pagination?.has_more ?? result.products.length >= 24);
     } catch (err) {
@@ -338,7 +361,7 @@ export default function PrizeMarketplace() {
     if (!selectedProductId || selectedProduct) return;
     getMarketplaceProduct({ productId: selectedProductId })
       .then((product) => {
-        if (product) setProducts((prev) => prev.some((row) => row.id === product.id) ? prev : [product, ...prev]);
+        if (product) setProducts((prev) => uniqueByProduct([product, ...prev]));
       })
       .catch(() => setError('That product link is no longer available.'));
   }, [selectedProductId, selectedProduct]);
@@ -365,16 +388,25 @@ export default function PrizeMarketplace() {
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.28),transparent_32%),linear-gradient(135deg,#05010d,#10061f_48%,#050505)] px-4 py-8 text-white">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.24),transparent_32%),linear-gradient(135deg,#05010d,#10061f_48%,#050505)] px-4 py-8 text-white">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="space-y-4 rounded-3xl border border-white/10 bg-white/[0.05] p-5">
-          <Badge className="bg-yellow-500/20 text-yellow-100">Marketplace Prize Browser</Badge>
-          <div className="grid gap-4 lg:grid-cols-[1fr_420px] lg:items-end">
+        <header className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.055] p-5 backdrop-blur">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="bg-yellow-500/20 text-yellow-100">Marketplace Prize Browser</Badge>
+            <Badge className="bg-white/10 text-white/75">{uniqueByProduct(products).length} unique prizes</Badge>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-[1fr_460px] lg:items-end">
             <div>
-              <h1 className="text-3xl font-black md:text-5xl">Browse prizes, then choose a game room.</h1>
+              <h1 className="text-3xl font-black md:text-4xl">Browse prizes, then choose a game room.</h1>
               <p className="mt-2 max-w-3xl text-sm text-white/65">Products become prizes for skill-based game rooms. No normal checkout here: choose an existing room or create a new one.</p>
+              <div className="mt-3 grid gap-2 text-xs font-semibold text-white/80 sm:grid-cols-4">
+                <span className="rounded-lg bg-black/25 px-3 py-2">1. Browse prizes</span>
+                <span className="rounded-lg bg-black/25 px-3 py-2">2. Pick a room</span>
+                <span className="rounded-lg bg-black/25 px-3 py-2">3. Play the game</span>
+                <span className="rounded-lg bg-black/25 px-3 py-2">4. Winner gets prize</span>
+              </div>
             </div>
-            <form onSubmit={submitSearch} className="flex gap-2">
+            <form onSubmit={submitSearch} className="flex flex-col gap-2 sm:flex-row">
               <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search products..." className="h-12 rounded-2xl border-white/10 bg-black/45 text-white" />
               <Button type="submit" className="h-12 rounded-2xl bg-yellow-500 font-black text-black hover:bg-yellow-400"><Search className="mr-2 h-4 w-4" />Search</Button>
             </form>
@@ -403,8 +435,8 @@ export default function PrizeMarketplace() {
           />
         ) : (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {products.map((product) => <ProductCard key={product.id} product={product} onView={() => openProduct(product)} />)}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              {uniqueByProduct(products).map((product) => <ProductCard key={productKey(product)} product={product} onView={() => openProduct(product)} />)}
             </div>
             <div ref={sentinelRef} className="flex min-h-20 items-center justify-center">
               {loading ? <Loader2 className="h-7 w-7 animate-spin text-yellow-200" /> : hasMore ? <span className="text-sm text-white/45">Scroll for more prizes</span> : <span className="text-sm text-white/45">End of results</span>}
