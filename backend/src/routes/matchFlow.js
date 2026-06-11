@@ -5,6 +5,7 @@ import { getRequestUser, ROLES } from '../lib/auth.js';
 import { searchProductsAcrossProviders, searchEbayBrowseCleanResults } from '../lib/searchProviders/products.js';
 import { searchGamesAcrossProviders } from '../lib/searchProviders/games.js';
 import { FulfillmentEngine } from '../services/fulfillment/FulfillmentEngine.js';
+import { WinnerVerificationEngine } from '../services/WinnerVerificationEngine.js';
 
 const ADMIN_ROLES = new Set([ROLES.OWNER, ROLES.ADMIN]);
 const SIMULATED_PROVIDER = 'simulated';
@@ -56,6 +57,7 @@ const PRIZE_ROOM_STATUSES = [
   'fulfilled',
   'cancelled',
 ];
+const APPROVED_WINNER_VERIFICATION_STATUSES = new Set(['approved']);
 
 const PRIZE_CATALOG_ROWS = [
   { id: 'electronics', title: 'Popular Electronics', category: 'Electronics', query_terms: ['wireless earbuds', 'bluetooth speaker', 'portable charger', 'smart watch', 'tablet stand'] },
@@ -1511,6 +1513,48 @@ async function buildAiVerification(store, match) {
   };
 }
 
+async function buildWinnerVerificationDecision(store, match, {
+  claimedWinnerUserId,
+  recommendation = null,
+  manualLock = false,
+  adminOverride = false,
+  lockedBy = '',
+} = {}) {
+  const matchId = publicMatchId(match);
+  const [entries, scores, refereeContext, disputes] = await Promise.all([
+    store.list('match_entries', { matchId }).catch(() => []),
+    store.list('match_scores', { matchId }).catch(() => []),
+    loadRefereeContext(store, matchId).catch(() => ({ sessions: [], reports: [] })),
+    store.list('match_disputes', { matchId }).catch(() => []),
+  ]);
+  const hasDispute = disputes.some((dispute) => !['closed', 'resolved', 'rejected'].includes(dispute.status || dispute.dispute_status || 'open'));
+  const engine = new WinnerVerificationEngine();
+  return engine.verify({
+    match,
+    matchId,
+    claimedWinnerUserId,
+    recommendation,
+    entries,
+    scores,
+    refereeContext,
+    refereeReports: refereeContext.reports || [],
+    disputes,
+    hasDispute,
+    manualLock,
+    adminOverride,
+    lockedBy,
+  });
+}
+
+async function findApprovedWinnerVerification(store, match, winnerId = '') {
+  const matchId = publicMatchId(match);
+  const verifications = await store.list('winner_verifications', { matchId }, { sort: '-created_at' }).catch(() => []);
+  return verifications.find((verification) => (
+    APPROVED_WINNER_VERIFICATION_STATUSES.has(verification.status)
+    && (!winnerId || String(verification.winnerUserId || verification.winner_user_id) === String(winnerId))
+  )) || null;
+}
+
 async function createPrizeFulfillment(store, match, userId) {
   try {
     const matchId = publicMatchId(match);
@@ -1524,15 +1568,32 @@ async function createPrizeFulfillment(store, match, userId) {
       testOrder: match?.test_order === true,
     });
 
-    const lockedVerification = await store.findOne('winner_verifications', { matchId, status: 'locked' });
-    const winnerId = match.winner_user_id || match.winner_id || lockedVerification?.winnerUserId || lockedVerification?.winner_user_id;
+    const winnerId = match.winner_user_id || match.winner_id;
     if (!winnerId) {
       const error = new Error('Winner must be locked before fulfillment is created');
       error.status = 400;
       throw error;
     }
 
+    const approvedVerification = await findApprovedWinnerVerification(store, match, winnerId);
+    if (!approvedVerification) {
+      const error = new Error('WinnerVerification must be approved before fulfillment is created');
+      error.status = 409;
+      throw error;
+    }
+
     const existing = await store.findOne('prize_fulfillments', { match_id: matchId });
+    const existingForRoom = match.prize_room_id
+      ? await store.findOne('prize_fulfillments', { prize_room_id: match.prize_room_id }).catch(() => null)
+      : null;
+    if (!existing && existingForRoom) {
+      console.log('[fulfillment] createPrizeFulfillment:existing_for_room', {
+        fulfillmentId: existingForRoom.id,
+        matchId,
+        prizeRoomId: match.prize_room_id,
+      });
+      return existingForRoom;
+    }
     if (existing) {
       const existingBreakdown = existing.prize_cost_breakdown || match.cost_breakdown || buildPrizeCostBreakdown(match);
       if (!existing.prize_cost_breakdown) {
@@ -1561,7 +1622,15 @@ async function createPrizeFulfillment(store, match, userId) {
     const profile = await findProfileForUser(store, winnerId);
     const payload = {
       match_id: matchId,
+      prize_room_id: match.prize_room_id || '',
       winner_id: winnerId,
+      winner_verification_id: approvedVerification.id,
+      winner_verification_status: approvedVerification.status,
+      winner_verification_score: approvedVerification.confidenceScore ?? approvedVerification.confidence_score ?? 0,
+      winner_verification_tier: approvedVerification.prizeValueTier ?? approvedVerification.prize_value_tier ?? '',
+      winner_verification_reason: approvedVerification.approvalReason ?? approvedVerification.approval_reason ?? '',
+      winner_verification_proof_sources: approvedVerification.proofSourcesUsed ?? approvedVerification.proof_sources_used ?? [],
+      winner_verification_requires_manual_review: approvedVerification.requiresManualReview ?? approvedVerification.requires_manual_review ?? false,
       winner_name: profileDisplayName(profile, winnerId),
       winner_email: profileEmail(profile),
       prize_title: prize.title,
@@ -1639,6 +1708,8 @@ async function createPrizeFulfillment(store, match, userId) {
         prizeSource: fulfillment.prize_source,
         status: fulfillment.status,
         autoPurchase: false,
+        winnerVerificationId: approvedVerification.id,
+        winnerVerificationStatus: approvedVerification.status,
         prizeCostBreakdown,
       },
     });
@@ -2744,6 +2815,10 @@ export function createMatchFlowRouter({ store }) {
     if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
 
     const recommendation = await recommendWinner(store, match);
+    const claimedWinnerUserId = recommendation.recommendedWinnerUserId || recommendation.recommendedWinner?.userId || null;
+    const verificationDecision = claimedWinnerUserId
+      ? await buildWinnerVerificationDecision(store, match, { claimedWinnerUserId, recommendation })
+      : null;
     if (matchRowId(match)) {
       await store.update('north_pole_matches', matchRowId(match), { status: 'pending_verification' }).catch(() => null);
     }
@@ -2758,6 +2833,8 @@ export function createMatchFlowRouter({ store }) {
         winningScore: recommendation.winningScore,
         scoreType: recommendation.scoreType,
         confidence: recommendation.confidence,
+        verificationScore: verificationDecision?.confidenceScore ?? 0,
+        verificationStatus: verificationDecision?.status || 'manual_review',
         canLockWinner: recommendation.canLockWinner,
         lockBlockReasons: recommendation.lockBlockReasons,
         warnings: recommendation.warnings,
@@ -2766,7 +2843,12 @@ export function createMatchFlowRouter({ store }) {
       },
     });
 
-    ok(res, { ...recommendation, data: recommendation });
+    ok(res, {
+      ...recommendation,
+      verificationDecision,
+      canLockWinner: recommendation.canLockWinner && (!verificationDecision || verificationDecision.status === 'approved'),
+      data: { ...recommendation, verificationDecision },
+    });
   }));
 
   router.post('/matches/:id/ai-verify', asyncHandler(async (req, res) => {
@@ -2830,13 +2912,13 @@ export function createMatchFlowRouter({ store }) {
     const match = await findMatch(store, req.params.matchId);
     if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
     const matchId = publicMatchId(match);
-    const existingLocked = await store.findOne('winner_verifications', { matchId, status: 'locked' });
+    const existingLocked = await store.findOne('winner_verifications', { matchId, status: 'approved' });
     const adminOverride = input.adminOverride === true || input.admin_override === true;
     if ((match.winner_locked_at || existingLocked) && (!isAdmin(user) || !adminOverride)) {
       const locked = existingLocked || {
         matchId,
         winnerUserId: match.winner_user_id || match.winner_id,
-        status: 'locked',
+        status: 'approved',
         lockedAt: match.winner_locked_at,
       };
       return ok(res, { verification: locked, data: locked, alreadyLocked: true });
@@ -2850,12 +2932,29 @@ export function createMatchFlowRouter({ store }) {
     }
     const lockedBy = input.lockedBy || input.locked_by || user.id;
     const manualLock = isAdmin(user) && ['admin', 'manual_review', user.id].includes(String(lockedBy));
+    const verificationDecision = await buildWinnerVerificationDecision(store, match, {
+      claimedWinnerUserId: requestedWinner,
+      recommendation,
+      manualLock,
+      adminOverride,
+      lockedBy,
+    });
     if (!manualLock) {
       if (!recommendation.canLockWinner) {
         return res.status(409).json({ success: false, error: 'Winner cannot be locked until verification warnings are resolved', recommendation });
       }
       if (String(requestedWinner) !== String(recommendation.recommendedWinnerUserId)) {
         return res.status(403).json({ success: false, error: 'Requested winner does not match the deterministic recommendation' });
+      }
+      if (verificationDecision.status !== 'approved') {
+        return res.status(409).json({
+          success: false,
+          error: verificationDecision.hasDispute
+            ? 'WinnerVerification requires manual review because a dispute is open'
+            : 'WinnerVerification confidence is below the approval threshold',
+          verificationDecision,
+          recommendation,
+        });
       }
     }
 
@@ -2866,13 +2965,26 @@ export function createMatchFlowRouter({ store }) {
       winnerUserId: requestedWinner,
       winningScore,
       verificationMethod,
-      status: 'locked',
+      status: verificationDecision.status,
       lockedBy,
       lockedAt: now(),
       auditNotes: input.auditNotes || input.audit_notes || [
         recommendation.deterministicRule,
         recommendation.warnings.length ? `Warnings: ${recommendation.warnings.join(', ')}` : 'No warnings.',
+        verificationDecision.approvalReason,
       ].join(' '),
+      claimedWinner: requestedWinner,
+      confidenceScore: verificationDecision.confidenceScore,
+      approvalThreshold: verificationDecision.approvalThreshold,
+      approvalReason: verificationDecision.approvalReason,
+      proofSourcesUsed: verificationDecision.proofSourcesUsed,
+      proofSourceResults: verificationDecision.sourceResults,
+      prizeValueCents: verificationDecision.prizeValueCents,
+      prizeValueTier: verificationDecision.prizeValueTier,
+      prizeValueRule: verificationDecision.prizeValueRule,
+      requiresManualReview: verificationDecision.requiresManualReview,
+      hasDispute: verificationDecision.hasDispute,
+      fulfillmentStatus: verificationDecision.status === 'approved' ? 'eligible' : 'manual_review_required',
       recommendedWinner: recommendation.recommendedWinner,
       refereeReport: recommendation.refereeReport || null,
       refereeContext: recommendation.refereeContext || null,
@@ -2885,13 +2997,19 @@ export function createMatchFlowRouter({ store }) {
     if (matchRowId(match)) {
       const prizeCostBreakdown = buildPrizeCostBreakdown(match);
       await store.update('north_pole_matches', matchRowId(match), {
-        status: 'fulfillment_pending',
+        status: verificationDecision.status === 'approved' ? 'fulfillment_pending' : 'pending_verification',
         winner_id: requestedWinner,
         winner_user_id: requestedWinner,
-        verified_at: now(),
+        verified_at: verificationDecision.status === 'approved' ? now() : null,
         verified_by: user.id,
         winner_locked_at: now(),
         winner_verification_id: verification.id,
+        winner_verification_status: verificationDecision.status,
+        winner_verification_score: verificationDecision.confidenceScore,
+        winner_verification_tier: verificationDecision.prizeValueTier,
+        winner_verification_reason: verificationDecision.approvalReason,
+        winner_verification_proof_sources: verificationDecision.proofSourcesUsed,
+        winner_verification_requires_manual_review: verificationDecision.requiresManualReview,
         prize_cost_breakdown: prizeCostBreakdown,
         item_cost_cents: prizeCostBreakdown.item_cost_cents,
         estimated_tax_cents: prizeCostBreakdown.estimated_tax_cents,
@@ -2902,9 +3020,15 @@ export function createMatchFlowRouter({ store }) {
       }).catch(() => null);
       if (match.prize_room_id) {
         await store.update('prize_rooms', match.prize_room_id, {
-          status: 'fulfillment_pending',
+          status: verificationDecision.status === 'approved' ? 'fulfillment_pending' : 'pending_verification',
           winner_user_id: requestedWinner,
           winner_verification_id: verification.id,
+          winner_verification_status: verificationDecision.status,
+          winner_verification_score: verificationDecision.confidenceScore,
+          winner_verification_tier: verificationDecision.prizeValueTier,
+          winner_verification_reason: verificationDecision.approvalReason,
+          winner_verification_proof_sources: verificationDecision.proofSourcesUsed,
+          winner_verification_requires_manual_review: verificationDecision.requiresManualReview,
           winner_locked_at: now(),
         }).catch(() => null);
       }
@@ -2916,10 +3040,21 @@ export function createMatchFlowRouter({ store }) {
       matchId: recommendation.matchId,
       userId: user.id,
       action: 'winner_locked',
-      metadata: { winnerUserId: requestedWinner, winningScore, verificationMethod, lockedBy, manualLock },
+      metadata: {
+        winnerUserId: requestedWinner,
+        winningScore,
+        verificationMethod,
+        lockedBy,
+        manualLock,
+        winnerVerificationStatus: verificationDecision.status,
+        confidenceScore: verificationDecision.confidenceScore,
+        proofSourcesUsed: verificationDecision.proofSourcesUsed,
+      },
     });
 
-    const fulfillmentResult = await tryAutoFulfillVerifiedWinner(store, match, user.id);
+    const fulfillmentResult = verificationDecision.status === 'approved'
+      ? await tryAutoFulfillVerifiedWinner(store, { ...match, winner_user_id: requestedWinner, winner_id: requestedWinner }, user.id)
+      : { fulfillment: null, error: new Error('Manual review required before fulfillment') };
 
     ok(res, {
       verification,
@@ -3726,6 +3861,13 @@ export function createMatchFlowRouter({ store }) {
         winner_id: match.winner_user_id || match.winner_id || '',
         prize_title: normalizePrize(match).title,
         status: match.status,
+        winner_verification_id: match.winner_verification_id || '',
+        winner_verification_status: match.winner_verification_status || '',
+        winner_verification_score: match.winner_verification_score ?? 0,
+        winner_verification_tier: match.winner_verification_tier || '',
+        winner_verification_reason: match.winner_verification_reason || '',
+        winner_verification_proof_sources: match.winner_verification_proof_sources || [],
+        winner_verification_requires_manual_review: match.winner_verification_requires_manual_review ?? false,
         prize_cost_breakdown: match.prize_cost_breakdown || buildPrizeCostBreakdown(match),
       }));
 

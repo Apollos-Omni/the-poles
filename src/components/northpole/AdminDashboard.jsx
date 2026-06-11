@@ -154,6 +154,60 @@ function PrizeCostBreakdownPanel({ record, compact = false }) {
   );
 }
 
+const humanizeProofSource = (source = '') => String(source)
+  .replace(/_/g, ' ')
+  .replace(/\b\w/g, char => char.toUpperCase());
+
+const coalesce = (...values) => values.find(value => value !== undefined && value !== null && value !== '');
+const coerceBoolean = (value) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') return value.toLowerCase() === 'true';
+  return Boolean(value);
+};
+
+const verificationSummaryFor = (record = {}, fallback = {}) => {
+  const status = coalesce(record.winner_verification_status, record.status, fallback.winner_verification_status, fallback.status, 'not_started');
+  const confidenceScore = coalesce(record.confidenceScore, record.confidence_score, record.winner_verification_score, fallback.confidenceScore, fallback.confidence_score, fallback.winner_verification_score, 0);
+  const prizeValueTier = coalesce(record.prizeValueTier, record.prize_value_tier, record.winner_verification_tier, fallback.prizeValueTier, fallback.prize_value_tier, fallback.winner_verification_tier, 'unknown');
+  const approvalReason = coalesce(record.approvalReason, record.approval_reason, record.winner_verification_reason, fallback.approvalReason, fallback.approval_reason, fallback.winner_verification_reason, 'No approval reason recorded.');
+  const proofSourcesUsed = coalesce(record.proofSourcesUsed, record.proof_sources_used, record.winner_verification_proof_sources, fallback.proofSourcesUsed, fallback.proof_sources_used, fallback.winner_verification_proof_sources, []);
+  const fulfillmentStatus = coalesce(record.fulfillmentStatus, record.fulfillment_status, record.status, fallback.fulfillmentStatus, fallback.fulfillment_status, 'not_started');
+  const requiresManualReview = coalesce(record.requiresManualReview, record.requires_manual_review, record.winner_verification_requires_manual_review, fallback.requiresManualReview, fallback.requires_manual_review, fallback.winner_verification_requires_manual_review, status !== 'approved');
+  return {
+    status,
+    confidenceScore,
+    prizeValueTier,
+    approvalReason,
+    proofSourcesUsed: Array.isArray(proofSourcesUsed) ? proofSourcesUsed : [],
+    fulfillmentStatus,
+    requiresManualReview: coerceBoolean(requiresManualReview),
+  };
+};
+
+function VerificationSummaryPanel({ record, fallback, compact = false }) {
+  const summary = verificationSummaryFor(record, fallback);
+  return (
+    <div className={`rounded border border-cyan-800/30 bg-cyan-950/10 ${compact ? 'p-2' : 'p-3'} text-xs text-purple-100`}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-semibold text-white">Winner verification</span>
+        <Badge className={summary.status === 'approved' ? 'bg-green-600/20 text-green-200' : summary.status === 'rejected' ? 'bg-red-600/20 text-red-200' : 'bg-yellow-600/20 text-yellow-200'}>
+          {summary.status}
+        </Badge>
+        <Badge className="bg-purple-600/20 text-purple-200">{summary.prizeValueTier} tier</Badge>
+        <Badge className={summary.requiresManualReview ? 'bg-orange-600/20 text-orange-200' : 'bg-green-600/20 text-green-200'}>
+          Manual review {summary.requiresManualReview ? 'required' : 'not required'}
+        </Badge>
+      </div>
+      <div className="mt-2 grid gap-1 sm:grid-cols-2 lg:grid-cols-3">
+        <span>Confidence score: <strong className="text-white">{summary.confidenceScore}</strong></span>
+        <span>Fulfillment status: <strong className="text-white">{summary.fulfillmentStatus}</strong></span>
+        <span>Proof sources: <strong className="text-white">{summary.proofSourcesUsed.length ? summary.proofSourcesUsed.map(humanizeProofSource).join(', ') : 'None recorded'}</strong></span>
+      </div>
+      <div className="mt-2 text-purple-200">Approval reason: {summary.approvalReason}</div>
+    </div>
+  );
+}
+
 export default function AdminDashboard({ currentUser }) {
   const [matches, setMatches] = useState([]);
   const [fulfillments, setFulfillments] = useState([]);
@@ -921,6 +975,9 @@ export default function AdminDashboard({ currentUser }) {
                   )}
                 </div>
                 <div className="mt-3">
+                  <VerificationSummaryPanel record={lockedVerification || {}} fallback={match} />
+                </div>
+                <div className="mt-3">
                   <PrizeCostBreakdownPanel record={match} compact />
                 </div>
                 {aiReview && (
@@ -1109,6 +1166,9 @@ export default function AdminDashboard({ currentUser }) {
                 </Button>
               </div>
               <div className="mt-3">
+                <VerificationSummaryPanel record={match} compact />
+              </div>
+              <div className="mt-3">
                 <PrizeCostBreakdownPanel record={match} />
               </div>
             </div>
@@ -1182,6 +1242,10 @@ export default function AdminDashboard({ currentUser }) {
                 placeholder="Notes"
                 className="mt-2 min-h-20 border-purple-700/40 bg-black/30 text-white placeholder:text-purple-400/60"
               />
+
+              <div className="mt-3">
+                <VerificationSummaryPanel record={fulfillment} compact />
+              </div>
 
               <div className="mt-3">
                 <PrizeCostBreakdownPanel record={fulfillment} />
@@ -1264,6 +1328,7 @@ export default function AdminDashboard({ currentUser }) {
         <div className="space-y-3">
           {matches.map(match => {
             const fulfillment = getFulfillment(match.match_id);
+            const lockedVerification = verificationForMatch(match.match_id);
             const isExpanded = expandedMatch === match.match_id;
             return (
               <Card key={match.id} className="bg-black/30 border border-purple-800/30">
@@ -1316,6 +1381,8 @@ export default function AdminDashboard({ currentUser }) {
                   {/* Expanded: fulfillment controls + event log */}
                   {isExpanded && (
                     <div className="mt-4 space-y-4 border-t border-purple-800/30 pt-4">
+                      <VerificationSummaryPanel record={lockedVerification || {}} fallback={match} />
+
                       {/* Fulfillment controls */}
                       {fulfillment && (
                         <div className="bg-purple-900/20 rounded-lg p-4 space-y-3">
