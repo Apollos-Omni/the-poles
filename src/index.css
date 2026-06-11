@@ -219,6 +219,22 @@ button:focus-visible {
     100% { transform: translateX(170%) skewX(-16deg); opacity: 0; }
   }
 
+  @keyframes northPoleWorldParallax {
+    0%, 100% { transform: scale(1.035) translate3d(-0.45%, -0.35%, 0); }
+    50% { transform: scale(1.055) translate3d(0.55%, 0.35%, 0); }
+  }
+
+  @keyframes northPoleSmokeDrift {
+    0%, 100% { transform: translate3d(0, 8px, 0) scale(0.9); opacity: 0.16; }
+    45% { transform: translate3d(-18px, -18px, 0) scale(1.16); opacity: 0.32; }
+    78% { transform: translate3d(12px, -30px, 0) scale(1.02); opacity: 0.2; }
+  }
+
+  @keyframes northPoleGustDrift {
+    0%, 100% { transform: translate3d(-3%, 0, 0) rotate(var(--gust-rotate, -8deg)); opacity: 0.16; }
+    50% { transform: translate3d(5%, -8px, 0) rotate(calc(var(--gust-rotate, -8deg) + 3deg)); opacity: 0.38; }
+  }
+
   html {
     scroll-behavior: smooth;
   }
@@ -256,6 +272,47 @@ button:focus-visible {
 
   .north-pole-card-shimmer {
     animation: northPoleShimmer 5.8s ease-in-out infinite;
+  }
+
+  .north-pole-hero-image {
+    animation: northPoleWorldParallax 24s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .north-pole-workshop-window {
+    animation: northPoleGlowPulse 3.4s ease-in-out infinite;
+  }
+
+  .north-pole-smoke {
+    animation: northPoleSmokeDrift 9s ease-in-out infinite;
+  }
+
+  .north-pole-gust {
+    --gust-rotate: -8deg;
+    animation: northPoleGustDrift 12s ease-in-out infinite;
+  }
+
+  .north-pole-world-zone {
+    cursor: pointer;
+    isolation: isolate;
+  }
+
+  .north-pole-world-zone::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: -7px;
+    z-index: -1;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(186, 230, 253, 0.18);
+    opacity: 0;
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+
+  .north-pole-world-zone:hover::after {
+    opacity: 1;
+    transform: scale(1.04);
+    box-shadow: 0 0 28px rgba(103, 232, 249, 0.18);
   }
 
   #north-pole-flow {
@@ -418,7 +475,11 @@ button:focus-visible {
     .north-pole-aurora-ribbon,
     .north-pole-star,
     .north-pole-snowdrift,
-    .north-pole-card-shimmer {
+    .north-pole-card-shimmer,
+    .north-pole-hero-image,
+    .north-pole-workshop-window,
+    .north-pole-smoke,
+    .north-pole-gust {
       animation: none !important;
     }
 

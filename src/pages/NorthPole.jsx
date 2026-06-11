@@ -1192,22 +1192,24 @@ function NorthPoleLivingBackground({ snowfallMode = 'normal' }) {
 
 function SnowfallControl({ value, onChange }) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-xl border border-white/10 bg-black/35 p-0.5 text-[11px] text-white/70 shadow-[0_12px_40px_rgba(0,0,0,0.24)] backdrop-blur-xl">
-      <span className="hidden px-1.5 font-black uppercase tracking-wide text-cyan-100 sm:inline">Snow</span>
-      {Object.entries(SNOWFALL_PRESETS).map(([key, preset]) => (
-        <button
-          key={key}
-          type="button"
-          onClick={() => onChange(key)}
-          className={`rounded-lg px-2 py-1.5 font-black transition ${
-            value === key
-              ? 'bg-cyan-300 text-slate-950 shadow-[0_0_24px_rgba(103,232,249,0.28)]'
-              : 'text-white/68 hover:bg-white/10 hover:text-white'
-          }`}
-        >
-          {preset.label}
-        </button>
-      ))}
+    <div className="rounded-full border border-white/10 bg-black/35 p-0.5 text-[10px] text-white/70 shadow-[0_10px_30px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+      <div className="flex items-center gap-1">
+        <span className="hidden px-1.5 font-black uppercase tracking-wide text-cyan-100 md:inline">Snow</span>
+        {Object.entries(SNOWFALL_PRESETS).map(([key, preset]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => onChange(key)}
+            className={`rounded-full px-2 py-1 font-black transition ${
+              value === key
+                ? 'bg-cyan-300 text-slate-950 shadow-[0_0_24px_rgba(103,232,249,0.28)]'
+                : 'text-white/68 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -1241,39 +1243,39 @@ function NorthPoleAccountMenu({ user, isAdmin, onNavigate, onSignOut }) {
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/15 bg-black/40 text-white shadow-[0_12px_34px_rgba(0,0,0,0.25)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/10"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white shadow-[0_10px_28px_rgba(0,0,0,0.24)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/10"
         aria-label="Open account menu"
         aria-expanded={open}
       >
-        <UserCircle className="h-5 w-5 text-yellow-100" />
+        <UserCircle className="h-4 w-4 text-yellow-100" />
       </button>
       {open && (
-        <div className="absolute right-0 top-12 z-[60] w-72 overflow-hidden rounded-2xl border border-white/12 bg-slate-950/94 text-white shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-          <div className="border-b border-white/10 p-4">
+        <div className="absolute right-0 top-10 z-[60] w-64 overflow-hidden rounded-2xl border border-white/12 bg-slate-950/94 text-white shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+          <div className="border-b border-white/10 p-3">
             <div className="truncate text-sm font-black">{displayName}</div>
             {email && <div className="mt-1 truncate text-xs text-white/55">{email}</div>}
           </div>
           <div className="p-2">
-            <button type="button" onClick={() => choose('my')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-white/82 hover:bg-white/10">
+            <button type="button" onClick={() => choose('my')} className="flex w-full items-center gap-3 rounded-xl px-3 py-1.5 text-left text-sm font-semibold text-white/82 hover:bg-white/10">
               <Gamepad2 className="h-4 w-4 text-cyan-200" /> My Rooms
             </button>
-            <button type="button" onClick={() => choose('create')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-white/82 hover:bg-white/10">
+            <button type="button" onClick={() => choose('create')} className="flex w-full items-center gap-3 rounded-xl px-3 py-1.5 text-left text-sm font-semibold text-white/82 hover:bg-white/10">
               <Plus className="h-4 w-4 text-green-200" /> Create Room
             </button>
-            <button type="button" onClick={() => choose('how')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-white/82 hover:bg-white/10">
+            <button type="button" onClick={() => choose('how')} className="flex w-full items-center gap-3 rounded-xl px-3 py-1.5 text-left text-sm font-semibold text-white/82 hover:bg-white/10">
               <PlayCircle className="h-4 w-4 text-purple-200" /> How It Works
             </button>
-            <a href="/Profile" className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-white/82 hover:bg-white/10">
+            <a href="/Profile" className="flex w-full items-center gap-3 rounded-xl px-3 py-1.5 text-left text-sm font-semibold text-white/82 hover:bg-white/10">
               <Settings2 className="h-4 w-4 text-yellow-100" /> Account / Profile
             </a>
             {isAdmin && (
-              <button type="button" onClick={() => choose('admin')} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-yellow-100 hover:bg-yellow-500/10">
+              <button type="button" onClick={() => choose('admin')} className="flex w-full items-center gap-3 rounded-xl px-3 py-1.5 text-left text-sm font-semibold text-yellow-100 hover:bg-yellow-500/10">
                 <ShieldCheck className="h-4 w-4" /> Admin
               </button>
             )}
           </div>
           <div className="border-t border-white/10 p-2">
-            <button type="button" onClick={onSignOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-white/72 hover:bg-white/10">
+            <button type="button" onClick={onSignOut} className="flex w-full items-center gap-3 rounded-xl px-3 py-1.5 text-left text-sm font-semibold text-white/72 hover:bg-white/10">
               <DoorOpen className="h-4 w-4" /> Sign out
             </button>
           </div>
@@ -1283,23 +1285,65 @@ function NorthPoleAccountMenu({ user, isAdmin, onNavigate, onSignOut }) {
   );
 }
 
-function NorthPoleHeroBadge({ icon: Icon, children }) {
+function NorthPoleWorldZone({ label, detail, className = '', onClick, active = false, icon: Icon = Target }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.08] px-4 py-2 text-xs font-black uppercase tracking-wide text-white shadow-[0_0_24px_rgba(250,204,21,0.08)] backdrop-blur">
-      <Icon className="h-4 w-4 text-yellow-200" />
-      {children}
-    </span>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`north-pole-world-zone absolute z-20 inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-black text-white shadow-[0_8px_20px_rgba(0,0,0,0.24)] backdrop-blur-sm transition hover:-translate-y-0.5 sm:px-3 sm:text-[11px] ${
+        active
+          ? 'border-yellow-100/70 bg-yellow-300/24 shadow-[0_0_24px_rgba(250,204,21,0.25)]'
+          : 'border-white/25 bg-black/28 hover:border-cyan-100/50 hover:bg-black/40 hover:shadow-[0_0_22px_rgba(34,211,238,0.18)]'
+      } ${className}`}
+      aria-pressed={active}
+      aria-label={detail ? `${label}: ${detail}` : label}
+      title={detail || label}
+    >
+      <Icon className="h-3 w-3 text-yellow-100" />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function NorthPoleWorkshopPanel({ open, onClose }) {
+  if (!open) return null;
+  const rows = [
+    ['How prizes are prepared', 'Product images, costs, and room terms are checked before players join.'],
+    ['Winner verification', 'Scores and proof move through review before a winner is locked.'],
+    ['Fulfillment path', 'After verification, the prize moves into a manual fulfillment queue.'],
+    ['Mission impact', 'Each room keeps the foundation contribution visible without crowding the browse flow.'],
+  ];
+  return (
+    <div className="fixed bottom-4 left-4 right-4 z-40 rounded-xl border border-yellow-200/30 bg-slate-950/90 p-3 text-white shadow-[0_18px_54px_rgba(0,0,0,0.42)] backdrop-blur-xl sm:left-auto sm:right-6 sm:w-[300px] md:bottom-8 md:right-8">
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-yellow-100">Santas Workshop</p>
+          <h3 className="mt-1 text-base font-black">Prize operations</h3>
+        </div>
+        <button type="button" onClick={onClose} className="rounded-full border border-white/15 bg-white/[0.08] px-2 py-1 text-xs font-black text-white/72 hover:bg-white/[0.14]">
+          Hide
+        </button>
+      </div>
+      <div className="grid gap-1.5">
+        {rows.map(([title, body]) => (
+          <div key={title} className="rounded-lg border border-white/10 bg-white/[0.045] p-2">
+            <div className="text-xs font-black text-white">{title}</div>
+            <div className="mt-1 text-[11px] leading-4 text-white/62">{body}</div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
 function PrizeRoomHolidayFrame({ children, active = false }) {
   return (
-    <div className={`group relative h-full rounded-[1.35rem] p-px transition duration-300 ${
+    <div className={`group relative h-full rounded-2xl p-px transition duration-300 ${
       active
-        ? 'bg-gradient-to-br from-yellow-200/80 via-purple-300/45 to-cyan-200/45 shadow-[0_0_44px_rgba(250,204,21,0.2)]'
-        : 'bg-gradient-to-br from-white/12 via-purple-300/10 to-yellow-200/12 hover:from-yellow-200/70 hover:via-purple-300/35 hover:to-cyan-200/35 hover:shadow-[0_0_42px_rgba(250,204,21,0.18)]'
+        ? 'bg-gradient-to-br from-yellow-200/70 via-cyan-200/35 to-white/20 shadow-[0_0_30px_rgba(250,204,21,0.18)]'
+        : 'bg-gradient-to-br from-white/12 via-cyan-200/10 to-yellow-200/12 hover:from-yellow-200/55 hover:via-cyan-200/30 hover:to-white/18 hover:shadow-[0_0_28px_rgba(250,204,21,0.14)]'
     }`}>
-      <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-[1.35rem]">
+      <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded-2xl">
         <div className="north-pole-card-shimmer absolute inset-y-0 -left-1/2 w-1/2 bg-gradient-to-r from-transparent via-white/12 to-transparent" />
       </div>
       <div className="relative h-full">{children}</div>
@@ -1418,12 +1462,12 @@ function PrizeRoomCard({ room, isOpen, onOpen, onJoin, onShare, joining }) {
   const displayGameImage = prizeRoomDisplayGameImage(room);
   return (
     <PrizeRoomHolidayFrame active={isOpen}>
-      <Card className={`h-full overflow-hidden rounded-xl border bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(15,23,42,0.72)_42%,rgba(3,7,18,0.92))] shadow-[0_12px_30px_rgba(0,0,0,0.24)] backdrop-blur-xl transition ${
+      <Card className={`h-full overflow-hidden rounded-xl border bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(15,23,42,0.66)_46%,rgba(3,7,18,0.9))] shadow-[0_10px_22px_rgba(0,0,0,0.2)] backdrop-blur-xl transition ${
         isOpen ? 'border-yellow-300/55 ring-1 ring-yellow-300/30' : 'border-white/10 hover:border-yellow-200/45'
       }`}>
-        <CardContent className="p-2.5">
+        <CardContent className="p-1.5">
           <button type="button" onClick={onOpen} className="block w-full text-left">
-            <div className="relative h-[136px] overflow-hidden rounded-xl bg-white sm:h-[132px] md:h-[140px]">
+            <div className="relative h-[94px] overflow-hidden rounded-lg bg-white sm:h-[96px] md:h-[100px]">
               <PrizeRoomHeroImage
                 prizeImage={displayPrizeImage}
                 prizeTitle={room.prize_title}
@@ -1435,17 +1479,17 @@ function PrizeRoomCard({ room, isOpen, onOpen, onJoin, onShare, joining }) {
               />
             </div>
           </button>
-          <div className="space-y-2 px-0.5 pt-2.5">
+          <div className="space-y-1.5 px-0.5 pt-1.5">
             <div className="flex flex-wrap items-center gap-1.5">
               <Badge className={`${room.is_frontend_demo ? 'bg-yellow-500/20 text-yellow-100' : 'bg-purple-600/20 text-purple-100'} text-[10px]`}>
                 {prizeRoomTypeLabel(room)}
               </Badge>
             </div>
             <button type="button" onClick={onOpen} className="block w-full text-left">
-              <h3 className="line-clamp-2 min-h-10 text-sm font-black leading-tight text-white">{room.prize_title || room.title}</h3>
-              <p className="mt-1 line-clamp-1 text-xs font-semibold text-cyan-100">{room.game_title || 'Skill Match'}</p>
+              <h3 className="line-clamp-2 min-h-8 text-xs font-black leading-tight text-white">{room.prize_title || room.title}</h3>
+              <p className="mt-0.5 line-clamp-1 text-[11px] font-semibold text-cyan-100">{room.game_title || 'Skill Match'}</p>
             </button>
-            <div className="space-y-1 rounded-xl border border-white/10 bg-black/35 p-2 text-xs shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <div className="space-y-1 rounded-lg border border-white/10 bg-black/30 p-1.5 text-[10px] shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
               <div className="flex justify-between gap-2">
                 <span className="text-white/55">Join cost</span>
                 <strong className="text-green-200">{formatMoney(prizeRoomJoinCost(room))}</strong>
@@ -1456,10 +1500,10 @@ function PrizeRoomCard({ room, isOpen, onOpen, onJoin, onShare, joining }) {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-1.5">
-              <Button onClick={onJoin} disabled={joining || !canJoin} className="h-8 rounded-lg bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-400 px-1.5 text-[11px] font-black text-white shadow-[0_0_18px_rgba(34,197,94,0.22)] hover:-translate-y-0.5 hover:shadow-[0_0_26px_rgba(34,197,94,0.3)] disabled:bg-slate-700">
+              <Button onClick={onJoin} disabled={joining || !canJoin} className="h-7 rounded-lg bg-gradient-to-r from-emerald-500 via-green-500 to-emerald-400 px-1.5 text-[11px] font-black text-white shadow-[0_0_18px_rgba(34,197,94,0.22)] hover:-translate-y-0.5 hover:shadow-[0_0_26px_rgba(34,197,94,0.3)] disabled:bg-slate-700">
                 {joining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : 'Join'}
               </Button>
-              <Button onClick={onOpen} variant="outline" className="h-8 rounded-lg border-white/15 bg-white/5 px-1.5 text-[11px] text-white shadow-[0_0_18px_rgba(255,255,255,0.04)] hover:-translate-y-0.5 hover:bg-white/10">
+              <Button onClick={onOpen} variant="outline" className="h-7 rounded-lg border-white/15 bg-white/5 px-1.5 text-[11px] text-white shadow-[0_0_18px_rgba(255,255,255,0.04)] hover:-translate-y-0.5 hover:bg-white/10">
                 Details
               </Button>
             </div>
@@ -1597,6 +1641,14 @@ function roomLooksLikeSports(room = {}) {
   return /ball|soccer|basketball|helmet|bike|outdoor|sports/.test(roomTextForClassification(room));
 }
 
+function roomLooksLikeDronesOutdoor(room = {}) {
+  return /drone|dji|gopro|outdoor|camping|bike|scooter/.test(roomTextForClassification(room));
+}
+
+function roomLooksLikeSneakersSports(room = {}) {
+  return /nike|jordan|adidas|sneaker|basketball|football|soccer|baseball|sports|cleats/.test(roomTextForClassification(room));
+}
+
 function roomLooksLikeBoardGame(room = {}) {
   return /board|chess|uno|family|lego|art|game night/.test(roomTextForClassification(room));
 }
@@ -1702,12 +1754,12 @@ function PrizeRoomBrowseRow({ title, rooms, openRoomId, joiningId, onToggleDetai
   const rowRooms = sortRoomsByPriority(uniquePrizeRooms(rooms));
   if (!rowRooms.length) return null;
   const scrollByCard = (direction) => {
-    scrollRef.current?.scrollBy({ left: direction * 260, behavior: 'smooth' });
+    scrollRef.current?.scrollBy({ left: direction * 210, behavior: 'smooth' });
   };
   return (
-    <section className="space-y-3">
+    <section className="space-y-2">
       <div className="flex items-center justify-between gap-3 px-1">
-        <h3 className="text-xl font-black text-white">{title}</h3>
+        <h3 className="text-base font-black text-white">{title}</h3>
         <span className="text-xs font-semibold uppercase tracking-wide text-white/40">{rowRooms.length} rooms</span>
       </div>
       <div className="relative">
@@ -1720,9 +1772,9 @@ function PrizeRoomBrowseRow({ title, rooms, openRoomId, joiningId, onToggleDetai
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <div ref={scrollRef} className="-mx-2 flex snap-x gap-3 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div ref={scrollRef} className="-mx-2 flex snap-x gap-2 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {rowRooms.map((room) => (
-            <div key={room.id} className="w-[76vw] max-w-[220px] flex-none snap-start sm:w-[205px] lg:w-[210px] xl:w-[215px]">
+            <div key={room.id} className="w-[64vw] max-w-[176px] flex-none snap-start sm:w-[168px] lg:w-[172px] xl:w-[176px]">
               <PrizeRoomCard
                 room={room}
                 isOpen={openRoomId === room.id}
@@ -2128,6 +2180,34 @@ function marketplaceProductPremiumScore(product = {}) {
   return score;
 }
 
+const MARKETPLACE_ROW_RULES = [
+  {
+    title: 'Gaming & Consoles',
+    test: /playstation|ps5|xbox|series x|series s|nintendo|switch|steam deck|gaming monitor|gaming chair|controller|headset|keyboard|mouse/i,
+  },
+  {
+    title: 'Apple & Tech',
+    test: /apple|airpods|iphone|ipad|apple watch|macbook|beats|sony headphone|tablet/i,
+  },
+  {
+    title: 'LEGO & Collectibles',
+    test: /lego|pokemon|collectible|trading card|star wars|marvel|funko|nintendo figure/i,
+  },
+  {
+    title: 'Drones & Outdoor',
+    test: /dji|drone|camera drone|gopro|outdoor|camping|bike|scooter/i,
+  },
+  {
+    title: 'Sneakers & Sports',
+    test: /nike|jordan|adidas|sneaker|basketball|football|soccer|baseball|sports gear|cleats/i,
+  },
+];
+
+function marketplaceProductMatchesRule(product = {}, rule) {
+  const haystack = `${product.title || ''} ${product.category || ''} ${product.description || ''}`.toLowerCase();
+  return rule.test.test(haystack);
+}
+
 function productFilterMatches(product = {}, filters = {}) {
   const price = Number(product.price_cents || 0) / 100;
   if (filters.minPrice && price < Number(filters.minPrice)) return false;
@@ -2160,24 +2240,32 @@ function ProductImagePanel({ src, alt, className = 'h-40' }) {
 
 function PrizeProductCard({ product, onOpen }) {
   const image = marketplaceProductImage(product);
+  const joinCost = calculateNorthPoleOptions({ priceCents: product.price_cents, playerCounts: [4] })[0]?.perPlayerCents || 0;
   return (
-    <Card className="h-full overflow-hidden rounded-xl border border-white/10 bg-white/[0.055] text-white shadow-[0_12px_30px_rgba(0,0,0,0.22)] backdrop-blur">
-      <button type="button" onClick={onOpen} className="block w-full p-2.5 text-left">
-        <ProductImagePanel src={image} alt={product.title || 'Prize product'} />
+    <Card className="h-full overflow-hidden rounded-2xl border border-white/10 bg-slate-950/[0.52] text-white shadow-[0_12px_32px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+      <button type="button" onClick={onOpen} className="block w-full p-2 pb-1.5 text-left">
+        <ProductImagePanel src={image} alt={product.title || 'Prize product'} className="h-32 rounded-xl p-3" />
       </button>
-      <CardContent className="space-y-2.5 p-3 pt-0">
+      <CardContent className="space-y-2 p-2.5 pt-0">
         <div>
           <button type="button" onClick={onOpen} className="block w-full text-left">
-            <h3 className="line-clamp-2 min-h-10 text-sm font-black leading-tight">{product.title}</h3>
+            <h3 className="line-clamp-2 min-h-9 text-[13px] font-black leading-tight">{product.title}</h3>
           </button>
           <p className="mt-1 line-clamp-1 text-xs text-white/55">{marketplaceProductSource(product)}</p>
         </div>
-        <div className="flex items-center justify-between gap-3">
-          <strong className="text-lg text-green-200">{formatMoney(product.price_cents)}</strong>
-          <Badge className="max-w-[48%] truncate bg-yellow-500/20 text-[10px] text-yellow-100">{product.category || 'Prize'}</Badge>
+        <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-black/[0.28] p-2">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/38">Price</div>
+            <strong className="text-sm text-green-200">{formatMoney(product.price_cents)}</strong>
+          </div>
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-wide text-white/38">Join from</div>
+            <strong className="text-sm text-yellow-100">{formatMoney(joinCost)}</strong>
+          </div>
         </div>
-        <Button onClick={onOpen} className="h-9 w-full rounded-lg bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
-          View Prize
+        <Button onClick={onOpen} className="h-8 w-full rounded-xl bg-yellow-500 text-xs font-black text-black hover:bg-yellow-400">
+          <Plus className="mr-2 h-3.5 w-3.5" />
+          Use as Prize
         </Button>
       </CardContent>
     </Card>
@@ -2188,26 +2276,26 @@ function PrizeProductBrowseRow({ title, products, onOpen }) {
   const scrollRef = useRef(null);
   const rowProducts = uniqueByProduct(products.filter(Boolean));
   if (!rowProducts.length) return null;
-  const scrollByCard = (direction) => scrollRef.current?.scrollBy({ left: direction * 205, behavior: 'smooth' });
+  const scrollByCard = (direction) => scrollRef.current?.scrollBy({ left: direction * 220, behavior: 'smooth' });
   return (
-    <section className="space-y-3">
+    <section className="space-y-2 border-t border-white/10 py-3">
       <div className="flex items-center justify-between gap-3 px-1">
-        <h3 className="text-lg font-black text-white">{title}</h3>
-        <span className="text-xs font-semibold uppercase tracking-wide text-white/40">Live marketplace row  {rowProducts.length} products</span>
+        <h3 className="text-base font-black text-white">{title}</h3>
+        <span className="text-xs font-semibold uppercase tracking-wide text-white/40">{rowProducts.length} prizes</span>
       </div>
       <div className="relative">
-        <Button type="button" onClick={() => scrollByCard(-1)} variant="outline" className="absolute left-0 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex" aria-label={`Scroll ${title} left`}>
-          <ChevronLeft className="h-6 w-6" />
+        <Button type="button" onClick={() => scrollByCard(-1)} variant="outline" className="absolute left-0 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex" aria-label={`Scroll ${title} left`}>
+          <ChevronLeft className="h-5 w-5" />
         </Button>
-        <div ref={scrollRef} className="-mx-2 flex snap-x gap-2.5 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div ref={scrollRef} className="-mx-2 flex snap-x gap-2 overflow-x-auto px-2 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {rowProducts.map((product) => (
-            <div key={product.id || product.marketplace_key} className="w-[64vw] max-w-[210px] flex-none snap-start sm:w-[185px] lg:w-[190px] xl:w-[200px]">
+            <div key={product.id || product.marketplace_key} className="w-[68vw] max-w-[204px] flex-none snap-start sm:w-[194px] lg:w-[198px] xl:w-[204px]">
               <PrizeProductCard product={product} onOpen={() => onOpen(product)} />
             </div>
           ))}
         </div>
-        <Button type="button" onClick={() => scrollByCard(1)} variant="outline" className="absolute right-0 top-1/2 z-10 hidden h-12 w-12 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex" aria-label={`Scroll ${title} right`}>
-          <ChevronRight className="h-6 w-6" />
+        <Button type="button" onClick={() => scrollByCard(1)} variant="outline" className="absolute right-0 top-1/2 z-10 hidden h-10 w-10 -translate-y-1/2 rounded-full border-white/15 bg-black/75 p-0 text-white shadow-[0_0_24px_rgba(0,0,0,0.55)] hover:bg-purple-950/90 md:inline-flex" aria-label={`Scroll ${title} right`}>
+          <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
     </section>
@@ -2581,7 +2669,7 @@ function PrizeProductDetail({ product, user, stripePaymentsReady, onBack, onCrea
 function BrowsePrizesSection({ user, stripePaymentsReady, onRoomCreated, onError, onMessage }) {
   const [products, setProducts] = useState([]);
   const [category, setCategory] = useState('all');
-  const [query, setQuery] = useState('gaming prizes');
+  const [query, setQuery] = useState('playstation xbox nintendo switch apple airpods lego dji nike jordan');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
   const [playerCount, setPlayerCount] = useState('all');
@@ -2590,9 +2678,6 @@ function BrowsePrizesSection({ user, stripePaymentsReady, onRoomCreated, onError
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [loading, setLoading] = useState(false);
   const [provider, setProvider] = useState('');
-  const [providerStatus, setProviderStatus] = useState('');
-  const [productSource, setProductSource] = useState('');
-  const [lastRefreshedAt, setLastRefreshedAt] = useState(null);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [localError, setLocalError] = useState('');
@@ -2619,7 +2704,7 @@ function BrowsePrizesSection({ user, stripePaymentsReady, onRoomCreated, onError
 
       while (mergedProducts.length < cappedTarget && nextHasMore && !stopMarketplaceLoadRef.current) {
         const result = await listMarketplaceProducts({
-          q: searchQuery || 'gaming prizes',
+          q: searchQuery || 'playstation xbox nintendo switch apple airpods lego dji nike jordan',
           limit: Math.min(MARKETPLACE_INITIAL_LIMIT, cappedTarget - mergedProducts.length, MARKETPLACE_MAX_PRODUCTS - mergedProducts.length),
           offset: nextOffset,
           endpoint: '/api/prize-products',
@@ -2634,10 +2719,6 @@ function BrowsePrizesSection({ user, stripePaymentsReady, onRoomCreated, onError
         setProducts(uniqueByProduct(mergedProducts));
         setOffset(nextOffset);
         setProvider(result.provider || '');
-        setProviderStatus(result.providerStatus || '');
-        setProductSource(result.productSource || '');
-        setLastRefreshedAt(new Date());
-
         const totalResults = Number(result.totalResults || 0);
         nextHasMore = (
           Boolean(result.pagination?.has_more)
@@ -2687,8 +2768,30 @@ function BrowsePrizesSection({ user, stripePaymentsReady, onRoomCreated, onError
     return rows.sort((a, b) => marketplaceProductPremiumScore(b) - marketplaceProductPremiumScore(a));
   }, [filteredProducts, sortBy]);
 
+  const marketplaceRows = useMemo(() => {
+    const seen = new Set();
+    const source = visibleProducts.filter((product) => marketplaceProductPremiumScore(product) > -20);
+    const takeProducts = (candidates, limit = 16) => {
+      const picked = [];
+      uniqueByProduct(candidates).forEach((product) => {
+        if (picked.length >= limit) return;
+        const key = marketplaceProductKey(product);
+        if (seen.has(key)) return;
+        seen.add(key);
+        picked.push(product);
+      });
+      return picked;
+    };
+    const rows = MARKETPLACE_ROW_RULES.map((rule) => ({
+      title: rule.title,
+      products: takeProducts(source.filter((product) => marketplaceProductMatchesRule(product, rule))),
+    }));
+    const remaining = takeProducts(source, 20);
+    if (remaining.length) rows.push({ title: 'More Premium Prize Picks', products: remaining });
+    return rows.filter((row) => row.products.length);
+  }, [visibleProducts]);
+
   const filteredProductCount = visibleProducts.length;
-  const loadedProductCount = uniqueByProduct(products).length;
   const categoryOptions = useMemo(() => (
     [...new Set([
       ...PRIZE_CATEGORIES,
@@ -2742,26 +2845,16 @@ function BrowsePrizesSection({ user, stripePaymentsReady, onRoomCreated, onError
   }
 
   return (
-    <section className="space-y-5">
-      <form onSubmit={submitSearch} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-        <div className="mb-4 rounded-xl border border-green-300/15 bg-green-500/10 p-3">
-          <div className="mb-2 text-sm font-black text-green-100">Browse prizes</div>
-          <div className="mb-3 grid gap-2 text-xs font-semibold text-white/80 sm:grid-cols-4">
-            <span className="rounded-lg bg-black/25 px-3 py-2">1. Browse prizes</span>
-            <span className="rounded-lg bg-black/25 px-3 py-2">2. Pick or join a room</span>
-            <span className="rounded-lg bg-black/25 px-3 py-2">3. Play the game</span>
-            <span className="rounded-lg bg-black/25 px-3 py-2">4. Winner gets the prize</span>
+    <section id="prize-vault" className="scroll-mt-24 space-y-3 border-t border-white/10 bg-[#02030a] px-3 py-4 sm:px-4">
+      <form onSubmit={submitSearch} className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-100">Prize Vault</div>
+            <div className="text-base font-black text-white">Marketplace</div>
           </div>
-          <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs font-semibold text-white/70">
-            <span>Loaded products: <strong className="text-white">{loadedProductCount}</strong></span>
-            <span>Visible after filters: <strong className="text-white">{filteredProductCount}</strong></span>
-            <span>Load target: <strong className="text-white">{Math.min(activeLoadTarget, MARKETPLACE_MAX_PRODUCTS)}</strong></span>
-            <span>Source: <strong className="text-white">{provider || 'eBay/provider'}</strong></span>
-            <span>Status: <strong className="text-white">{providerStatus || productSource || 'loading'}</strong></span>
-            <span>Last refreshed: <strong className="text-white">{lastRefreshedAt ? lastRefreshedAt.toLocaleTimeString() : 'Loading'}</strong></span>
-          </div>
+          <Badge className="bg-white/10 text-white">{filteredProductCount} prizes</Badge>
         </div>
-        <div className="grid gap-3 lg:grid-cols-[1fr_180px_140px_140px]">
+        <div className="grid gap-2 lg:grid-cols-[1fr_180px_140px_140px]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-purple-300" />
             <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search live products..." className="h-11 rounded-xl border-white/10 bg-black/45 pl-9 text-white" />
@@ -2773,7 +2866,7 @@ function BrowsePrizesSection({ user, stripePaymentsReady, onRoomCreated, onError
           <Input inputMode="decimal" value={minPrice} onChange={(event) => setMinPrice(event.target.value)} placeholder="Min $" className="h-11 rounded-xl border-white/10 bg-black/45 text-white" />
           <Input inputMode="decimal" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Max $" className="h-11 rounded-xl border-white/10 bg-black/45 text-white" />
         </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+        <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
           <select value={playerCount} onChange={(event) => setPlayerCount(event.target.value)} className="h-10 rounded-xl border border-white/10 bg-black/45 px-3 text-xs text-white">
             <option value="all">Any player count</option>
             {PLAYER_OPTIONS.map((count) => <option key={count} value={count}>{count} players</option>)}
@@ -2798,7 +2891,7 @@ function BrowsePrizesSection({ user, stripePaymentsReady, onRoomCreated, onError
           </Button>
           <Badge className="flex h-10 items-center justify-center rounded-xl bg-white/10 text-white">{filteredProductCount} shown</Badge>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <Button type="button" onClick={() => loadProducts({ targetTotal: Math.min(products.length + MARKETPLACE_INITIAL_LIMIT, MARKETPLACE_MAX_PRODUCTS) })} disabled={loading || !hasMore || products.length >= MARKETPLACE_MAX_PRODUCTS} variant="outline" className="h-10 rounded-xl border-white/15 bg-white/5 text-xs font-black text-white hover:bg-white/10">
             Load More Products
           </Button>
@@ -2811,7 +2904,7 @@ function BrowsePrizesSection({ user, stripePaymentsReady, onRoomCreated, onError
             </Button>
           )}
           <span className="text-xs font-semibold text-white/55">
-            Loaded {loadedProductCount} of {MARKETPLACE_MAX_PRODUCTS} max; {filteredProductCount} visible with current filters.
+            {filteredProductCount} prizes match the current filters.
           </span>
         </div>
       </form>
@@ -2825,17 +2918,20 @@ function BrowsePrizesSection({ user, stripePaymentsReady, onRoomCreated, onError
           {[1, 2, 3, 4, 5].map((item) => <div key={item} className="h-72 animate-pulse rounded-xl bg-purple-900/30" />)}
         </div>
       ) : (
-        <div className="space-y-5">
+        <div className="space-y-2">
           {loading && (
             <div className="rounded-2xl border border-purple-300/20 bg-purple-950/25 p-3 text-sm font-semibold text-purple-50">
-              Loading marketplace pages... {loadedProductCount} products loaded.
+              Loading more prize rows...
             </div>
           )}
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            {visibleProducts.map((product) => (
-              <PrizeProductCard key={marketplaceProductKey(product)} product={product} onOpen={() => setSelectedProduct(product)} />
-            ))}
-          </div>
+          {marketplaceRows.map((row) => (
+            <PrizeProductBrowseRow
+              key={row.title}
+              title={row.title}
+              products={row.products}
+              onOpen={setSelectedProduct}
+            />
+          ))}
           {!visibleProducts.length && (
             <div className="rounded-2xl border border-white/10 bg-black/35 p-6 text-center text-sm text-white/60">
               No live prize products match the current search and filters.
@@ -2897,7 +2993,8 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
 
   useEffect(() => {
     const openHashTab = () => {
-      if (window.location.hash === '#north-pole-flow') setBrowseTab('prizes');
+      if (window.location.hash === '#north-pole-flow' || window.location.hash === '#featured-prize-rooms') setBrowseTab('prizes');
+      if (window.location.hash === '#prize-vault') setBrowseTab('active');
     };
     openHashTab();
     window.addEventListener('hashchange', openHashTab);
@@ -3184,7 +3281,8 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
       { title: 'Gaming & Consoles', rooms: takeFresh(priorityRooms.filter((room) => roomLooksLikeConsole(room) || roomLooksLikeGamingGear(room))) },
       { title: 'Apple & Tech', rooms: takeFresh(priorityRooms.filter(roomLooksLikeAppleTech)) },
       { title: 'LEGO & Collectibles', rooms: takeFresh(priorityRooms.filter(roomLooksLikeCollectible)) },
-      { title: 'Outdoor & Sports', rooms: takeFresh(priorityRooms.filter(roomLooksLikeSports)) },
+      { title: 'Drones & Outdoor', rooms: takeFresh(priorityRooms.filter(roomLooksLikeDronesOutdoor)) },
+      { title: 'Sneakers & Sports', rooms: takeFresh(priorityRooms.filter(roomLooksLikeSneakersSports)) },
       { title: 'Trending Rooms', rooms: takeFresh([...fillingFastRooms, ...priorityRooms.filter(roomIsAlmostFull), ...sortedNewRooms]) },
     ];
     return rows
@@ -3198,22 +3296,22 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
   const selectedRoom = useMemo(() => rooms.find((room) => room.id === openRoomId) || null, [rooms, openRoomId]);
 
   return (
-    <Card className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.055] text-white shadow-[0_18px_50px_rgba(0,0,0,0.24)] backdrop-blur-xl">
-      <CardHeader className="relative z-10 flex flex-row flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-white/[0.04]">
+    <>
+    <Card id="featured-prize-rooms" className="relative scroll-mt-20 overflow-hidden rounded-none border-x-0 border-y border-white/10 bg-[#050713]/92 text-white shadow-none backdrop-blur-sm">
+      <CardHeader className="relative z-10 flex flex-row flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-black/[0.08] px-3 py-2.5 sm:px-4">
         <div>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <Trophy className="h-5 w-5 text-yellow-300" />
-            Browse Prize Rooms
+          <CardTitle className="flex items-center gap-2 text-base text-white">
+            <Trophy className="h-4 w-4 text-yellow-300" />
+            Featured Prize Rooms
           </CardTitle>
-          <p className="mt-1 text-sm text-white/70">Find a prize, check the game, and join when you are ready.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={loadRooms} className="rounded-2xl border-white/15 bg-white/5 text-white hover:-translate-y-0.5 hover:bg-white/10">
-            <RefreshCw className="mr-2 h-4 w-4" />Refresh Rooms
+          <Button variant="outline" onClick={loadRooms} className="h-8 rounded-full border-white/15 bg-white/5 px-3 text-xs text-white hover:-translate-y-0.5 hover:bg-white/10">
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5" />Refresh
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="relative z-10 space-y-6 p-4 sm:p-6">
+      <CardContent className="relative z-10 space-y-3 p-3 sm:p-3">
         {localError && (
           <Alert className="border-orange-500/40 bg-orange-950/30 text-orange-50">
             <AlertTitle>Prize Room notice</AlertTitle>
@@ -3246,11 +3344,11 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
         )}
 
         {loading ? (
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            {[1, 2, 3, 4, 5].map((item) => <div key={item} className="h-80 animate-pulse rounded-2xl bg-purple-900/30" />)}
+        <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            {[1, 2, 3, 4, 5].map((item) => <div key={item} className="h-48 animate-pulse rounded-xl bg-purple-900/30" />)}
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-3">
             <PrizeRoomFilters
               searchTerm={searchTerm}
               onSearchTermChange={setSearchTerm}
@@ -3262,9 +3360,9 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
               prizeTypeOptions={prizeTypeOptions}
             />
             {filteredRooms.length ? (
-              <section className="space-y-7">
+              <section className="space-y-4">
                 {!searchTerm.trim() && filter === 'all' && (
-                  <div className="space-y-6">
+                  <div className="space-y-3">
                     {browseRows.map((row) => (
                       <PrizeRoomBrowseRow
                         key={row.title}
@@ -3281,13 +3379,13 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
                 )}
                 <div className="flex flex-wrap items-end justify-between gap-3">
                   <div>
-                    <h3 className="text-xl font-black text-white">All Prize Rooms</h3>
+                    <h3 className="text-base font-black text-white">All Prize Rooms</h3>
                     <p className="text-sm text-white/55">
                       {filteredRooms.length} room{filteredRooms.length === 1 ? '' : 's'} ready to browse.
                     </p>
                   </div>
                 </div>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                   {filteredRooms.map((room) => (
                     <PrizeRoomCard
                       key={room.id}
@@ -3312,8 +3410,10 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
         )}
 
         {selectedRoom && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/58 px-3 py-6 backdrop-blur-sm sm:px-6 lg:py-10">
-            <div className="w-full max-w-6xl">
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/[0.62] px-3 py-6 backdrop-blur-sm sm:px-6 lg:py-10">
+            <img src="/images/welcome_to_the_north_pole.png" alt="" aria-hidden="true" className="pointer-events-none fixed inset-0 h-full w-full object-cover object-top opacity-[0.22] saturate-125" />
+            <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(180deg,rgba(2,6,23,0.52),rgba(2,6,23,0.84)),radial-gradient(circle_at_50%_20%,rgba(250,204,21,0.16),transparent_28%)]" />
+            <div className="relative w-full max-w-5xl">
               <PrizeRoomDetailPage
                 room={selectedRoom}
                 joining={joiningId === selectedRoom.id}
@@ -3326,6 +3426,23 @@ function PrizeRoomLobby({ user, onJoined, onCreated, onError, onMessage }) {
         )}
       </CardContent>
     </Card>
+    <div className="mt-3">
+      <BrowsePrizesSection
+        user={user}
+        stripePaymentsReady={stripePaymentsReady}
+        onRoomCreated={async (room) => {
+          if (room) {
+            setRooms((prev) => uniquePrizeRooms([room, ...prev]));
+            openPrizeRoom(room);
+          }
+          onCreated(room);
+          await loadRooms();
+        }}
+        onError={onError}
+        onMessage={onMessage}
+      />
+    </div>
+    </>
   );
 }
 
@@ -3357,38 +3474,85 @@ const howItWorksCards = [
 ];
 
 function NorthPoleLandingHero({ onBrowse, onCreate }) {
+  const [workshopOpen, setWorkshopOpen] = useState(false);
+  const scrollToBrowseSection = useCallback((sectionId) => {
+    onBrowse();
+    window.requestAnimationFrame(() => {
+      const nextHash = `#${sectionId}`;
+      if (window.location.hash !== nextHash) {
+        window.location.hash = nextHash;
+      } else {
+        window.dispatchEvent(new Event('hashchange'));
+      }
+      window.requestAnimationFrame(() => {
+        document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }, [onBrowse]);
   return (
-    <section className="north-pole-dashboard-hero relative min-h-[520px] overflow-hidden text-white md:min-h-[620px]">
+    <section className="north-pole-dashboard-hero relative min-h-[700px] overflow-hidden text-white md:min-h-[760px]">
       <img
         src="/images/welcome_to_the_north_pole.png"
         alt=""
         aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover object-top"
+        className="north-pole-hero-image absolute inset-0 h-full w-full object-cover object-[center_top] md:object-[center_center]"
       />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.82)_0%,rgba(2,6,23,0.54)_42%,rgba(2,6,23,0.12)_72%),linear-gradient(180deg,rgba(2,6,23,0.12)_0%,rgba(2,6,23,0.2)_62%,#02030a_100%)]" />
-      <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#02030a] to-transparent" />
-      <div className="relative z-10 mx-auto flex min-h-[520px] max-w-7xl items-center px-4 pb-16 pt-24 sm:px-6 md:min-h-[620px] lg:px-8">
-        <div className="max-w-3xl space-y-5 rounded-3xl border border-white/10 bg-black/22 p-5 shadow-[0_28px_90px_rgba(0,0,0,0.24)] backdrop-blur-[2px] sm:p-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-yellow-200/20 bg-yellow-300/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-yellow-100 backdrop-blur">
-            <Snowflake className="h-4 w-4" />
-            Santa's Prize Workshop
-          </div>
-          <div className="space-y-3">
-            <h1 className="text-4xl font-black leading-tight tracking-normal text-white sm:text-5xl">
+      <div className="north-pole-workshop-window absolute right-[17%] top-[31%] hidden h-14 w-20 rounded-full bg-yellow-200/[0.18] blur-xl lg:block" />
+      <div className="north-pole-workshop-window absolute right-[23%] top-[38%] hidden h-10 w-14 rounded-full bg-orange-200/[0.16] blur-xl lg:block [animation-delay:-1.4s]" />
+      <div className="north-pole-smoke absolute right-[21%] top-[18%] hidden h-32 w-28 rounded-full bg-white/[0.12] blur-2xl lg:block" />
+      <div className="north-pole-gust absolute left-[10%] top-[56%] h-24 w-72 rotate-[-8deg] rounded-full bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.16),transparent)] blur-xl" />
+      <div className="north-pole-gust absolute right-[22%] top-[66%] h-20 w-80 rotate-[7deg] rounded-full bg-[linear-gradient(90deg,transparent,rgba(186,230,253,0.14),transparent)] blur-xl [animation-delay:-4s]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.34)_0%,rgba(2,6,23,0.16)_34%,rgba(2,6,23,0.02)_72%),linear-gradient(180deg,rgba(2,6,23,0.02)_0%,rgba(2,6,23,0.03)_60%,rgba(2,3,10,0.72)_100%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_60%_54%,rgba(34,211,238,0.045),transparent_22%),radial-gradient(circle_at_34%_74%,rgba(250,204,21,0.045),transparent_24%)]" />
+      <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#02030a] via-[#02030a]/45 to-transparent" />
+      <NorthPoleWorldZone
+        label="Santas Workshop"
+        detail="Open prize ops"
+        icon={ClipboardList}
+        active={workshopOpen}
+        onClick={() => setWorkshopOpen((value) => !value)}
+        className="right-[8%] top-[34%] hidden md:inline-flex"
+      />
+      <NorthPoleWorldZone
+        label="Prize Rooms"
+        detail="Browse live rooms"
+        icon={Trophy}
+        onClick={() => scrollToBrowseSection('featured-prize-rooms')}
+        className="bottom-[25%] left-[42%] hidden md:inline-flex"
+      />
+      <NorthPoleWorldZone
+        label="Prize Vault"
+        detail="Shop marketplace"
+        icon={ShoppingCart}
+        onClick={() => scrollToBrowseSection('prize-vault')}
+        className="bottom-[30%] right-[17%] hidden md:inline-flex"
+      />
+      <NorthPoleWorldZone
+        label="Create Room"
+        detail="Build a prize match"
+        icon={Plus}
+        onClick={onCreate}
+        className="bottom-[22%] left-[18%] hidden md:inline-flex"
+      />
+      <NorthPoleWorkshopPanel open={workshopOpen} onClose={() => setWorkshopOpen(false)} />
+      <div className="relative z-10 mx-auto flex min-h-[700px] max-w-7xl items-end justify-start px-4 pb-20 pt-28 sm:px-6 md:min-h-[760px] lg:px-8">
+        <div className="max-w-md space-y-4">
+          <div className="space-y-3 [text-shadow:0_3px_24px_rgba(0,0,0,0.72)]">
+            <h1 className="text-3xl font-black leading-tight tracking-normal text-white sm:text-5xl">
               Welcome to The North Pole
             </h1>
-            <p className="text-lg font-semibold leading-8 text-yellow-100">
+            <p className="text-base font-semibold leading-7 text-yellow-100 sm:text-lg">
               Where competition becomes Christmas.
             </p>
-            <p className="max-w-2xl text-sm leading-6 text-white/65">
+            <p className="max-w-md text-sm leading-6 text-white/78">
               Browse prizes, join rooms, play the game, and help gifts reach children.
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
               onClick={onBrowse}
-              className="inline-flex min-h-11 items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-emerald-500 via-green-500 to-yellow-400 px-6 py-3 text-sm font-black text-slate-950 transition hover:-translate-y-0.5"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 via-green-500 to-yellow-400 px-5 py-2.5 text-sm font-black text-slate-950 transition hover:-translate-y-0.5"
             >
               Browse Prize Rooms
               <ArrowRight className="h-4 w-4" />
@@ -3396,7 +3560,7 @@ function NorthPoleLandingHero({ onBrowse, onCreate }) {
             <button
               type="button"
               onClick={onCreate}
-              className="inline-flex min-h-11 items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/[0.07] px-6 py-3 text-sm font-bold text-white backdrop-blur transition hover:-translate-y-0.5 hover:bg-white/12"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-white/15 bg-black/35 px-5 py-2.5 text-sm font-bold text-white backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-white/10"
             >
               <Plus className="h-4 w-4" />
               Create Prize Room
@@ -4498,16 +4662,13 @@ function RealNorthPoleFlow({ user, view = 'browse' }) {
       )}
 
       {view === 'browse' && (
-        <>
-          <PrizeRoomLobby
-            user={user}
-            onJoined={() => loadMatches()}
-            onCreated={() => loadMatches()}
-            onError={setError}
-            onMessage={setMessage}
-          />
-          <SantaWorkshopPreviewPanel />
-        </>
+        <PrizeRoomLobby
+          user={user}
+          onJoined={() => loadMatches()}
+          onCreated={() => loadMatches()}
+          onError={setError}
+          onMessage={setMessage}
+        />
       )}
 
       {view === 'how' && (
@@ -4961,53 +5122,6 @@ function RealNorthPoleFlow({ user, view = 'browse' }) {
   );
 }
 
-function SantaWorkshopPreviewPanel() {
-  const previews = [
-    {
-      title: 'Elves preparing gifts',
-      description: 'Prize rooms being packed for game night.',
-      tone: 'from-emerald-400/18 via-cyan-300/10 to-white/5',
-    },
-    {
-      title: 'Checking the nice list',
-      description: 'Rooms stay focused on fair competition.',
-      tone: 'from-yellow-300/20 via-orange-300/10 to-white/5',
-    },
-    {
-      title: 'Workshop fulfillment',
-      description: 'Winners move into the prize path after review.',
-      tone: 'from-purple-300/20 via-blue-300/10 to-white/5',
-    },
-  ];
-
-  return (
-    <details className="group rounded-3xl border border-white/10 bg-black/24 p-4 text-white shadow-[0_18px_60px_rgba(0,0,0,0.18)] backdrop-blur-xl md:p-5">
-      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 marker:hidden">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-yellow-100">Inside Santa's Workshop</p>
-          <h2 className="mt-1 text-lg font-black text-white">A quick look behind the prize rooms</h2>
-        </div>
-        <Badge className="border border-white/15 bg-white/10 text-white group-open:hidden">Open Workshop</Badge>
-        <Badge className="hidden border border-white/15 bg-white/10 text-white group-open:inline-flex">Hide Workshop</Badge>
-      </summary>
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        {previews.map((preview) => (
-          <div key={preview.title} className={`group relative min-h-36 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${preview.tone} p-4`}>
-            <div className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white backdrop-blur transition group-hover:scale-105">
-              <PlayCircle className="h-5 w-5" />
-            </div>
-            <div className="absolute -bottom-12 -right-10 h-32 w-32 rounded-full bg-yellow-200/12 blur-2xl" />
-            <div className="relative flex h-full flex-col justify-end pt-12">
-              <h3 className="text-base font-black text-white">{preview.title}</h3>
-              <p className="mt-1 text-sm leading-5 text-white/62">{preview.description}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </details>
-  );
-}
-
 export default function NorthPole() {
   const [user, setUser] = useState(null);
   const [activeTab, setActiveTab] = useState('browse');
@@ -5083,9 +5197,9 @@ export default function NorthPole() {
       <div className="relative z-10">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <header className="absolute left-0 right-0 top-0 z-30">
-            <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-3 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
+            <div className="mx-auto flex max-w-7xl flex-col gap-2 px-3 py-2 sm:px-5 lg:flex-row lg:items-center lg:justify-between lg:px-6">
               <div className="flex items-center justify-between gap-3">
-                <a href="/" className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-black/35 px-2.5 py-1.5 text-xs font-black text-yellow-100 shadow-[0_12px_34px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+                <a href="/" className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/35 px-2.5 py-1.5 text-[11px] font-black text-yellow-100 shadow-[0_10px_28px_rgba(0,0,0,0.22)] backdrop-blur-xl">
                   <Snowflake className="h-3.5 w-3.5" />
                   The Poles
                 </a>
@@ -5095,18 +5209,18 @@ export default function NorthPole() {
                 </div>
               </div>
               <div className="flex items-center justify-between gap-3">
-                <TabsList className="grid h-auto flex-1 grid-cols-2 gap-0.5 rounded-xl border border-white/10 bg-black/40 p-0.5 shadow-[0_0_24px_rgba(0,0,0,0.18)] backdrop-blur-xl sm:grid-cols-4 lg:w-auto lg:flex-none">
-              <TabsTrigger value="browse" className="h-8 rounded-lg px-2 text-xs text-purple-100 data-[state=active]:bg-purple-700">
-                <Gift className="mr-1.5 h-3.5 w-3.5" />Browse
+                <TabsList className="grid h-auto flex-1 grid-cols-4 gap-0.5 rounded-full border border-white/10 bg-black/40 p-0.5 shadow-[0_0_22px_rgba(0,0,0,0.18)] backdrop-blur-xl lg:w-auto lg:flex-none">
+              <TabsTrigger value="browse" className="h-7 rounded-full px-2 text-[11px] text-purple-100 data-[state=active]:bg-purple-700">
+                <Gift className="mr-1 h-3 w-3" />Browse
               </TabsTrigger>
-              <TabsTrigger value="create" className="h-8 rounded-lg px-2 text-xs text-purple-100 data-[state=active]:bg-purple-700">
-                <Plus className="mr-1.5 h-3.5 w-3.5" />Create
+              <TabsTrigger value="create" className="h-7 rounded-full px-2 text-[11px] text-purple-100 data-[state=active]:bg-purple-700">
+                <Plus className="mr-1 h-3 w-3" />Create
               </TabsTrigger>
-              <TabsTrigger value="my" className="h-8 rounded-lg px-2 text-xs text-purple-100 data-[state=active]:bg-purple-700">
-                <Gamepad2 className="mr-1.5 h-3.5 w-3.5" />My Rooms
+              <TabsTrigger value="my" className="h-7 rounded-full px-2 text-[11px] text-purple-100 data-[state=active]:bg-purple-700">
+                <Gamepad2 className="mr-1 h-3 w-3" />My Rooms
               </TabsTrigger>
-              <TabsTrigger value="how" className="h-8 rounded-lg px-2 text-xs text-purple-100 data-[state=active]:bg-purple-700">
-                <PlayCircle className="mr-1.5 h-3.5 w-3.5" />How
+              <TabsTrigger value="how" className="h-7 rounded-full px-2 text-[11px] text-purple-100 data-[state=active]:bg-purple-700">
+                <PlayCircle className="mr-1 h-3 w-3" />How
               </TabsTrigger>
                 </TabsList>
                 <div className="hidden items-center gap-2 lg:flex">
@@ -5122,7 +5236,7 @@ export default function NorthPole() {
             onCreate={() => goToNorthPoleTab('create')}
           />
 
-          <div id="north-pole-flow" className="mx-auto max-w-6xl p-4 md:p-8">
+          <div id="north-pole-flow" className="relative z-20 mx-auto max-w-7xl px-0 pb-6 sm:px-0 md:px-0">
             {activeTab !== 'admin' && (
               <RealNorthPoleFlow user={user} view={activeTab} />
             )}
