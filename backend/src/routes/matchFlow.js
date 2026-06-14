@@ -1815,6 +1815,168 @@ function paymentRecordPaid(payment = {}) {
     || payment.payment_confirmed === true;
 }
 
+function stripeSettlementSecret(env = process.env) {
+  return env.STRIPE_SECRET_KEY || env.STRIPE_TEST_SECRET_KEY || '';
+}
+
+function stripeSettlementConfigured(env = process.env) {
+  return Boolean(stripeSettlementSecret(env));
+}
+
+function appendStripeFormValue(params, key, value) {
+  if (value === undefined || value === null) return;
+  params.append(key, String(value));
+}
+
+async function stripeSettlementRequest(path, { method = 'POST', body = {}, idempotencyKey = '', env = process.env } = {}) {
+  const secret = stripeSettlementSecret(env);
+  if (!secret) throw new Error('Stripe secret key is not configured.');
+
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(body || {})) appendStripeFormValue(params, key, value);
+  const headers = {
+    Authorization: `Bearer ${secret}`,
+    'Content-Type': 'application/x-www-form-urlencoded',
+  };
+  if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+
+  const response = await fetch(`https://api.stripe.com/v1${path}`, {
+    method,
+    headers,
+    body: method === 'GET' ? undefined : params,
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(data?.error?.message || `Stripe request failed: ${response.status}`);
+    error.stripe = data?.error || data;
+    throw error;
+  }
+  return data;
+}
+
+function stripeConnectAccountIdFromProfile(profile = {}) {
+  const data = profile?.data && typeof profile.data === 'object' ? profile.data : {};
+  return data.stripe_connected_account_id
+    || data.stripe_connect_account_id
+    || profile.stripe_connected_account_id
+    || profile.stripe_connect_account_id
+    || '';
+}
+
+async function findSettlementDestinationAccount(store, room = {}) {
+  const explicit = room.settlement_destination_account_id
+    || room.stripe_connected_account_id
+    || room.creator_stripe_connected_account_id
+    || room.destination_account_id
+    || '';
+  if (explicit) return explicit;
+  const creatorId = room.created_by || room.creator_user_id || '';
+  if (!creatorId) return '';
+  const profile = await store.findOne('profiles', { auth_user_id: creatorId }).catch(() => null)
+    || await store.findOne('profiles', { id: creatorId }).catch(() => null);
+  return stripeConnectAccountIdFromProfile(profile);
+}
+
+async function creatorPendingPayoutCents(store, roomId) {
+  const pending = await store.list('prize_room_ledger_entries', { room_id: roomId, type: 'creator_pending_payout' }).catch(() => []);
+  const transferred = await store.list('prize_room_ledger_entries', { room_id: roomId, type: 'creator_payout_transfer' }).catch(() => []);
+  const pendingCents = pending.reduce((sum, row) => {
+    if (!['pending_admin_release', 'reserved', 'recorded'].includes(String(row.status || '').toLowerCase())) return sum;
+    return sum + normalizeCents(row.amount_cents, 0);
+  }, 0);
+  const transferredCents = transferred.reduce((sum, row) => sum + normalizeCents(row.amount_cents, 0), 0);
+  return Math.max(0, pendingCents - transferredCents);
+}
+
+async function settleWinnerResolutionStripeTransfer(store, {
+  trigger,
+  match,
+  room,
+  verification,
+  fulfillment,
+  expectedCents,
+  collectedCents,
+  userId,
+  env = process.env,
+}) {
+  const blockers = [];
+  if (trigger.type !== 'winner_resolution_settlement') blockers.push('unsupported_financial_trigger_type');
+  if (settlementTriggerProcessed(trigger)) blockers.push('financial_trigger_already_processed');
+  if (!trigger.idempotency_key) blockers.push('idempotency_key_missing');
+  if (!fulfillment?.id) blockers.push('fulfillment_missing');
+  if (!verification?.id) blockers.push('winner_verification_missing');
+  if (!room?.id) blockers.push('room_missing');
+  if (!expectedCents || collectedCents !== expectedCents) blockers.push('room_payment_totals_mismatch');
+
+  const destination = await findSettlementDestinationAccount(store, room || {});
+  if (!destination) blockers.push('stripe_connect_destination_missing');
+  if (destination && !stripeSettlementConfigured(env)) blockers.push('stripe_settlement_not_configured');
+
+  const transferAmountCents = normalizeCents(
+    trigger.settlement_amount_cents
+      || trigger.amount_cents
+      || await creatorPendingPayoutCents(store, room?.id),
+    0,
+  );
+  if (transferAmountCents <= 0) blockers.push('settlement_amount_missing');
+
+  if (blockers.length) return { moneyMoved: false, blockers, stripeTransferId: '' };
+
+  const transfer = await stripeSettlementRequest('/transfers', {
+    env,
+    idempotencyKey: trigger.idempotency_key,
+    body: {
+      amount: transferAmountCents,
+      currency: String(room.cost_breakdown?.currency || trigger.currency || 'USD').toLowerCase(),
+      destination,
+      description: `Winner resolution settlement for ${room.title || room.id}`,
+      transfer_group: `winner_resolution_${publicMatchId(match)}`,
+      'metadata[financial_trigger_id]': trigger.id,
+      'metadata[match_id]': publicMatchId(match),
+      'metadata[room_id]': room.id,
+      'metadata[winner_verification_id]': verification.id,
+      'metadata[fulfillment_id]': fulfillment.id,
+      'metadata[winner_user_id]': trigger.winner_user_id || fulfillment.winner_id || '',
+    },
+  });
+
+  await store.create('prize_room_ledger_entries', {
+    room_id: room.id,
+    match_id: publicMatchId(match),
+    type: 'creator_payout_transfer',
+    amount_cents: transferAmountCents,
+    currency: room.cost_breakdown?.currency || trigger.currency || 'USD',
+    description: 'Winner resolution settlement sent through Stripe transfer.',
+    status: 'sent',
+    stripe_transfer_id: transfer.id,
+    destination_account_id: destination,
+    financial_trigger_id: trigger.id,
+    winner_verification_id: verification.id,
+    fulfillment_id: fulfillment.id,
+    approved_by: userId,
+    approved_at: now(),
+  }).catch(() => null);
+
+  const updatedTrigger = await store.update('financial_triggers', trigger.id, {
+    status: 'processed',
+    money_movement_triggered: true,
+    stripe_transfer_id: transfer.id,
+    settlement_amount_cents: transferAmountCents,
+    settlement_destination_account_id: destination,
+    processed_at: now(),
+    processed_by: userId,
+    last_blockers: [],
+  });
+
+  return {
+    moneyMoved: true,
+    blockers: [],
+    stripeTransferId: transfer.id,
+    transfer,
+    trigger: updatedTrigger,
+  };
+}
+
 export async function processFinancialSettlementTrigger(store, triggerId, userId) {
   const trigger = await store.findOne('financial_triggers', { id: triggerId }).catch(() => null);
   let auditEvent = await createAuditEvent(store, {
@@ -1965,26 +2127,43 @@ export async function processFinancialSettlementTrigger(store, triggerId, userId
     };
   }
 
-  const stripeSettlementConfigured = false;
-  if (!stripeSettlementConfigured) {
-    const pendingBlockers = ['stripe_settlement_not_configured'];
+  let settlementResult = null;
+  try {
+    settlementResult = await settleWinnerResolutionStripeTransfer(store, {
+      trigger,
+      match,
+      room,
+      verification,
+      fulfillment,
+      expectedCents,
+      collectedCents,
+      userId,
+    });
+  } catch (error) {
+    settlementResult = {
+      moneyMoved: false,
+      stripeTransferId: '',
+      blockers: ['stripe_transfer_failed'],
+      error: error.message,
+    };
+  }
+
+  if (!settlementResult.moneyMoved) {
+    const pendingBlockers = settlementResult.blockers?.length ? settlementResult.blockers : ['stripe_settlement_not_configured'];
     await store.update('financial_triggers', trigger.id, {
       status: 'pending_processor_integration',
       money_movement_triggered: false,
       last_processed_at: now(),
       last_processor_user_id: userId,
       last_blockers: pendingBlockers,
+      last_processor_error: settlementResult.error || '',
       inspected_totals: {
         expected_cents: expectedCents,
         paid_contribution_cents: paidContributionCents,
         paid_payment_cents: paidPaymentCents,
         collected_cents: collectedCents,
       },
-      settlement_requirements_missing: [
-        'exported_reusable_stripe_settlement_helper',
-        'confirmed_stripe_connect_destination_for_settlement',
-        'approved_winner_resolution_transfer_policy',
-      ],
+      settlement_requirements_missing: pendingBlockers,
     }).catch(() => null);
     auditEvent = await createAuditEvent(store, {
       entityType: 'FinancialTrigger',
@@ -1995,7 +2174,7 @@ export async function processFinancialSettlementTrigger(store, triggerId, userId
       metadata: {
         blockers: pendingBlockers,
         moneyMoved: false,
-        reason: 'Stripe settlement is not wired to winner-resolution triggers.',
+        reason: settlementResult.error || 'Stripe settlement could not process this winner-resolution trigger.',
         fulfillmentId: fulfillment.id,
         winnerVerificationId: verification.id,
       },
@@ -2010,12 +2189,27 @@ export async function processFinancialSettlementTrigger(store, triggerId, userId
     };
   }
 
+  auditEvent = await createAuditEvent(store, {
+    entityType: 'FinancialTrigger',
+    entityId: trigger.id,
+    matchId,
+    userId,
+    action: 'FINANCIAL_TRIGGER_SETTLEMENT_PROCESSED',
+    metadata: {
+      moneyMoved: true,
+      stripeTransferId: settlementResult.stripeTransferId,
+      fulfillmentId: fulfillment.id,
+      winnerVerificationId: verification.id,
+      expectedCents,
+      collectedCents,
+    },
+  }).catch(() => auditEvent);
   return {
-    processed: false,
-    moneyMoved: false,
-    triggerStatus: trigger.status,
-    stripeTransferId: '',
-    blockers: ['stripe_settlement_not_configured'],
+    processed: true,
+    moneyMoved: true,
+    triggerStatus: 'processed',
+    stripeTransferId: settlementResult.stripeTransferId,
+    blockers: [],
     auditEventId: auditEvent?.id || '',
   };
 }

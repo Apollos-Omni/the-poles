@@ -56,6 +56,7 @@ function baseSeed({ missingFulfillment = false, paymentMismatch = false, openDis
       winner_user_id: 'user_a',
       winner_verification_id: 'verification_fixture_settlement',
       fulfillment_id: 'fulfillment_fixture_settlement',
+      idempotency_key: 'winner_resolution:match_fixture_settlement:user_a:fulfillment_fixture_settlement',
       money_movement_triggered: processed,
       stripe_transfer_id: processed ? 'tr_fixture_existing' : '',
     }],
@@ -71,6 +72,7 @@ function baseSeed({ missingFulfillment = false, paymentMismatch = false, openDis
       match_id: 'match_fixture_settlement',
       status: 'prize_fulfillment',
       max_players: 2,
+      destination_account_id: 'acct_fixture_creator',
       cost_breakdown: {
         per_player_contribution_cents: 2500,
         total_room_cost_cents: expected,
@@ -95,6 +97,14 @@ function baseSeed({ missingFulfillment = false, paymentMismatch = false, openDis
       { id: 'contrib_b', room_id: 'room_fixture_settlement', user_id: 'user_b', status: 'paid', amount_cents: paymentMismatch ? 2000 : 2500 },
     ],
     prize_room_payments: [],
+    prize_room_ledger_entries: [{
+      id: 'ledger_pending_creator',
+      room_id: 'room_fixture_settlement',
+      match_id: 'match_fixture_settlement',
+      type: 'creator_pending_payout',
+      status: 'pending_admin_release',
+      amount_cents: 500,
+    }],
     match_disputes: openDispute ? [{
       id: 'dispute_fixture_settlement',
       matchId: 'match_fixture_settlement',
