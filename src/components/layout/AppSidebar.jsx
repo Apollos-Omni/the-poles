@@ -34,12 +34,13 @@ import { ADMIN_ROLES, AFFILIATE_ADMIN_ROLES, userHasRole } from '@/lib/rbac';
 
 const mainNavItems = [
   { name: 'Dashboard', icon: Home, page: 'Dashboard' },
+  { name: 'The Poles', icon: Globe, page: 'ThePoles', href: '/ThePoles' },
   { name: 'The North Pole', icon: Gift, page: 'NorthPole', href: '/NorthPole' },
   { name: 'The South Pole', icon: Mountain, page: 'SouthPole', href: '/SouthPole' },
+  { name: 'League Hub', icon: Trophy, page: 'LeagueHub', href: '/Leagues' },
   { name: 'The Poles Fund', icon: Heart, page: 'ThePolesFund', href: '/ThePolesFund' },
   { name: 'Mission Ledger', icon: ClipboardList, page: 'MissionLedger', href: '/MissionLedger' },
   { name: 'Browse Prizes', icon: Trophy, page: 'NorthPole', href: '/NorthPole#north-pole-flow' },
-  { name: 'League Hub', icon: Trophy, page: 'LeagueHub', href: '/Leagues' },
   { name: 'Profile', icon: UserIcon, page: 'Profile' },
   { name: 'Support', icon: LifeBuoy, page: 'ContactUs' },
 ];

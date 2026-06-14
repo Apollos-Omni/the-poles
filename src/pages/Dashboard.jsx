@@ -11,6 +11,7 @@ import {
   ChevronRight,
   DoorOpen,
   Gift,
+  Globe,
   Heart,
   LifeBuoy,
   Loader2,
@@ -34,6 +35,16 @@ import { MediaHero, VideoBackgroundCard, WorldFeatureCard, mediaImages } from "@
 
 const actionCards = [
   {
+    title: "The Poles",
+    description: "The main competition home for North Pole prize rooms, South Pole leagues, and mission-backed play.",
+    href: "/ThePoles",
+    icon: Globe,
+    image: mediaImages.northArena,
+    mediaAccent: "purple",
+    accent: "from-purple-500/25 via-cyan-500/15 to-rose-500/15",
+    border: "border-purple-300/25",
+  },
+  {
     title: "North Pole",
     description: "Digital skill matches, prize paths, and The Poles Fund.",
     href: "/NorthPole",
@@ -54,6 +65,16 @@ const actionCards = [
     border: "border-purple-300/25",
   },
   {
+    title: "League Hub",
+    description: "Open seasons, teams, schedules, media, and reward tracking.",
+    href: "/Leagues",
+    icon: Users,
+    image: mediaImages.southTeam,
+    mediaAccent: "cyan",
+    accent: "from-indigo-500/25 via-purple-500/15 to-blue-500/15",
+    border: "border-indigo-300/25",
+  },
+  {
     title: "Browse Prizes",
     description: "Pick a live prize product, choose a game, and create a verified prize room.",
     href: "/NorthPole#north-pole-flow",
@@ -62,16 +83,6 @@ const actionCards = [
     mediaAccent: "gold",
     accent: "from-yellow-500/20 via-purple-500/15 to-cyan-500/15",
     border: "border-yellow-200/20",
-  },
-  {
-    title: "Leagues",
-    description: "Open seasons, teams, schedules, media, and reward tracking.",
-    href: "/Leagues",
-    icon: Users,
-    image: mediaImages.southTeam,
-    mediaAccent: "cyan",
-    accent: "from-indigo-500/25 via-purple-500/15 to-blue-500/15",
-    border: "border-indigo-300/25",
   },
   {
     title: "The Poles Fund",
@@ -206,13 +217,13 @@ export default function Dashboard() {
   return (
     <div className="relative min-h-screen bg-transparent text-white">
       <MediaHero
-        eyebrow="Command Center"
-        title="Step into the competition."
+        eyebrow="The Poles"
+        title="The Poles"
         description={`Welcome back, ${user.full_name || user.name || "Player"}. Choose a digital arena, join a real-world challenge, build your profile, and make every match point toward something bigger.`}
         image={mediaImages.northArena}
         badges={["Verified skill paths", "Prize rooms", "Mission-backed competition"]}
-        primaryAction={{ href: "/NorthPole", label: "Enter North Pole" }}
-        secondaryAction={{ href: "/SouthPole", label: "Find South Pole events" }}
+        primaryAction={{ href: "/ThePoles", label: "Open The Poles" }}
+        secondaryAction={{ href: "/NorthPole", label: "Enter North Pole" }}
       >
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
           <div className="rounded-2xl border border-white/15 bg-black/38 p-4 backdrop-blur">

@@ -15,9 +15,10 @@ import DeepLinkHandler from '@/components/notifications/DeepLinkHandler';
 import { MobileActionBar } from '@/components/media/MediaPrimitives';
 
 const mobileNavItems = [
-  { title: "Home", href: createPageUrl("Dashboard"), icon: Home },
+  { title: "The Poles", href: "/ThePoles", icon: Home },
   { title: "North", href: "/NorthPole", icon: Gift },
   { title: "South", href: "/SouthPole", icon: Mountain },
+  { title: "League Hub", href: "/Leagues", icon: Trophy },
   { title: "Fund", href: "/ThePolesFund", icon: Heart },
   { title: "Ledger", href: "/MissionLedger", icon: ReceiptText },
   { title: "Browse Prizes", href: "/NorthPole#north-pole-flow", icon: Trophy },
@@ -65,6 +66,7 @@ const LayoutContent = ({ children, currentPageName }) => {
 
   // Check if we're in development mode using window location
   const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname.includes('preview');
+  const isNorthPolePage = /north[-]?pole/i.test(location.pathname);
 
   const isActive = (url) => location.pathname === url || (url === createPageUrl("Dashboard") && location.pathname === "/");
 
@@ -102,13 +104,14 @@ const LayoutContent = ({ children, currentPageName }) => {
         <PWAInstallManager />
         <DeepLinkHandler />
         
-        {/* Desktop sidebar - Always visible on large screens */}
-        <aside className="relative z-10 hidden h-full flex-shrink-0 overflow-y-auto border-r border-cyan-200/10 bg-black/25 backdrop-blur-xl lg:block lg:w-64">
-          <AppSidebar />
-        </aside>
+        {!isNorthPolePage && (
+          <aside className="relative z-10 hidden h-full flex-shrink-0 overflow-y-auto border-r border-cyan-200/10 bg-black/25 backdrop-blur-xl lg:block lg:w-64">
+            <AppSidebar />
+          </aside>
+        )}
 
         {/* Mobile Sidebar Overlay */}
-        {isMobileMenuOpen && (
+        {!isNorthPolePage && isMobileMenuOpen && (
           <div 
             className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm lg:hidden"
             onClick={() => setIsMobileMenuOpen(false)}
@@ -141,7 +144,8 @@ const LayoutContent = ({ children, currentPageName }) => {
         )}
         
         {/* Main content area */}
-        <main className="relative z-10 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-black/10 pb-24 lg:pb-0">
+        <main className={`relative z-10 min-w-0 flex-1 overflow-y-auto overflow-x-hidden ${isNorthPolePage ? 'bg-[#02030a]' : 'bg-black/10 pb-24 lg:pb-0'}`}>
+          {!isNorthPolePage && (
           <div className="sticky top-0 z-30 border-b border-white/10 bg-black/45 px-3 py-2.5 backdrop-blur-xl md:px-6 md:py-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
@@ -175,11 +179,12 @@ const LayoutContent = ({ children, currentPageName }) => {
               </div>
             </div>
           </div>
+          )}
           {children}
         </main>
         
         {/* Mobile Bottom Navigation */}
-        <MobileActionBar items={mobileNavItems} isActive={isActive} />
+        {!isNorthPolePage && <MobileActionBar items={mobileNavItems} isActive={isActive} />}
         
         {/* Always show health indicator */}
         <HealthIndicator />
