@@ -7,7 +7,7 @@ import { searchGamesAcrossProviders } from '../lib/searchProviders/games.js';
 import { FulfillmentEngine } from '../services/fulfillment/FulfillmentEngine.js';
 import { WinnerVerificationEngine } from '../services/WinnerVerificationEngine.js';
 
-const ADMIN_ROLES = new Set([ROLES.OWNER, ROLES.ADMIN]);
+const ADMIN_ROLES = new Set([ROLES.OWNER, ROLES.ADMIN, ROLES.SYSTEM, 'system']);
 const SIMULATED_PROVIDER = 'simulated';
 
 const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -18,6 +18,7 @@ const makeId = (prefix) => `${prefix}_${crypto.randomUUID()}`;
 const scoreTypes = ['highest_score', 'lowest_time', 'bracket_result', 'manual_review', 'manual'];
 const fulfillmentStatuses = [
   'pending_address',
+  'pending_purchase',
   'ready_to_order',
   'ordered',
   'shipped',
@@ -58,6 +59,40 @@ const PRIZE_ROOM_STATUSES = [
   'cancelled',
 ];
 const APPROVED_WINNER_VERIFICATION_STATUSES = new Set(['approved']);
+const TRIVIA_BATTLE_GAME_TYPE = 'trivia_battle';
+const TRIVIA_BATTLE_QUESTION_SET_ID = 'trivia_battle_test_v1';
+const TRIVIA_BATTLE_QUESTIONS = [
+  {
+    id: 'tb-q1',
+    prompt: 'Which planet is known as the Red Planet?',
+    options: ['Venus', 'Mars', 'Jupiter', 'Mercury'],
+    correctOptionIndex: 1,
+  },
+  {
+    id: 'tb-q2',
+    prompt: 'How many sides does a hexagon have?',
+    options: ['5', '6', '7', '8'],
+    correctOptionIndex: 1,
+  },
+  {
+    id: 'tb-q3',
+    prompt: 'What is the capital city of Canada?',
+    options: ['Toronto', 'Vancouver', 'Ottawa', 'Montreal'],
+    correctOptionIndex: 2,
+  },
+  {
+    id: 'tb-q4',
+    prompt: 'Which element has the chemical symbol O?',
+    options: ['Gold', 'Oxygen', 'Osmium', 'Iron'],
+    correctOptionIndex: 1,
+  },
+  {
+    id: 'tb-q5',
+    prompt: 'In computing, what does CPU stand for?',
+    options: ['Central Processing Unit', 'Core Program Utility', 'Computer Power Unit', 'Central Program Upload'],
+    correctOptionIndex: 0,
+  },
+];
 
 const PRIZE_CATALOG_ROWS = [
   { id: 'electronics', title: 'Popular Electronics', category: 'Electronics', query_terms: ['wireless earbuds', 'bluetooth speaker', 'portable charger', 'smart watch', 'tablet stand'] },
@@ -300,6 +335,17 @@ const updateFulfillmentStatusSchema = z.object({
   adminNotes: z.string().max(8000).optional(),
   admin_notes: z.string().max(8000).optional(),
   carrier: z.string().max(120).optional(),
+}).passthrough();
+
+const triviaAnswerSchema = z.object({
+  questionId: z.string().min(1).optional(),
+  question_id: z.string().min(1).optional(),
+  selectedOptionIndex: z.number().int().min(0).max(10).optional(),
+  selected_option_index: z.number().int().min(0).max(10).optional(),
+  answerIndex: z.number().int().min(0).max(10).optional(),
+  answer_index: z.number().int().min(0).max(10).optional(),
+  responseTimeMs: z.number().int().min(0).max(300000).optional(),
+  response_time_ms: z.number().int().min(0).max(300000).optional(),
 }).passthrough();
 
 function isAdmin(user) {
@@ -914,6 +960,7 @@ const STARTER_PRIZE_ROOM_TEMPLATES = [
   ['rocket-league-2v2', 'Rocket League Soccer Ball Room', 'Team skill room for Rocket League players with a soccer ball prize.', 'Rocket League', 'multi-platform', 'Soccer Ball', 3000, 4, 4, 'Winning team by final score wins', 'Rocket League', 'soccer ball'],
   ['chess-match', 'Chess Set Prize Room', 'Classic chess match with PGN or screenshot proof for a chess set prize.', 'Chess', 'web/mobile', 'Chess Set', 3000, 2, 2, 'Checkmate or agreed final result wins', 'Chess', 'chess set'],
   ['uno-family', 'Uno Board Game Bundle Room', 'Family-friendly Uno room with a board game bundle prize.', 'Uno', 'tabletop/mobile', 'Board Game Bundle', 3500, 2, 4, 'First player out wins', 'Uno', 'board game bundle'],
+  ['trivia-battle', 'Trivia Battle Gift Card Room', 'Built-in test-mode trivia battle. Five backend-controlled questions decide the winner.', 'Trivia Battle', 'built-in', 'Gaming Gift Card', 3000, 2, 4, 'Most correct answers wins; fastest total response time breaks ties', 'Trivia Battle', 'gaming gift card'],
   ['fortnite-creative', 'Fortnite Drone Toy Room', 'Creative challenge room with score/proof URL for a drone toy prize.', 'Fortnite Creative', 'multi-platform', 'Drone Toy', 4500, 2, 4, 'Highest challenge score wins', 'Fortnite', 'drone toy'],
   ['mortal-kombat-1v1', 'Mortal Kombat LEGO Set Room', 'Head-to-head fighting game prize room with a LEGO set prize.', 'Mortal Kombat', 'console/pc', 'LEGO Set', 4000, 2, 2, 'Best-of-three winner wins', 'Mortal Kombat', 'LEGO set'],
   ['family-mystery', 'Family Game Night Art Kit Room', 'Family game night room with an art supply kit prize.', 'Family Game Night', 'tabletop', 'Art Supply Kit', 3500, 2, 6, 'Manual family challenge winner wins', 'Family game night', 'art supply kit'],
@@ -922,7 +969,7 @@ const STARTER_PRIZE_ROOM_TEMPLATES = [
   title,
   description,
   room_type: 'platform_supported',
-  game_id: gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+  game_id: id === 'trivia-battle' ? TRIVIA_BATTLE_GAME_TYPE : gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
   game_title: gameTitle,
   game_query: gameQuery,
   game_image: defaultGameImage(gameTitle),
@@ -946,10 +993,11 @@ const STARTER_PRIZE_ROOM_TEMPLATES = [
   max_players: maxPlayers,
   min_players: minPlayers,
   winning_rule: winningRule,
-  verification_method: 'manual_score_with_proof',
+  verification_method: id === 'trivia-battle' ? 'built_in_game_result' : 'manual_score_with_proof',
   foundation_rate: DEFAULT_FOUNDATION_RATE,
   is_featured: index < 4,
-  family_friendly: ['mario-kart-family', 'chess-match', 'uno-family', 'family-mystery'].some((slug) => id.includes(slug)),
+  family_friendly: ['mario-kart-family', 'chess-match', 'uno-family', 'trivia-battle', 'family-mystery'].some((slug) => id.includes(slug)),
+  test_mode: id === 'trivia-battle',
   status: 'active',
 }));
 
@@ -1546,6 +1594,510 @@ async function buildWinnerVerificationDecision(store, match, {
   });
 }
 
+async function buildWinnerVerificationRecommendation(store, match, overrides = {}) {
+  const matchId = publicMatchId(match);
+  const [entries, scores, refereeContext, disputes] = await Promise.all([
+    Array.isArray(overrides.entries) ? overrides.entries : store.list('match_entries', { matchId }).catch(() => []),
+    Array.isArray(overrides.scores) ? overrides.scores : store.list('match_scores', { matchId }).catch(() => []),
+    overrides.refereeContext && typeof overrides.refereeContext === 'object'
+      ? overrides.refereeContext
+      : loadRefereeContext(store, matchId).catch(() => ({ sessions: [], reports: [] })),
+    Array.isArray(overrides.disputes) ? overrides.disputes : store.list('match_disputes', { matchId }).catch(() => []),
+  ]);
+  const engine = new WinnerVerificationEngine();
+  return engine.recommend({
+    match,
+    matchId,
+    entries,
+    scores,
+    refereeContext,
+    refereeReports: refereeContext.reports || [],
+    disputes,
+  });
+}
+
+function isOpenDispute(dispute = {}) {
+  const status = String(dispute.status || dispute.dispute_status || 'open').toLowerCase();
+  return !['closed', 'resolved', 'rejected', 'cancelled'].includes(status);
+}
+
+function isPaidContribution(contribution = {}) {
+  return ['marked_paid', 'paid'].includes(String(contribution.status || '').toLowerCase())
+    || contribution.payment_confirmed === true
+    || ['paid', 'succeeded'].includes(String(contribution.stripe_payment_status || '').toLowerCase());
+}
+
+function isValidEntry(entry = {}) {
+  return ['paid', 'joined', 'active', 'confirmed', 'marked_paid'].includes(String(entry.status || '').toLowerCase());
+}
+
+function winnerExecutionMatchStatusAllowed(match = {}) {
+  return [
+    'completed',
+    'pending_verification',
+    'winner_verified',
+    'fulfillment_pending',
+    'prize_fulfillment',
+  ].includes(String(match.status || match.match_status || '').toLowerCase());
+}
+
+function roomAllowsWinnerExecution(room = null, match = {}, paidContributions = []) {
+  const matchCompleted = ['completed', 'pending_verification', 'winner_verified', 'fulfillment_pending', 'prize_fulfillment']
+    .includes(String(match.status || '').toLowerCase());
+  if (matchCompleted) return true;
+  if (!room) return false;
+  const maxPlayers = Number(room.max_players || room.maxPlayers || 0);
+  if (maxPlayers > 0 && paidContributions.length >= maxPlayers) return true;
+  return ['funded', 'completed', 'pending_verification', 'winner_verified', 'fulfillment_pending', 'prize_fulfillment']
+    .includes(String(room.status || '').toLowerCase());
+}
+
+function paymentContextValid({ room, entries, paidContributions, recommendation }) {
+  const winnerId = String(recommendation.recommendedWinnerUserId || '');
+  if (room) {
+    const maxPlayers = Number(room.max_players || room.maxPlayers || 0);
+    const winnerContribution = paidContributions.find((row) => String(row.user_id || row.userId) === winnerId);
+    return paidContributions.length > 0
+      && (!maxPlayers || paidContributions.length >= maxPlayers)
+      && Boolean(winnerContribution);
+  }
+  const validEntries = entries.filter(isValidEntry);
+  const winnerEntry = validEntries.find((entry) => String(entry.userId || entry.user_id) === winnerId);
+  return validEntries.length > 0 && Boolean(winnerEntry);
+}
+
+async function findRoomForMatch(store, match) {
+  const matchId = publicMatchId(match);
+  return (match.prize_room_id ? await store.findOne('prize_rooms', { id: match.prize_room_id }).catch(() => null) : null)
+    || await store.findOne('prize_rooms', { match_id: matchRowId(match) }).catch(() => null)
+    || await store.findOne('prize_rooms', { match_id: matchId }).catch(() => null)
+    || await store.findOne('prize_rooms', { id: matchId }).catch(() => null);
+}
+
+async function loadWinnerExecutionContext(store, match) {
+  const matchId = publicMatchId(match);
+  const [entries, scores, refereeContext, disputes, room] = await Promise.all([
+    store.list('match_entries', { matchId }).catch(() => []),
+    store.list('match_scores', { matchId }).catch(() => []),
+    loadRefereeContext(store, matchId).catch(() => ({ sessions: [], reports: [] })),
+    store.list('match_disputes', { matchId }).catch(() => []),
+    findRoomForMatch(store, match),
+  ]);
+  const contributions = room ? await store.list('player_contributions', { room_id: room.id }).catch(() => []) : [];
+  const payments = room ? await store.list('prize_room_payments', { room_id: room.id }).catch(() => []) : [];
+  const paidContributions = contributions.filter(isPaidContribution);
+  return {
+    matchId,
+    entries,
+    scores,
+    refereeContext,
+    disputes,
+    openDisputes: disputes.filter(isOpenDispute),
+    room,
+    contributions,
+    paidContributions,
+    payments,
+  };
+}
+
+function winnerExecutionBlockers(match, context, recommendation) {
+  const blockers = [];
+  if (!recommendation.recommendedWinnerUserId) blockers.push('recommended_winner_missing');
+  if (recommendation.requiresManualReview) blockers.push('manual_review_required');
+  if (Number(recommendation.confidence) < 0.9) blockers.push('confidence_below_0_9');
+  if (context.openDisputes.length) blockers.push('open_dispute');
+  if (!winnerExecutionMatchStatusAllowed(match)) blockers.push('match_status_not_executable');
+  if (!roomAllowsWinnerExecution(context.room, match, context.paidContributions)) blockers.push('room_not_full_or_match_not_completed');
+  if (!paymentContextValid({ room: context.room, entries: context.entries, paidContributions: context.paidContributions, recommendation })) {
+    blockers.push('required_payments_or_entries_invalid');
+  }
+  return blockers;
+}
+
+async function ensureWinnerVerificationRecord(store, match, recommendation, userId) {
+  const matchId = publicMatchId(match);
+  const winnerUserId = recommendation.recommendedWinnerUserId;
+  const existing = await findApprovedWinnerVerification(store, match, winnerUserId);
+  if (existing) return existing;
+
+  return store.create('winner_verifications', {
+    matchId,
+    winnerUserId,
+    winningScore: recommendation.evidenceSummary?.winningScore ?? null,
+    verificationMethod: 'winner_resolution_executor',
+    status: 'approved',
+    lockedBy: userId,
+    lockedAt: now(),
+    auditNotes: recommendation.reasons.join(' '),
+    claimedWinner: winnerUserId,
+    confidenceScore: Math.round(Number(recommendation.confidence || 0) * 100),
+    approvalThreshold: 90,
+    approvalReason: 'Winner Resolution Executor approved a strong deterministic recommendation.',
+    proofSourcesUsed: ['winner_verification_recommendation'],
+    proofSourceResults: [{
+      source: 'winner_verification_recommendation',
+      status: 'approved',
+      confidencePoints: Math.round(Number(recommendation.confidence || 0) * 100),
+      reason: recommendation.reasons.join(' '),
+      metadata: {
+        warnings: recommendation.warnings,
+        evidenceSummary: recommendation.evidenceSummary,
+      },
+    }],
+    requiresManualReview: false,
+    hasDispute: false,
+    fulfillmentStatus: 'eligible',
+    recommendation,
+  });
+}
+
+async function lockWinnerForExecution(store, match, recommendation, verification) {
+  if (!matchRowId(match)) return { ...match, winner_user_id: recommendation.recommendedWinnerUserId };
+  const patch = {
+    status: 'winner_verified',
+    winner_user_id: recommendation.recommendedWinnerUserId,
+    winner_id: recommendation.recommendedWinnerUserId,
+    winner_locked_at: match.winner_locked_at || now(),
+    winner_verification_id: verification.id,
+    winner_verification_status: verification.status,
+    winner_verification_score: verification.confidenceScore ?? verification.confidence_score ?? Math.round(Number(recommendation.confidence || 0) * 100),
+    winner_verification_reason: verification.approvalReason ?? verification.approval_reason ?? '',
+    winner_verification_proof_sources: verification.proofSourcesUsed ?? verification.proof_sources_used ?? [],
+    winner_verification_requires_manual_review: false,
+  };
+  return store.update('north_pole_matches', matchRowId(match), patch).catch(() => ({ ...match, ...patch }));
+}
+
+async function ensureFinancialTrigger(store, { match, room, fulfillment, verification, recommendation, userId }) {
+  const matchId = publicMatchId(match);
+  const idempotencyKey = `winner_resolution:${matchId}:${recommendation.recommendedWinnerUserId}:${fulfillment?.id || 'no_fulfillment'}`;
+  const existing = await store.findOne('financial_triggers', { idempotency_key: idempotencyKey }).catch(() => null);
+  if (existing) return existing;
+
+  return store.create('financial_triggers', {
+    idempotency_key: idempotencyKey,
+    type: 'winner_resolution_settlement',
+    status: 'pending_processor_integration',
+    match_id: matchId,
+    match_row_id: matchRowId(match) || '',
+    prize_room_id: room?.id || match.prize_room_id || '',
+    winner_user_id: recommendation.recommendedWinnerUserId,
+    winner_verification_id: verification.id,
+    fulfillment_id: fulfillment?.id || '',
+    money_movement_triggered: false,
+    queued_by: userId,
+    queued_at: now(),
+    reason: 'No safe automatic settlement processor is wired to winner resolution yet.',
+    required_processor_action: 'release_or_settle_prize_room_funds_after_fulfillment_review',
+    recommendation,
+  });
+}
+
+function settlementTriggerProcessed(trigger = {}) {
+  return ['processed', 'settled', 'money_moved', 'completed'].includes(String(trigger.status || '').toLowerCase());
+}
+
+function sumCents(rows = []) {
+  return rows.reduce((total, row) => total + normalizeCents(row.amount_cents || row.amountCents, 0), 0);
+}
+
+function expectedRoomCollectionCents(room = {}) {
+  const breakdown = room.cost_breakdown || {};
+  const maxPlayers = normalizeCents(room.max_players || room.maxPlayers, 0);
+  const perPlayer = normalizeCents(breakdown.per_player_contribution_cents, 0);
+  if (maxPlayers > 0 && perPlayer > 0) return maxPlayers * perPlayer;
+  return normalizeCents(breakdown.total_room_cost_cents || breakdown.total_required_cents, 0);
+}
+
+function paymentRecordPaid(payment = {}) {
+  return ['paid', 'succeeded'].includes(String(payment.status || '').toLowerCase())
+    || ['paid', 'succeeded'].includes(String(payment.stripe_payment_status || '').toLowerCase())
+    || payment.payment_confirmed === true;
+}
+
+export async function processFinancialSettlementTrigger(store, triggerId, userId) {
+  const trigger = await store.findOne('financial_triggers', { id: triggerId }).catch(() => null);
+  let auditEvent = await createAuditEvent(store, {
+    entityType: 'FinancialTrigger',
+    entityId: triggerId,
+    matchId: trigger?.match_id || '',
+    userId,
+    action: 'FINANCIAL_TRIGGER_PROCESS_STARTED',
+    metadata: { triggerId, triggerStatus: trigger?.status || 'missing' },
+  }).catch(() => null);
+
+  if (!trigger) {
+    return {
+      processed: false,
+      moneyMoved: false,
+      triggerStatus: 'missing',
+      stripeTransferId: '',
+      blockers: ['financial_trigger_missing'],
+      auditEventId: auditEvent?.id || '',
+    };
+  }
+
+  if (trigger.type !== 'winner_resolution_settlement') {
+    auditEvent = await createAuditEvent(store, {
+      entityType: 'FinancialTrigger',
+      entityId: trigger.id,
+      matchId: trigger.match_id || '',
+      userId,
+      action: 'FINANCIAL_TRIGGER_PROCESS_BLOCKED',
+      metadata: { blocker: 'unsupported_financial_trigger_type', triggerType: trigger.type },
+    }).catch(() => auditEvent);
+    return {
+      processed: false,
+      moneyMoved: false,
+      triggerStatus: trigger.status,
+      stripeTransferId: trigger.stripe_transfer_id || '',
+      blockers: ['unsupported_financial_trigger_type'],
+      auditEventId: auditEvent?.id || '',
+    };
+  }
+
+  if (settlementTriggerProcessed(trigger)) {
+    auditEvent = await createAuditEvent(store, {
+      entityType: 'FinancialTrigger',
+      entityId: trigger.id,
+      matchId: trigger.match_id || '',
+      userId,
+      action: 'FINANCIAL_TRIGGER_ALREADY_PROCESSED',
+      metadata: {
+        triggerStatus: trigger.status,
+        stripeTransferId: trigger.stripe_transfer_id || '',
+        moneyMoved: trigger.money_movement_triggered === true,
+      },
+    }).catch(() => auditEvent);
+    return {
+      processed: true,
+      moneyMoved: trigger.money_movement_triggered === true,
+      triggerStatus: trigger.status,
+      stripeTransferId: trigger.stripe_transfer_id || '',
+      blockers: [],
+      auditEventId: auditEvent?.id || '',
+    };
+  }
+
+  if (trigger.status !== 'pending_processor_integration') {
+    auditEvent = await createAuditEvent(store, {
+      entityType: 'FinancialTrigger',
+      entityId: trigger.id,
+      matchId: trigger.match_id || '',
+      userId,
+      action: 'FINANCIAL_TRIGGER_PROCESS_BLOCKED',
+      metadata: { blocker: 'financial_trigger_status_not_pending', triggerStatus: trigger.status },
+    }).catch(() => auditEvent);
+    return {
+      processed: false,
+      moneyMoved: false,
+      triggerStatus: trigger.status,
+      stripeTransferId: trigger.stripe_transfer_id || '',
+      blockers: ['financial_trigger_status_not_pending'],
+      auditEventId: auditEvent?.id || '',
+    };
+  }
+
+  const match = await findMatch(store, trigger.match_id || trigger.match_row_id).catch(() => null);
+  const room = (trigger.prize_room_id ? await store.findOne('prize_rooms', { id: trigger.prize_room_id }).catch(() => null) : null)
+    || (match ? await findRoomForMatch(store, match).catch(() => null) : null);
+  const verification = trigger.winner_verification_id
+    ? await store.findOne('winner_verifications', { id: trigger.winner_verification_id }).catch(() => null)
+    : null;
+  const fulfillment = trigger.fulfillment_id
+    ? await store.findOne('prize_fulfillments', { id: trigger.fulfillment_id }).catch(() => null)
+    : null;
+  const matchId = trigger.match_id || (match ? publicMatchId(match) : '');
+  const disputes = matchId ? await store.list('match_disputes', { matchId }).catch(() => []) : [];
+  const contributions = room ? await store.list('player_contributions', { room_id: room.id }).catch(() => []) : [];
+  const payments = room ? await store.list('prize_room_payments', { room_id: room.id }).catch(() => []) : [];
+  const paidContributions = contributions.filter(isPaidContribution);
+  const paidPayments = payments.filter(paymentRecordPaid);
+  const expectedCents = expectedRoomCollectionCents(room || {});
+  const paidContributionCents = sumCents(paidContributions);
+  const paidPaymentCents = sumCents(paidPayments);
+  const collectedCents = paidContributionCents || paidPaymentCents;
+
+  const blockers = [];
+  if (!match) blockers.push('match_missing');
+  if (!room) blockers.push('room_missing');
+  if (!verification) blockers.push('winner_verification_missing');
+  if (!fulfillment) blockers.push('fulfillment_missing');
+  if (disputes.some(isOpenDispute)) blockers.push('open_dispute');
+  if (!expectedCents || collectedCents !== expectedCents) {
+    blockers.push('room_payment_totals_mismatch');
+  }
+
+  if (blockers.length) {
+    await store.update('financial_triggers', trigger.id, {
+      last_processed_at: now(),
+      last_processor_user_id: userId,
+      last_blockers: blockers,
+      inspected_totals: {
+        expected_cents: expectedCents,
+        paid_contribution_cents: paidContributionCents,
+        paid_payment_cents: paidPaymentCents,
+        collected_cents: collectedCents,
+      },
+    }).catch(() => null);
+    auditEvent = await createAuditEvent(store, {
+      entityType: 'FinancialTrigger',
+      entityId: trigger.id,
+      matchId,
+      userId,
+      action: 'FINANCIAL_TRIGGER_PROCESS_BLOCKED',
+      metadata: {
+        blockers,
+        expectedCents,
+        paidContributionCents,
+        paidPaymentCents,
+        fulfillmentId: fulfillment?.id || '',
+        winnerVerificationId: verification?.id || '',
+      },
+    }).catch(() => auditEvent);
+    return {
+      processed: false,
+      moneyMoved: false,
+      triggerStatus: trigger.status,
+      stripeTransferId: '',
+      blockers,
+      auditEventId: auditEvent?.id || '',
+    };
+  }
+
+  const stripeSettlementConfigured = false;
+  if (!stripeSettlementConfigured) {
+    const pendingBlockers = ['stripe_settlement_not_configured'];
+    await store.update('financial_triggers', trigger.id, {
+      status: 'pending_processor_integration',
+      money_movement_triggered: false,
+      last_processed_at: now(),
+      last_processor_user_id: userId,
+      last_blockers: pendingBlockers,
+      inspected_totals: {
+        expected_cents: expectedCents,
+        paid_contribution_cents: paidContributionCents,
+        paid_payment_cents: paidPaymentCents,
+        collected_cents: collectedCents,
+      },
+      settlement_requirements_missing: [
+        'exported_reusable_stripe_settlement_helper',
+        'confirmed_stripe_connect_destination_for_settlement',
+        'approved_winner_resolution_transfer_policy',
+      ],
+    }).catch(() => null);
+    auditEvent = await createAuditEvent(store, {
+      entityType: 'FinancialTrigger',
+      entityId: trigger.id,
+      matchId,
+      userId,
+      action: 'FINANCIAL_TRIGGER_SETTLEMENT_PENDING',
+      metadata: {
+        blockers: pendingBlockers,
+        moneyMoved: false,
+        reason: 'Stripe settlement is not wired to winner-resolution triggers.',
+        fulfillmentId: fulfillment.id,
+        winnerVerificationId: verification.id,
+      },
+    }).catch(() => auditEvent);
+    return {
+      processed: false,
+      moneyMoved: false,
+      triggerStatus: 'pending_processor_integration',
+      stripeTransferId: '',
+      blockers: pendingBlockers,
+      auditEventId: auditEvent?.id || '',
+    };
+  }
+
+  return {
+    processed: false,
+    moneyMoved: false,
+    triggerStatus: trigger.status,
+    stripeTransferId: '',
+    blockers: ['stripe_settlement_not_configured'],
+    auditEventId: auditEvent?.id || '',
+  };
+}
+
+export async function executeWinnerResolution(store, match, userId) {
+  const context = await loadWinnerExecutionContext(store, match);
+  const engine = new WinnerVerificationEngine();
+  const recommendation = engine.recommend({
+    match,
+    matchId: context.matchId,
+    entries: context.entries,
+    scores: context.scores,
+    refereeContext: context.refereeContext,
+    refereeReports: context.refereeContext.reports || [],
+    disputes: context.disputes,
+  });
+  const blockers = winnerExecutionBlockers(match, context, recommendation);
+  if (blockers.length) {
+    return { executed: false, blocked: true, recommendation, blockers, context };
+  }
+
+  const existingVerification = await findApprovedWinnerVerification(store, match, recommendation.recommendedWinnerUserId);
+  const verification = existingVerification || await ensureWinnerVerificationRecord(store, match, recommendation, userId);
+  const lockedMatch = await lockWinnerForExecution(store, {
+    ...match,
+    prize_room_id: match.prize_room_id || context.room?.id || '',
+  }, recommendation, verification);
+  const fulfillmentMatch = {
+    ...match,
+    ...lockedMatch,
+    prize_room_id: lockedMatch.prize_room_id || context.room?.id || match.prize_room_id || '',
+    winner_user_id: recommendation.recommendedWinnerUserId,
+    winner_id: recommendation.recommendedWinnerUserId,
+    prize_cost_breakdown: lockedMatch.prize_cost_breakdown || lockedMatch.cost_breakdown || context.room?.cost_breakdown || match.prize_cost_breakdown || match.cost_breakdown,
+    cost_breakdown: lockedMatch.cost_breakdown || lockedMatch.prize_cost_breakdown || context.room?.cost_breakdown || match.cost_breakdown || match.prize_cost_breakdown,
+  };
+  const fulfillment = await createPrizeFulfillment(store, fulfillmentMatch, userId);
+  const financialTrigger = await ensureFinancialTrigger(store, {
+    match: fulfillmentMatch,
+    room: context.room,
+    fulfillment,
+    verification,
+    recommendation,
+    userId,
+  });
+  const auditEvent = await createAuditEvent(store, {
+    entityType: 'WinnerResolution',
+    entityId: verification.id,
+    matchId: context.matchId,
+    userId,
+    action: 'WINNER_RESOLUTION_EXECUTED',
+    metadata: {
+      winnerUserId: recommendation.recommendedWinnerUserId,
+      fulfillmentId: fulfillment?.id || '',
+      financialTriggerId: financialTrigger?.id || '',
+      moneyMovementTriggered: financialTrigger?.money_movement_triggered === true,
+      recommendation,
+    },
+  });
+
+  return {
+    executed: true,
+    blocked: false,
+    matchId: context.matchId,
+    winnerUserId: recommendation.recommendedWinnerUserId,
+    recommendation,
+    winnerLocked: true,
+    verification,
+    fulfillmentTriggered: Boolean(fulfillment?.id),
+    fulfillmentId: fulfillment?.id || '',
+    moneyMovementTriggered: financialTrigger?.money_movement_triggered === true,
+    financialTriggerId: financialTrigger?.id || '',
+    auditEventId: auditEvent?.id || '',
+    warnings: [
+      ...(recommendation.warnings || []),
+      financialTrigger?.status === 'pending_processor_integration'
+        ? 'money_movement_queued_pending_processor_integration'
+        : '',
+    ].filter(Boolean),
+  };
+}
+
 async function findApprovedWinnerVerification(store, match, winnerId = '') {
   const matchId = publicMatchId(match);
   const verifications = await store.list('winner_verifications', { matchId }, { sort: '-created_at' }).catch(() => []);
@@ -1637,8 +2189,8 @@ async function createPrizeFulfillment(store, match, userId) {
       prize_url: prize.productUrl || '',
       prize_image: prize.image || '',
       prize_source: prize.productSource,
-      status: 'pending_address',
-      shipping_status: 'pending_address',
+      status: match.initial_fulfillment_status || 'pending_address',
+      shipping_status: match.initial_fulfillment_status || 'pending_address',
       admin_approved: false,
       shipping_name: '',
       shipping_address_line1: '',
@@ -1724,6 +2276,347 @@ async function createPrizeFulfillment(store, match, userId) {
     });
     throw error;
   }
+}
+
+function isTriviaBattleRoom(room = {}) {
+  return String(room.game_id || room.game_type || '').toLowerCase() === TRIVIA_BATTLE_GAME_TYPE;
+}
+
+function publicTriviaQuestions() {
+  return TRIVIA_BATTLE_QUESTIONS.map(({ correctOptionIndex, ...question }) => question);
+}
+
+function triviaQuestionById(questionId) {
+  return TRIVIA_BATTLE_QUESTIONS.find((question) => question.id === questionId) || null;
+}
+
+function prizeRoomPlayerIds(room = {}, contributions = []) {
+  const explicit = Array.isArray(room.player_ids) ? room.player_ids : [];
+  const paid = contributions
+    .filter((row) => ['marked_paid', 'paid'].includes(row.status))
+    .map((row) => row.user_id)
+    .filter(Boolean);
+  return [...new Set([...explicit, ...paid].filter(Boolean).map(String))];
+}
+
+function normalizeTriviaAnswers(answers = {}) {
+  return answers && typeof answers === 'object' && !Array.isArray(answers) ? answers : {};
+}
+
+function triviaPlayerResult(userId, answersByUser = {}) {
+  const answers = normalizeTriviaAnswers(answersByUser[userId]);
+  let correctAnswers = 0;
+  let totalResponseTimeMs = 0;
+  let answeredCount = 0;
+  for (const question of TRIVIA_BATTLE_QUESTIONS) {
+    const answer = answers[question.id];
+    if (!answer) continue;
+    answeredCount += 1;
+    totalResponseTimeMs += normalizeCents(answer.response_time_ms ?? answer.responseTimeMs, 0);
+    if (answer.is_correct === true || answer.isCorrect === true) correctAnswers += 1;
+  }
+  return {
+    user_id: userId,
+    correct_answers: correctAnswers,
+    answered_count: answeredCount,
+    total_response_time_ms: totalResponseTimeMs,
+  };
+}
+
+function triviaStandings(playerIds = [], answersByUser = {}) {
+  return playerIds
+    .map((userId) => triviaPlayerResult(userId, answersByUser))
+    .sort((a, b) => {
+      if (b.correct_answers !== a.correct_answers) return b.correct_answers - a.correct_answers;
+      if (a.total_response_time_ms !== b.total_response_time_ms) return a.total_response_time_ms - b.total_response_time_ms;
+      return String(a.user_id).localeCompare(String(b.user_id));
+    })
+    .map((entry, index) => ({ ...entry, rank: index + 1 }));
+}
+
+function allTriviaPlayersComplete(playerIds = [], answersByUser = {}) {
+  return playerIds.length > 0 && playerIds.every((userId) => (
+    Object.keys(normalizeTriviaAnswers(answersByUser[userId])).length >= TRIVIA_BATTLE_QUESTIONS.length
+  ));
+}
+
+async function latestTriviaSession(store, roomId) {
+  const sessions = await store.list('match_sessions', { prize_room_id: roomId, game_type: TRIVIA_BATTLE_GAME_TYPE }, { sort: '-created_at' }).catch(() => []);
+  return sessions[0] || null;
+}
+
+async function startTriviaBattleSession(store, room, userId) {
+  if (!isTriviaBattleRoom(room)) return null;
+  const existing = await latestTriviaSession(store, room.id);
+  if (existing && !['completed', 'cancelled'].includes(existing.status)) return existing;
+
+  const contributions = await store.list('player_contributions', { room_id: room.id }).catch(() => []);
+  const playerIds = prizeRoomPlayerIds(room, contributions);
+  const matchId = room.id;
+  const session = await store.create('match_sessions', {
+    match_id: matchId,
+    prize_room_id: room.id,
+    game_type: TRIVIA_BATTLE_GAME_TYPE,
+    status: 'in_progress',
+    question_set_id: TRIVIA_BATTLE_QUESTION_SET_ID,
+    questions: publicTriviaQuestions(),
+    answers: {},
+    player_ids: playerIds,
+    standings: [],
+    winner_user_id: '',
+    test_mode: true,
+    started_by: userId,
+    started_at: now(),
+  });
+  await store.update('prize_rooms', room.id, {
+    status: 'in_progress',
+    game_type: TRIVIA_BATTLE_GAME_TYPE,
+    match_session_id: session.id,
+    trivia_question_set_id: TRIVIA_BATTLE_QUESTION_SET_ID,
+    test_mode: true,
+    started_at: session.started_at,
+  }).catch(() => null);
+  if (room.match_id) {
+    await store.update('north_pole_matches', room.match_id, {
+      status: 'in_progress',
+      game_type: TRIVIA_BATTLE_GAME_TYPE,
+      match_session_id: session.id,
+      player_ids: playerIds,
+      started_at: session.started_at,
+      sandbox_mode: true,
+      test_mode: true,
+    }).catch(() => null);
+  }
+  await createAuditEvent(store, {
+    entityType: 'MatchSession',
+    entityId: session.id,
+    matchId,
+    userId,
+    action: 'TRIVIA_BATTLE_SESSION_STARTED',
+    metadata: { prizeRoomId: room.id, playerCount: playerIds.length, testMode: true },
+  }).catch(() => null);
+  return session;
+}
+
+async function finalizeTriviaBattleSession(store, room, session, userId) {
+  if (!session || session.status === 'completed') return { session, verification: null, fulfillment: null };
+  const contributions = await store.list('player_contributions', { room_id: room.id }).catch(() => []);
+  const playerIds = prizeRoomPlayerIds(room, contributions);
+  const answers = normalizeTriviaAnswers(session.answers);
+  const standings = triviaStandings(playerIds, answers);
+  const winner = standings[0];
+  if (!winner?.user_id || !standings.some((entry) => entry.answered_count > 0)) {
+    throw new Error('Trivia Battle cannot finalize without at least one submitted answer');
+  }
+
+  const match = room.match_id ? await store.findOne('north_pole_matches', { id: room.match_id }).catch(() => null) : null;
+  const matchId = room.id;
+  const resultPayload = {
+    source: 'built_in_game_result',
+    game_type: TRIVIA_BATTLE_GAME_TYPE,
+    match_session_id: session.id,
+    winnerUserId: winner.user_id,
+    standings,
+    question_set_id: TRIVIA_BATTLE_QUESTION_SET_ID,
+    scoring_rule: 'Correct answers, then fastest total response time.',
+    test_mode: true,
+  };
+  const matchPatch = {
+    status: 'completed',
+    winner_id: winner.user_id,
+    winner_user_id: winner.user_id,
+    result_payload: resultPayload,
+    raw_result_payload: resultPayload,
+    completed_at: now(),
+    game_type: TRIVIA_BATTLE_GAME_TYPE,
+    match_session_id: session.id,
+    sandbox_mode: true,
+    test_mode: true,
+  };
+  const updatedMatch = match?.id
+    ? await store.update('north_pole_matches', match.id, matchPatch).catch(() => ({ ...match, ...matchPatch }))
+    : { ...room, id: matchId, match_id: room.id, prize_room_id: room.id, ...matchPatch, prize_cost_breakdown: room.cost_breakdown };
+  const verificationDecision = await buildWinnerVerificationDecision(store, updatedMatch, {
+    claimedWinnerUserId: winner.user_id,
+    recommendation: {
+      recommendedWinnerUserId: winner.user_id,
+      recommendedWinner: { userId: winner.user_id },
+      deterministicRule: 'Trivia Battle built-in game result',
+      warnings: [],
+      lockBlockReasons: [],
+      canLockWinner: true,
+    },
+  });
+  const existingVerification = await findApprovedWinnerVerification(store, updatedMatch, winner.user_id);
+  const verification = existingVerification || await store.create('winner_verifications', {
+    matchId,
+    winnerUserId: winner.user_id,
+    winningScore: winner.correct_answers,
+    verificationMethod: 'automatic',
+    status: verificationDecision.status,
+    lockedBy: 'built_in_game_result',
+    lockedAt: now(),
+    auditNotes: verificationDecision.approvalReason,
+    claimedWinner: winner.user_id,
+    confidenceScore: verificationDecision.confidenceScore,
+    approvalThreshold: verificationDecision.approvalThreshold,
+    approvalReason: verificationDecision.approvalReason,
+    proofSourcesUsed: verificationDecision.proofSourcesUsed,
+    proofSourceResults: verificationDecision.sourceResults,
+    prizeValueCents: verificationDecision.prizeValueCents,
+    prizeValueTier: verificationDecision.prizeValueTier,
+    prizeValueRule: verificationDecision.prizeValueRule,
+    requiresManualReview: verificationDecision.requiresManualReview,
+    hasDispute: verificationDecision.hasDispute,
+    fulfillmentStatus: verificationDecision.status === 'approved' ? 'eligible' : 'manual_review_required',
+    scoresConsidered: standings,
+    auditSummary: resultPayload,
+  });
+
+  let fulfillment = null;
+  if (verificationDecision.status === 'approved') {
+    const fulfillmentMatch = {
+      ...(updatedMatch || {}),
+      id: updatedMatch.id || room.match_id,
+      match_id: room.id,
+      prize_room_id: room.id,
+      prize_id: room.prize_id,
+      prize_snapshot: {
+        id: room.prize_id,
+        title: room.prize_title,
+        image: room.prize_image,
+        image_url: room.prize_image,
+        source: room.prize_source,
+        product_url: room.prize_url,
+        price_cents: room.cost_breakdown?.item_cost_cents || 0,
+        estimated_tax_cents: room.cost_breakdown?.estimated_tax_cents || 0,
+        estimated_shipping_cents: room.cost_breakdown?.estimated_shipping_cents || 0,
+      },
+      winner_user_id: winner.user_id,
+      winner_id: winner.user_id,
+      cost_breakdown: room.cost_breakdown,
+      prize_cost_breakdown: room.cost_breakdown,
+      payment_mode: room.payment_mode,
+      fulfillment_mode: 'manual_test_only',
+      initial_fulfillment_status: 'pending_purchase',
+      test_order: true,
+      demo_mode: true,
+    };
+    fulfillment = await createPrizeFulfillment(store, fulfillmentMatch, userId);
+  }
+
+  const completedAt = now();
+  const updatedSession = await store.update('match_sessions', session.id, {
+    status: 'completed',
+    completed_at: completedAt,
+    standings,
+    winner_user_id: winner.user_id,
+    winner_verification_id: verification.id,
+    prize_fulfillment_id: fulfillment?.id || session.prize_fulfillment_id || '',
+    result_payload: resultPayload,
+  });
+  const roomPatch = {
+    winner_user_id: winner.user_id,
+    winner_verification_id: verification.id,
+    winner_verification_status: verification.status,
+    winner_verification_score: verification.confidenceScore ?? verification.confidence_score ?? 0,
+    winner_verification_tier: verification.prizeValueTier ?? verification.prize_value_tier ?? '',
+    winner_verification_reason: verification.approvalReason ?? verification.approval_reason ?? '',
+    winner_verification_proof_sources: verification.proofSourcesUsed ?? verification.proof_sources_used ?? [],
+    winner_verification_requires_manual_review: verification.requiresManualReview ?? verification.requires_manual_review ?? false,
+    trivia_result: resultPayload,
+    match_session_id: session.id,
+    status: verificationDecision.status === 'approved' ? 'prize_fulfillment' : 'pending_verification',
+    fulfillment_status: fulfillment?.status || 'manual_review_required',
+    prize_fulfillment_id: fulfillment?.id || room.prize_fulfillment_id || '',
+  };
+  await store.update('prize_rooms', room.id, roomPatch).catch(() => null);
+  if (updatedMatch?.id) {
+    await store.update('north_pole_matches', updatedMatch.id, {
+      status: verificationDecision.status === 'approved' ? 'prize_fulfillment' : 'pending_verification',
+      winner_verification_id: verification.id,
+      winner_verification_status: verification.status,
+      winner_verification_score: verification.confidenceScore ?? verification.confidence_score ?? 0,
+      winner_verification_tier: verification.prizeValueTier ?? verification.prize_value_tier ?? '',
+      winner_verification_reason: verification.approvalReason ?? verification.approval_reason ?? '',
+      winner_verification_proof_sources: verification.proofSourcesUsed ?? verification.proof_sources_used ?? [],
+      winner_verification_requires_manual_review: verification.requiresManualReview ?? verification.requires_manual_review ?? false,
+      prize_fulfillment_id: fulfillment?.id || '',
+      fulfillment_order_id: fulfillment?.id || '',
+    }).catch(() => null);
+  }
+  await createAuditEvent(store, {
+    entityType: 'MatchSession',
+    entityId: session.id,
+    matchId,
+    userId,
+    action: 'TRIVIA_BATTLE_SESSION_COMPLETED',
+    metadata: {
+      winnerUserId: winner.user_id,
+      verificationStatus: verification.status,
+      confidenceScore: verification.confidenceScore ?? verification.confidence_score ?? 0,
+      proofSourcesUsed: verification.proofSourcesUsed ?? verification.proof_sources_used ?? [],
+      fulfillmentId: fulfillment?.id || null,
+      fulfillmentStatus: fulfillment?.status || null,
+      testMode: true,
+    },
+  }).catch(() => null);
+
+  return { session: updatedSession, verification, fulfillment };
+}
+
+async function submitTriviaBattleAnswer(store, room, session, user, input) {
+  if (!session || session.status !== 'in_progress') {
+    const error = new Error('Trivia Battle session is not accepting answers');
+    error.status = 409;
+    throw error;
+  }
+  const questionId = input.questionId || input.question_id;
+  const selectedOptionIndex = input.selectedOptionIndex ?? input.selected_option_index ?? input.answerIndex ?? input.answer_index;
+  const responseTimeMs = input.responseTimeMs ?? input.response_time_ms ?? 0;
+  const question = triviaQuestionById(questionId);
+  if (!question) {
+    const error = new Error('Trivia question not found');
+    error.status = 400;
+    throw error;
+  }
+  const contributions = await store.list('player_contributions', { room_id: room.id }).catch(() => []);
+  const playerIds = prizeRoomPlayerIds(room, contributions);
+  if (!playerIds.includes(String(user.id))) {
+    const error = new Error('User is not a player in this Trivia Battle');
+    error.status = 403;
+    throw error;
+  }
+  const answers = normalizeTriviaAnswers(session.answers);
+  const existingPlayerAnswers = normalizeTriviaAnswers(answers[user.id]);
+  if (existingPlayerAnswers[question.id]) {
+    const error = new Error('Trivia question was already answered by this player');
+    error.status = 409;
+    throw error;
+  }
+  const nextAnswers = {
+    ...answers,
+    [user.id]: {
+      ...existingPlayerAnswers,
+      [question.id]: {
+        question_id: question.id,
+        selected_option_index: selectedOptionIndex,
+        response_time_ms: normalizeCents(responseTimeMs, 0),
+        is_correct: Number(selectedOptionIndex) === question.correctOptionIndex,
+        answered_at: now(),
+      },
+    },
+  };
+  const standings = triviaStandings(playerIds, nextAnswers);
+  const updatedSession = await store.update('match_sessions', session.id, {
+    answers: nextAnswers,
+    standings,
+    player_ids: playerIds,
+  });
+  if (allTriviaPlayersComplete(playerIds, nextAnswers)) {
+    return finalizeTriviaBattleSession(store, room, updatedSession, user.id);
+  }
+  return { session: updatedSession, verification: null, fulfillment: null };
 }
 
 function createFulfillmentEngine(store, env = process.env) {
@@ -2806,6 +3699,61 @@ export function createMatchFlowRouter({ store }) {
     ok(res, { score: reviewed, data: reviewed });
   }));
 
+  router.post('/matches/:id/verification/recommendation', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required to review winner recommendations' });
+
+    const storedMatch = await findMatch(store, req.params.id);
+    const bodyMatch = req.body?.match && typeof req.body.match === 'object' ? req.body.match : null;
+    const match = storedMatch
+      ? { ...storedMatch, ...(bodyMatch || {}) }
+      : bodyMatch;
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+
+    const recommendation = await buildWinnerVerificationRecommendation(store, match, {
+      entries: Array.isArray(req.body?.entries) ? req.body.entries : undefined,
+      scores: Array.isArray(req.body?.scores) ? req.body.scores : undefined,
+      disputes: Array.isArray(req.body?.disputes) ? req.body.disputes : undefined,
+      refereeContext: req.body?.refereeContext && typeof req.body.refereeContext === 'object'
+        ? req.body.refereeContext
+        : undefined,
+    });
+
+    ok(res, {
+      ...recommendation,
+      recommendation,
+      data: recommendation,
+    });
+  }));
+
+  router.post('/matches/:id/verification/execute', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin, owner, or system access required to execute winner resolution' });
+
+    const match = await findMatch(store, req.params.id);
+    if (!match) return res.status(404).json({ success: false, error: 'Match not found' });
+
+    const result = await executeWinnerResolution(store, match, user.id);
+    ok(res, {
+      ...result,
+      data: result,
+    });
+  }));
+
+  router.post('/financial-triggers/:id/process', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin, owner, or system access required to process financial triggers' });
+
+    const result = await processFinancialSettlementTrigger(store, req.params.id, user.id);
+    ok(res, {
+      ...result,
+      data: result,
+    });
+  }));
+
   router.post('/matches/:matchId/verify-winner', asyncHandler(async (req, res) => {
     const user = await requireUser(req, res, store);
     if (!user) return;
@@ -3527,12 +4475,20 @@ export function createMatchFlowRouter({ store }) {
       }
     }
     const contributions = await store.list('player_contributions', {}, { sort: '-created_at' }).catch(() => []);
+    const sessions = await store.list('match_sessions', {}, { sort: '-created_at' }).catch(() => []);
+    const fulfillments = await store.list('prize_fulfillments', {}, { sort: '-created_at' }).catch(() => []);
     const roomsWithFunding = repairedRooms.map((room) => {
       const roomContributions = contributions.filter((row) => row.room_id === room.id);
       const paidContributions = roomContributions.filter((row) => ['marked_paid', 'paid'].includes(row.status));
+      const matchSession = sessions.find((session) => session.prize_room_id === room.id) || null;
+      const prizeFulfillment = fulfillments.find((fulfillment) => fulfillment.prize_room_id === room.id || fulfillment.id === room.prize_fulfillment_id) || null;
       return {
         ...room,
         contributions: roomContributions,
+        match_session: matchSession,
+        trivia_result: room.trivia_result || matchSession?.result_payload || null,
+        prize_fulfillment: prizeFulfillment,
+        fulfillment_status: room.fulfillment_status || prizeFulfillment?.status || '',
         paid_contribution_count: paidContributions.length,
         contribution_status: paidContributions.length >= Number(room.max_players || 0) ? 'funded' : 'collecting',
       };
@@ -3613,6 +4569,30 @@ export function createMatchFlowRouter({ store }) {
     const room = await store.findOne('prize_rooms', { id: req.params.roomId }).catch(() => null);
     if (!room) return res.status(404).json({ success: false, error: 'Prize Room not found' });
     return proxyPrizeRoomImage(res, prizeRoomGameImageForProxy(room));
+  }));
+
+  router.get('/prize-rooms/:roomId/trivia-battle/session', asyncHandler(async (req, res) => {
+    const room = await store.findOne('prize_rooms', { id: req.params.roomId });
+    if (!room) return res.status(404).json({ success: false, error: 'Prize Room not found' });
+    if (!isTriviaBattleRoom(room)) return res.status(400).json({ success: false, error: 'Prize Room is not a Trivia Battle room' });
+    const session = await latestTriviaSession(store, room.id);
+    ok(res, { session, questions: session ? publicTriviaQuestions() : [], data: { session, questions: session ? publicTriviaQuestions() : [] } });
+  }));
+
+  router.post('/prize-rooms/:roomId/trivia-battle/answer', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    const room = await store.findOne('prize_rooms', { id: req.params.roomId });
+    if (!room) return res.status(404).json({ success: false, error: 'Prize Room not found' });
+    if (!isTriviaBattleRoom(room)) return res.status(400).json({ success: false, error: 'Prize Room is not a Trivia Battle room' });
+    const input = triviaAnswerSchema.parse(req.body || {});
+    const session = await latestTriviaSession(store, room.id);
+    const result = await submitTriviaBattleAnswer(store, room, session, user, input);
+    ok(res, {
+      ...result,
+      questions: publicTriviaQuestions(),
+      data: { ...result, questions: publicTriviaQuestions() },
+    });
   }));
 
   router.post('/prize-rooms/:roomId/join', asyncHandler(async (req, res) => {
@@ -3728,11 +4708,35 @@ export function createMatchFlowRouter({ store }) {
     if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
     const room = await store.findOne('prize_rooms', { id: req.params.roomId });
     if (!room) return res.status(404).json({ success: false, error: 'Prize Room not found' });
+    if (isTriviaBattleRoom(room)) {
+      const session = await startTriviaBattleSession(store, room, user.id);
+      const updatedRoom = await store.findOne('prize_rooms', { id: room.id }).catch(() => ({ ...room, status: 'in_progress', match_session_id: session.id }));
+      return ok(res, {
+        room: updatedRoom,
+        session,
+        questions: publicTriviaQuestions(),
+        data: { room: updatedRoom, session, questions: publicTriviaQuestions() },
+      });
+    }
     const updatedRoom = await store.update('prize_rooms', room.id, { status: 'in_progress', started_at: now() });
     if (room.match_id) {
       await store.update('north_pole_matches', room.match_id, { status: 'in_progress', started_at: now() }).catch(() => null);
     }
     ok(res, { room: updatedRoom, data: updatedRoom });
+  }));
+
+  router.post('/admin/prize-rooms/:roomId/trivia-battle/end', asyncHandler(async (req, res) => {
+    const user = await requireUser(req, res, store);
+    if (!user) return;
+    if (!isAdmin(user)) return res.status(403).json({ success: false, error: 'Admin access required' });
+    const room = await store.findOne('prize_rooms', { id: req.params.roomId });
+    if (!room) return res.status(404).json({ success: false, error: 'Prize Room not found' });
+    if (!isTriviaBattleRoom(room)) return res.status(400).json({ success: false, error: 'Prize Room is not a Trivia Battle room' });
+    const session = await latestTriviaSession(store, room.id);
+    if (!session) return res.status(404).json({ success: false, error: 'Trivia Battle session not found' });
+    const result = await finalizeTriviaBattleSession(store, room, session, user.id);
+    const updatedRoom = await store.findOne('prize_rooms', { id: room.id }).catch(() => room);
+    ok(res, { ...result, room: updatedRoom, data: { ...result, room: updatedRoom } });
   }));
 
   router.post('/admin/prize-rooms/:roomId/create-fulfillment', asyncHandler(async (req, res) => {
